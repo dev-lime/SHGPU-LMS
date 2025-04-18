@@ -73,28 +73,34 @@ const ProfileSection = () => {
 	);
 };
 
-export default function More() {
-	const [darkMode, setDarkMode] = useState(false);
-	const [primaryColor, setPrimaryColor] = useState('green');
+export default function More({ themeConfig, onThemeChange }) {
+	const [darkMode, setDarkMode] = useState(themeConfig.mode === 'dark');
+	const [primaryColor, setPrimaryColor] = useState(themeConfig.color);
 	const [aboutOpen, setAboutOpen] = useState(false);
 
 	useEffect(() => {
-		const savedColor = localStorage.getItem('primaryColor') || 'green';
-		const savedMode = localStorage.getItem('themeMode') || 'light';
-		setDarkMode(savedMode === 'dark');
-		setPrimaryColor(savedColor);
-	}, []);
+		setDarkMode(themeConfig.mode === 'dark');
+		setPrimaryColor(themeConfig.color);
+	}, [themeConfig]);
 
 	const handleThemeChange = () => {
 		const newMode = !darkMode;
 		setDarkMode(newMode);
 		localStorage.setItem('themeMode', newMode ? 'dark' : 'light');
+		onThemeChange({
+			...themeConfig,
+			mode: newMode ? 'dark' : 'light'
+		});
 	};
 
 	const handleColorChange = (event) => {
 		const color = event.target.value;
 		setPrimaryColor(color);
 		localStorage.setItem('primaryColor', color);
+		onThemeChange({
+			...themeConfig,
+			color: color
+		});
 	};
 
 	const handleAboutOpen = () => {

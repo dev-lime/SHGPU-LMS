@@ -35,6 +35,12 @@ export default function App() {
 		setThemeConfig({ color: savedColor, mode: savedMode });
 	}, []);
 
+	const handleThemeChange = (newConfig) => {
+		setThemeConfig(newConfig);
+		localStorage.setItem('primaryColor', newConfig.color);
+		localStorage.setItem('themeMode', newConfig.mode);
+	};
+
 	const theme = createAppTheme(themeConfig.color, themeConfig.mode);
 
 	const tabs = [
@@ -42,7 +48,14 @@ export default function App() {
 		{ label: "ЭИОС", icon: <School />, component: <Eios /> },
 		{ label: "Чат", icon: <ChatIcon />, component: <ChatPage /> },
 		{ label: "Расписание", icon: <CalendarMonth />, component: <Schedule /> },
-		{ label: "Ещё", icon: <Settings />, component: <More /> }
+		{
+			label: "Ещё",
+			icon: <Settings />,
+			component: <More
+				themeConfig={themeConfig}
+				onThemeChange={handleThemeChange}
+			/>
+		}
 	];
 
 	return (

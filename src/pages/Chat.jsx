@@ -89,30 +89,33 @@ export default function Chat() {
 								display: 'flex',
 								alignItems: 'flex-start',
 							}}
-						>
+							>
 							<ListItemAvatar>
 								<Avatar>{chat.name.charAt(0)}</Avatar>
 							</ListItemAvatar>
-							<Box sx={{
-								flex: 1,
-								display: 'flex',
-								flexDirection: 'column',
-								ml: 1,
-								overflow: 'hidden',
-								minWidth: 0
-							}}>
-								<Box sx={{
+							<Box
+								sx={{
+									flex: 1,
+									minWidth: 0,
 									display: 'flex',
-									justifyContent: 'space-between',
-									alignItems: 'center',
-									width: '100%',
-									gap: 1
-								}}>
+									flexDirection: 'column',
+									ml: 1,
+								}}
+								>
+								<Box
+									sx={{
+										display: 'flex',
+										justifyContent: 'space-between',
+										alignItems: 'center',
+										gap: 1,
+										width: '100%',
+									}}
+								>
 									<Typography
 										variant="subtitle1"
 										fontWeight="medium"
 										noWrap
-										sx={{ flex: 1 }}
+										sx={{ flex: 1, minWidth: 0 }}
 									>
 										{chat.name}
 									</Typography>
@@ -124,28 +127,34 @@ export default function Chat() {
 										{chat.time}
 									</Typography>
 								</Box>
-								<Box sx={{
-									display: 'flex',
-									justifyContent: 'space-between',
-									alignItems: 'center',
-									width: '100%',
-									gap: 1
-								}}>
+
+								<Box
+									sx={{
+										display: 'flex',
+										justifyContent: 'space-between',
+										alignItems: 'center',
+										gap: 1,
+										width: '100%',
+									}}
+								>
 									<Typography
 										variant="body2"
 										color="text.secondary"
 										noWrap
-										sx={{ flex: 1 }}
+										sx={{ flex: 1, minWidth: 0 }}
 									>
 										{chat.lastMessage}
 									</Typography>
 									{chat.unread > 0 && (
-										<Box sx={{ flexShrink: 0, ml: 1 }}>
-											<Badge
-												badgeContent={chat.unread}
-												color="primary"
-											/>
-										</Box>
+										<Badge
+											badgeContent={chat.unread}
+											color="primary"
+											sx={{
+												'& .MuiBadge-badge': {
+													transform: 'scale(1) translate(50%, -50%)',
+												},
+											}}
+										/>
 									)}
 								</Box>
 							</Box>

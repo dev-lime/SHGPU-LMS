@@ -5,7 +5,8 @@ import {
 	Chip,
 	Typography,
 	IconButton,
-	Divider
+	Divider,
+	CardActionArea
 } from '@mui/material';
 import {
 	BookmarkBorder,
@@ -67,7 +68,7 @@ export default function News() {
 					color: 'text.primary'
 				}}
 			>
-				Новости вуза
+				Новости
 			</Typography>
 
 			{newsItems.map((item) => (
@@ -83,11 +84,11 @@ export default function News() {
 						'&:hover': {
 							backgroundColor: 'surface.hover'
 						},
-						cursor: 'pointer'
+						overflow: 'hidden',
 					}}
-					onClick={() => console.log('Open news', item.id)}
 				>
 					<CardContent sx={{ p: 3 }}>
+						{/* Header and date */}
 						<Box sx={{
 							display: 'flex',
 							justifyContent: 'space-between',
@@ -114,17 +115,23 @@ export default function News() {
 							</Typography>
 						</Box>
 
-						<Typography
-							variant="h6"
-							sx={{
-								fontWeight: 600,
-								mb: 1.5,
-								color: 'text.primary'
-							}}
+						{/* News title - make this clickable instead of the whole card */}
+						<CardActionArea
+							onClick={() => console.log('Open news', item.id)}
+							sx={{ mb: 1.5 }}
 						>
-							{item.title}
-						</Typography>
+							<Typography
+								variant="h6"
+								sx={{
+									fontWeight: 600,
+									color: 'text.primary'
+								}}
+							>
+								{item.title}
+							</Typography>
+						</CardActionArea>
 
+						{/* News content */}
 						<Typography
 							variant="body1"
 							color="text.secondary"
@@ -138,6 +145,7 @@ export default function News() {
 							backgroundColor: 'divider'
 						}} />
 
+						{/* Author and buttons */}
 						<Box sx={{
 							display: 'flex',
 							justifyContent: 'space-between',
@@ -150,25 +158,19 @@ export default function News() {
 							<Box>
 								<IconButton
 									size="small"
-									onClick={(e) => {
-										e.stopPropagation();
-										toggleBookmark(item.id);
-									}}
+									onClick={() => toggleBookmark(item.id)}
 									sx={{
-										color: 'text.secondary',
+										color: bookmarked.includes(item.id) ? 'primary.main' : 'text.secondary',
 										'&:hover': {
 											backgroundColor: 'transparent',
 											color: 'primary.main'
 										}
 									}}
 								>
-									{bookmarked.includes(item.id) ?
-										<Bookmark color="primary" /> :
-										<BookmarkBorder />}
+									{bookmarked.includes(item.id) ? <Bookmark /> : <BookmarkBorder />}
 								</IconButton>
 								<IconButton
 									size="small"
-									onClick={(e) => e.stopPropagation()}
 									sx={{
 										color: 'text.secondary',
 										'&:hover': {
