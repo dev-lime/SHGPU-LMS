@@ -1,43 +1,189 @@
-import { 
-  Card, 
-  CardContent, 
-  CardActions, // Добавляем этот импорт
-  Typography, 
-  Button 
+import {
+	Card,
+	CardContent,
+	Box,
+	Chip,
+	Typography,
+	IconButton,
+	Divider
 } from '@mui/material';
+import {
+	BookmarkBorder,
+	Bookmark,
+	Share
+} from '@mui/icons-material';
+import { useState } from 'react';
 
 export default function News() {
-  const newsItems = [
-    {
-      title: "Новый курс по Machine Learning",
-      date: "15.05.2023",
-      content: "Кафедра информатики запускает курс для всех студентов 3-го курса.",
-    },
-    {
-      title: "Обновление расписания",
-      date: "10.05.2023", 
-      content: "Внесены изменения в расписание на следующую неделю.",
-    }
-  ];
+	const [bookmarked, setBookmarked] = useState([]);
 
-  return (
-    <div style={{ padding: 16 }}>
-      <Typography variant="h5" gutterBottom>Новости вуза</Typography>
-      
-      {newsItems.map((item, index) => (
-        <Card key={index} style={{ marginBottom: 16 }}>
-          <CardContent>
-            <Typography variant="h6">{item.title}</Typography>
-            <Typography color="textSecondary" gutterBottom>
-              {item.date}
-            </Typography>
-            <Typography variant="body2">{item.content}</Typography>
-          </CardContent>
-          <CardActions>
-            <Button size="small">Подробнее</Button>
-          </CardActions>
-        </Card>
-      ))}
-    </div>
-  );
+	const newsItems = [
+		{
+			id: 1,
+			title: "Новый курс по Machine Learning",
+			date: "15.05.2025",
+			content: "Кафедра информатики запускает курс для всех студентов 3-го курса. Программа включает изучение нейронных сетей, обработку естественного языка и компьютерное зрение.",
+			category: "Образование",
+			author: "Кафедра информатики"
+		},
+		{
+			id: 2,
+			title: "Обновление расписания",
+			date: "10.05.2025",
+			content: "Внесены изменения в расписание на следующую неделю. Обратите внимание на изменения в аудиториях для практических занятий.",
+			category: "Расписание",
+			author: "Учебный отдел"
+		},
+		{
+			id: 3,
+			title: "Студенческая конференция по ИИ",
+			date: "22.11.2024",
+			content: "Приглашаем всех желающих принять участие в ежегодной студенческой конференции по искусственному интеллекту. Регистрация до 18 мая.",
+			category: "Мероприятия",
+			author: "Студенческий совет"
+		}
+	];
+
+	const toggleBookmark = (id) => {
+		if (bookmarked.includes(id)) {
+			setBookmarked(bookmarked.filter(item => item !== id));
+		} else {
+			setBookmarked([...bookmarked, id]);
+		}
+	};
+
+	return (
+		<Box sx={{
+			padding: { xs: 2, sm: 3 },
+			maxWidth: 800,
+			margin: '0 auto'
+		}}>
+			<Typography
+				variant="h5"
+				gutterBottom
+				sx={{
+					fontWeight: 600,
+					mb: 3,
+					color: 'text.primary'
+				}}
+			>
+				Новости вуза
+			</Typography>
+
+			{newsItems.map((item) => (
+				<Card
+					key={item.id}
+					sx={{
+						mb: 3,
+						borderRadius: 3,
+						border: 'none',
+						boxShadow: 'none',
+						backgroundColor: 'surface.main',
+						transition: 'background-color 0.2s',
+						'&:hover': {
+							backgroundColor: 'surface.hover'
+						},
+						cursor: 'pointer'
+					}}
+					onClick={() => console.log('Open news', item.id)}
+				>
+					<CardContent sx={{ p: 3 }}>
+						<Box sx={{
+							display: 'flex',
+							justifyContent: 'space-between',
+							alignItems: 'center',
+							mb: 2
+						}}>
+							<Chip
+								label={item.category}
+								size="small"
+								variant="outlined"
+								sx={{
+									fontWeight: 500,
+									borderColor: 'primary.main',
+									color: 'primary.main',
+									backgroundColor: 'transparent'
+								}}
+							/>
+							<Typography
+								color="text.secondary"
+								variant="body2"
+								sx={{ fontSize: '0.8rem' }}
+							>
+								{item.date}
+							</Typography>
+						</Box>
+
+						<Typography
+							variant="h6"
+							sx={{
+								fontWeight: 600,
+								mb: 1.5,
+								color: 'text.primary'
+							}}
+						>
+							{item.title}
+						</Typography>
+
+						<Typography
+							variant="body1"
+							color="text.secondary"
+							sx={{ mb: 2 }}
+						>
+							{item.content}
+						</Typography>
+
+						<Divider sx={{
+							my: 1.5,
+							backgroundColor: 'divider'
+						}} />
+
+						<Box sx={{
+							display: 'flex',
+							justifyContent: 'space-between',
+							alignItems: 'center'
+						}}>
+							<Typography variant="body2" color="text.secondary">
+								{item.author}
+							</Typography>
+
+							<Box>
+								<IconButton
+									size="small"
+									onClick={(e) => {
+										e.stopPropagation();
+										toggleBookmark(item.id);
+									}}
+									sx={{
+										color: 'text.secondary',
+										'&:hover': {
+											backgroundColor: 'transparent',
+											color: 'primary.main'
+										}
+									}}
+								>
+									{bookmarked.includes(item.id) ?
+										<Bookmark color="primary" /> :
+										<BookmarkBorder />}
+								</IconButton>
+								<IconButton
+									size="small"
+									onClick={(e) => e.stopPropagation()}
+									sx={{
+										color: 'text.secondary',
+										'&:hover': {
+											backgroundColor: 'transparent',
+											color: 'primary.main'
+										}
+									}}
+								>
+									<Share />
+								</IconButton>
+							</Box>
+						</Box>
+					</CardContent>
+				</Card>
+			))}
+		</Box>
+	);
 }
