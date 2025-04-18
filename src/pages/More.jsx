@@ -12,14 +12,20 @@ import {
 	ListItem,
 	ListItemIcon,
 	ListItemText,
-	IconButton
+	IconButton,
+	Button,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions
 } from "@mui/material";
 import {
 	Settings,
 	Palette,
 	Brightness4,
 	Brightness7,
-	Edit
+	Edit,
+	Info
 } from "@mui/icons-material";
 
 const ProfileSection = () => {
@@ -70,6 +76,7 @@ const ProfileSection = () => {
 export default function More() {
 	const [darkMode, setDarkMode] = useState(false);
 	const [primaryColor, setPrimaryColor] = useState('green');
+	const [aboutOpen, setAboutOpen] = useState(false);
 
 	useEffect(() => {
 		const savedColor = localStorage.getItem('primaryColor') || 'green';
@@ -90,6 +97,14 @@ export default function More() {
 		localStorage.setItem('primaryColor', color);
 	};
 
+	const handleAboutOpen = () => {
+		setAboutOpen(true);
+	};
+
+	const handleAboutClose = () => {
+		setAboutOpen(false);
+	};
+
 	const colorOptions = {
 		green: '#4CAF50',
 		purple: '#6750A4',
@@ -100,7 +115,12 @@ export default function More() {
 	};
 
 	return (
-		<Box sx={{ pb: 2 }}>
+		<Box sx={{
+			pb: 2,
+			display: 'flex',
+			flexDirection: 'column',
+			height: '100%'
+		}}>
 			<ProfileSection />
 
 			<Divider sx={{ my: 2 }} />
@@ -156,8 +176,18 @@ export default function More() {
 
 			<Typography variant="h6" sx={{ px: 2, mb: 1 }}>Настройки</Typography>
 
-			<List disablePadding>
-				<ListItem component="div">
+			<List disablePadding sx={{ mb: 2 }}>
+				<ListItem
+					component={Button}
+					onClick={() => console.log('All settings clicked')}
+					sx={{
+						textTransform: 'none',
+						color: 'text.primary',
+						'&:hover': {
+							backgroundColor: 'action.hover'
+						}
+					}}
+				>
 					<ListItemIcon sx={{ minWidth: 40 }}>
 						<Settings color="primary" />
 					</ListItemIcon>
@@ -167,6 +197,91 @@ export default function More() {
 					/>
 				</ListItem>
 			</List>
+
+			<Box sx={{ flexGrow: 1 }} />
+
+			<List disablePadding>
+				<ListItem
+					component={Button}
+					onClick={handleAboutOpen}
+					sx={{
+						textTransform: 'none',
+						color: 'text.primary',
+						'&:hover': {
+							backgroundColor: 'action.hover'
+						}
+					}}
+				>
+					<ListItemIcon sx={{ minWidth: 40 }}>
+						<Info color="primary" />
+					</ListItemIcon>
+					<ListItemText primary="О приложении" />
+				</ListItem>
+			</List>
+
+			<Dialog
+				open={aboutOpen}
+				onClose={handleAboutClose}
+				maxWidth="xs"
+				fullWidth
+				PaperProps={{
+					sx: {
+						borderRadius: 3,
+						bgcolor: 'background.paper',
+						p: 1
+					}
+				}}
+			>
+				<DialogTitle sx={{
+					typography: 'h6',
+					color: 'text.primary',
+					px: 3,
+					pt: 3
+				}}>
+					О приложении
+				</DialogTitle>
+				<DialogContent sx={{
+					px: 3,
+					py: 1
+				}}>
+					<Box sx={{
+						display: 'flex',
+						flexDirection: 'column',
+						gap: 2
+					}}>
+						<Typography variant="body1" component="div" color="text.primary">
+							<Box component="span" sx={{ fontWeight: 600 }}>SHGPU-LMS</Box>
+						</Typography>
+						<Typography variant="body2" component="div" color="text.secondary">
+							Учебная платформа Шадринского государственного педагогического университета
+						</Typography>
+						<Typography variant="caption" display="block" color="text.secondary">
+							Версия 0.2 Demo
+						</Typography>
+					</Box>
+				</DialogContent>
+				<DialogActions sx={{
+					px: 3,
+					py: 2,
+					justifyContent: 'center'
+				}}>
+					<Button
+						onClick={handleAboutClose}
+						color="primary"
+						variant="contained"
+						sx={{
+							textTransform: 'none',
+							borderRadius: 2,
+							px: 3,
+							py: 1,
+							minWidth: 120
+						}}
+						autoFocus
+					>
+						Закрыть
+					</Button>
+				</DialogActions>
+			</Dialog>
 		</Box>
 	);
 }
