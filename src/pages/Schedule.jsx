@@ -1,18 +1,20 @@
 import { Table, TableBody, TableCell, TableRow } from "@mui/material";
-import { Typography, Card, CardContent } from '@mui/material';
+import { Typography } from '@mui/material';
 
 export default function Schedule() {
-  const days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница"];
-
   return (
     <div style={{ padding: 16 }}>
       <Typography variant="h5" gutterBottom>Расписание</Typography>
       <Table>
         <TableBody>
-          {days.map((day, index) => (
-            <TableRow key={index}>
-              <TableCell>{day}</TableCell>
-              <TableCell>9:00 - Лекция по предмету {index + 1}</TableCell>
+          {[
+            { day: "Понедельник", classes: "9:00 - Мат. анализ (ауд. 304)" },
+            { day: "Вторник", classes: "10:00 - Python (ауд. 415)" },
+            { day: "Среда", classes: "11:00 - Базы данных (ауд. 203)" }
+          ].map((row) => (
+            <TableRow key={row.day}>
+              <TableCell><b>{row.day}</b></TableCell>
+              <TableCell>{row.classes}</TableCell>
             </TableRow>
           ))}
         </TableBody>

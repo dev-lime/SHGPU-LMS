@@ -2,9 +2,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ThemeProvider } from '@mui/material/styles';
-import theme from './theme'; // Теперь файл существует
+import { createAppTheme } from './theme'; // Импортируем именованный экспорт
 import App from './App';
 import './index.css';
+
+// Создаем тему по умолчанию
+const theme = createAppTheme();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
