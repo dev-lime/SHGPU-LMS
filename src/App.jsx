@@ -1,55 +1,40 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
-
-export default App
-
-/*
-import { Routes, Route } from "react-router-dom";
-import { BottomNavbar } from "./components/BottomNavbar";
-import { SchedulePage, LMSPage, NotificationsPage } from "./pages";
+import React, { useState } from "react";
+import { CssBaseline, Paper, BottomNavigation, BottomNavigationAction } from "@mui/material";
+import { Article, School, Chat as ChatIcon, CalendarMonth } from "@mui/icons-material"; // Переименовали иконку
+import News from "./pages/News";
+import Eios from "./pages/Eios";
+import ChatPage from "./pages/Chat"; // Изменили название импорта
+import Schedule from "./pages/Schedule";
+import ErrorBoundary from './components/ErrorBoundary';
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState(0);
+
+  const tabs = [
+    { label: "Новости", icon: <Article />, component: <News /> },
+    { label: "ЭИОС", icon: <School />, component: <Eios /> },
+    { label: "Чат", icon: <ChatIcon />, component: <ChatPage /> }, // Используем ChatIcon и ChatPage
+    { label: "Расписание", icon: <CalendarMonth />, component: <Schedule /> },
+  ];
+
   return (
-    <div style={{ paddingBottom: "70px" }}> {} //Отступ для BottomNavbar
-    <Routes>
-    <Route path="/" element={<SchedulePage />} />
-    <Route path="/schedule" element={<SchedulePage />} />
-    <Route path="/lms" element={<LMSPage />} />
-    <Route path="/notifications" element={<NotificationsPage />} />
-  </Routes>
-  <BottomNavbar />
-</div>
-);
+    <div style={{ maxWidth: 450, margin: "0 auto", height: "100vh", display: "flex", flexDirection: "column" }}>
+      <CssBaseline />
+      <Paper elevation={3} style={{ flex: 1, overflow: "auto" }}>
+      <ErrorBoundary>
+        {tabs[activeTab].component}
+      </ErrorBoundary>
+      </Paper>
+      <BottomNavigation
+        value={activeTab}
+        onChange={(e, newValue) => setActiveTab(newValue)}
+        showLabels
+        style={{ position: "sticky", bottom: 0, width: "100%" }}
+      >
+        {tabs.map((tab, index) => (
+          <BottomNavigationAction key={index} label={tab.label} icon={tab.icon} />
+        ))}
+      </BottomNavigation>
+    </div>
+  );
 }
-*/
