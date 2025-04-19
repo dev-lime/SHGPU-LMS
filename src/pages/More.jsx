@@ -44,24 +44,45 @@ const ProfileSection = () => {
 					position: 'absolute',
 					right: 16,
 					top: 16,
-					bgcolor: 'background.paper'
+					bgcolor: 'background.paper',
+					'&.Mui-selected': {
+						outline: 'none'
+					},
+					'&:focus': {
+						outline: 'none'
+					}
 				}}
 			>
 				<Edit fontSize="small" />
 			</IconButton>
 
-			<Avatar
+			<IconButton
 				sx={{
 					width: 96,
 					height: 96,
-					fontSize: 40,
 					mb: 2,
-					bgcolor: 'primary.main',
-					cursor: 'pointer'
+					'&:hover': {
+						bgcolor: 'primary.main'
+					},
+					'&.Mui-selected': {
+						outline: 'none'
+					},
+					'&:focus': {
+						outline: 'none'
+					}
 				}}
 			>
-				{userInitial}
-			</Avatar>
+				<Avatar
+					sx={{
+						width: '100%',
+						height: '100%',
+						fontSize: 40,
+						bgcolor: 'primary.main',
+					}}
+				>
+					{userInitial}
+				</Avatar>
+			</IconButton>
 
 			<Typography variant="h6" align="center">
 				Артем Дедюхин
@@ -191,6 +212,12 @@ export default function More({ themeConfig, onThemeChange }) {
 						color: 'text.primary',
 						'&:hover': {
 							backgroundColor: 'action.hover'
+						},
+						'&.Mui-selected': {
+							outline: 'none'
+						},
+						'&:focus': {
+							outline: 'none'
 						}
 					}}
 				>
@@ -215,6 +242,12 @@ export default function More({ themeConfig, onThemeChange }) {
 						color: 'text.primary',
 						'&:hover': {
 							backgroundColor: 'action.hover'
+						},
+						'&.Mui-selected': {
+							outline: 'none'
+						},
+						'&:focus': {
+							outline: 'none'
 						}
 					}}
 				>
@@ -269,7 +302,7 @@ export default function More({ themeConfig, onThemeChange }) {
 				<DialogActions sx={{
 					px: 3,
 					py: 2,
-					justifyContent: 'center'
+					justifyContent: 'right'
 				}}>
 					<Button
 						onClick={handleAboutClose}
@@ -280,7 +313,13 @@ export default function More({ themeConfig, onThemeChange }) {
 							borderRadius: 2,
 							px: 3,
 							py: 1,
-							minWidth: 120
+							minWidth: 120,
+							'&.Mui-selected': {
+								outline: 'none'
+							},
+							'&:focus': {
+								outline: 'none'
+							}
 						}}
 						autoFocus
 					>

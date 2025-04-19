@@ -123,6 +123,12 @@ export default function Eios() {
 							boxShadow: theme.shadows[4],
 							'&:hover': {
 								boxShadow: theme.shadows[8]
+							},
+							'&.Mui-selected': {
+								outline: 'none'
+							},
+							'&:focus': {
+								outline: 'none'
 							}
 						}}
 					>

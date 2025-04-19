@@ -118,7 +118,16 @@ export default function News() {
 						{/* News title - make this clickable instead of the whole card */}
 						<CardActionArea
 							onClick={() => console.log('Open news', item.id)}
-							sx={{ mb: 1.5 }}
+							sx={{
+								mb: 1.5,
+								'&.Mui-selected': {
+									outline: 'none'
+								},
+								'&:focus': {
+									outline: 'none'
+								},
+								borderRadius: 0
+							}}
 						>
 							<Typography
 								variant="h6"
@@ -164,7 +173,14 @@ export default function News() {
 										'&:hover': {
 											backgroundColor: 'transparent',
 											color: 'primary.main'
-										}
+										},
+										'&.Mui-selected': {
+											outline: 'none'
+										},
+										'&:focus': {
+											outline: 'none'
+										},
+										borderRadius: 0
 									}}
 								>
 									{bookmarked.includes(item.id) ? <Bookmark /> : <BookmarkBorder />}
@@ -176,7 +192,14 @@ export default function News() {
 										'&:hover': {
 											backgroundColor: 'transparent',
 											color: 'primary.main'
-										}
+										},
+										'&.Mui-selected': {
+											outline: 'none'
+										},
+										'&:focus': {
+											outline: 'none'
+										},
+										borderRadius: 0
 									}}
 								>
 									<Share />
