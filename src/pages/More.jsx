@@ -25,7 +25,9 @@ import {
 	Brightness4,
 	Brightness7,
 	Edit,
-	Info
+	Info,
+	HelpOutline,
+	ExitToApp
 } from "@mui/icons-material";
 
 const ProfileSection = () => {
@@ -203,7 +205,7 @@ export default function More({ themeConfig, onThemeChange }) {
 
 			<Typography variant="h6" sx={{ px: 2, mb: 1 }}>Настройки</Typography>
 
-			<List disablePadding sx={{ mb: 2 }}>
+			<List disablePadding>
 				<ListItem
 					component={Button}
 					onClick={() => console.log('All settings clicked')}
@@ -229,11 +231,28 @@ export default function More({ themeConfig, onThemeChange }) {
 						secondary="Дополнительные параметры"
 					/>
 				</ListItem>
-			</List>
-
-			<Box sx={{ flexGrow: 1 }} />
-
-			<List disablePadding>
+				<ListItem
+					component={Button}
+					onClick={() => console.log('Support clicked')}
+					sx={{
+						textTransform: 'none',
+						color: 'text.primary',
+						'&:hover': {
+							backgroundColor: 'action.hover'
+						},
+						'&.Mui-selected': {
+							outline: 'none'
+						},
+						'&:focus': {
+							outline: 'none'
+						}
+					}}
+				>
+					<ListItemIcon sx={{ minWidth: 40 }}>
+						<HelpOutline color="primary" />
+					</ListItemIcon>
+					<ListItemText primary="Поддержка" />
+				</ListItem>
 				<ListItem
 					component={Button}
 					onClick={handleAboutOpen}
