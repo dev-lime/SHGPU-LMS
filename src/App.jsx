@@ -1,34 +1,50 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 import {
 	CssBaseline,
 	Paper,
 	BottomNavigation,
 	BottomNavigationAction,
-	ThemeProvider
+	CircularProgress,
+	Box
 } from "@mui/material";
 import {
 	Article,
 	School,
 	Chat as ChatIcon,
 	CalendarMonth,
-	Settings
+	AccountCircle
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
+import { ThemeProvider } from "@mui/material/styles";
+import { auth } from './firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import News from "./pages/News";
 import Eios from "./pages/Eios";
 import ChatPage from "./pages/Chat";
 import Schedule from "./pages/Schedule";
 import More from "./pages/More";
-import ErrorBoundary from './components/ErrorBoundary';
+import Auth from "./components/Auth";
 import { createAppTheme } from './theme';
 
 export default function App() {
+	const [user, setUser] = useState(null);
+	const [loading, setLoading] = useState(true);
 	const [activeTab, setActiveTab] = useState(0);
 	const [themeConfig, setThemeConfig] = useState({
 		color: 'green',
 		mode: 'light'
 	});
 
+	// Проверка состояния аутентификации
+	useEffect(() => {
+		const unsubscribe = onAuthStateChanged(auth, (user) => {
+			setUser(user);
+			setLoading(false);
+		});
+		return unsubscribe;
+	}, []);
+
+	// Загрузка темы
 	useEffect(() => {
 		const savedColor = localStorage.getItem('primaryColor') || 'green';
 		const savedMode = localStorage.getItem('themeMode') || 'light';
@@ -41,6 +57,14 @@ export default function App() {
 		localStorage.setItem('themeMode', newConfig.mode);
 	};
 
+	const handleLogout = async () => {
+		try {
+			await signOut(auth);
+		} catch (error) {
+			console.error('Ошибка при выходе:', error);
+		}
+	};
+
 	const theme = createAppTheme(themeConfig.color, themeConfig.mode);
 
 	const tabs = [
@@ -50,55 +74,75 @@ export default function App() {
 		{ label: "Расписание", icon: <CalendarMonth />, component: <Schedule /> },
 		{
 			label: "Ещё",
-			icon: <Settings />,
+			icon: <AccountCircle />,
 			component: <More
 				themeConfig={themeConfig}
 				onThemeChange={handleThemeChange}
+				user={user}
+				onLogout={handleLogout}
 			/>
 		}
 	];
 
+	if (loading) {
+		return (
+			<ThemeProvider theme={theme}>
+				<Box sx={{
+					display: 'flex',
+					justifyContent: 'center',
+					alignItems: 'center',
+					height: '100vh'
+				}}>
+					<CircularProgress size={60} />
+				</Box>
+			</ThemeProvider>
+		);
+	}
+
+	if (!user) {
+		return (
+			<ThemeProvider theme={theme}>
+				<Auth />
+			</ThemeProvider>
+		);
+	}
+
 	return (
 		<ThemeProvider theme={theme}>
-			<div style={{
+			<CssBaseline />
+			<Box sx={{
 				maxWidth: 450,
 				margin: "0 auto",
 				height: "100vh",
 				display: "flex",
 				flexDirection: "column",
-				borderRadius: 0
+				bgcolor: 'background.default'
 			}}>
-				<CssBaseline />
 				<Paper
-					elevation={3}
+					elevation={0}
 					sx={{
 						flex: 1,
 						overflow: "auto",
 						borderRadius: 0,
-						'&.MuiPaper-rounded': {
-							borderRadius: 0
-						}
 					}}
 				>
-					<ErrorBoundary>
-						<AnimatePresence mode="wait">
-							<motion.div
-								key={activeTab}
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								exit={{ opacity: 0 }}
-								transition={{ duration: 0.25 }}
-								style={{
-									flex: 1,
-									overflow: "auto",
-									borderRadius: 0
-								}}
-							>
-								{tabs[activeTab].component}
-							</motion.div>
-						</AnimatePresence>
-					</ErrorBoundary>
+					<AnimatePresence mode="wait">
+						<motion.div
+							key={activeTab}
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+							transition={{ duration: 0.25 }}
+							style={{
+								flex: 1,
+								overflow: "auto",
+							}}
+						>
+							{tabs[activeTab].component}
+						</motion.div>
+					</AnimatePresence>
 				</Paper>
+
 				<BottomNavigation
 					value={activeTab}
 					onChange={(e, newValue) => setActiveTab(newValue)}
@@ -107,7 +151,9 @@ export default function App() {
 						position: "sticky",
 						bottom: 0,
 						width: "100%",
-						borderRadius: 0
+						bgcolor: 'background.paper',
+						borderTop: '1px solid',
+						borderColor: 'divider'
 					}}
 				>
 					{tabs.map((tab, index) => (
@@ -116,18 +162,21 @@ export default function App() {
 							label={tab.label}
 							icon={tab.icon}
 							sx={{
+								minWidth: 'auto',
+								'&.Mui-selected': {
+									color: 'primary.main'
+								},
 								'&.Mui-selected': {
 									outline: 'none'
 								},
 								'&:focus': {
 									outline: 'none'
-								},
-								borderRadius: 0
+								}
 							}}
 						/>
 					))}
 				</BottomNavigation>
-			</div>
+			</Box>
 		</ThemeProvider>
 	);
 }

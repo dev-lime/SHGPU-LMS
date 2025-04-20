@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
 	Box,
 	Typography,
@@ -12,7 +12,6 @@ import {
 	ListItem,
 	ListItemIcon,
 	ListItemText,
-	IconButton,
 	Button,
 	Dialog,
 	DialogTitle,
@@ -24,14 +23,14 @@ import {
 	Palette,
 	Brightness4,
 	Brightness7,
-	Edit,
 	Info,
 	HelpOutline,
-	ExitToApp
+	ExitToApp,
+	Description
 } from "@mui/icons-material";
 
-const ProfileSection = () => {
-	const [userInitial] = useState('А');
+const ProfileSection = ({ user }) => {
+	const userInitial = user?.email?.charAt(0).toUpperCase() || 'П';
 
 	return (
 		<Box sx={{
@@ -41,98 +40,32 @@ const ProfileSection = () => {
 			py: 3,
 			position: 'relative'
 		}}>
-			<IconButton
-				sx={{
-					position: 'absolute',
-					right: 16,
-					top: 16,
-					bgcolor: 'background.paper',
-					'&.Mui-selected': {
-						outline: 'none'
-					},
-					'&:focus': {
-						outline: 'none'
-					}
-				}}
-			>
-				<Edit fontSize="small" />
-			</IconButton>
-
-			<IconButton
+			<Avatar
 				sx={{
 					width: 96,
 					height: 96,
 					mb: 2,
-					'&:hover': {
-						bgcolor: 'primary.main'
-					},
-					'&.Mui-selected': {
-						outline: 'none'
-					},
-					'&:focus': {
-						outline: 'none'
-					}
+					bgcolor: 'primary.main',
+					fontSize: 40
 				}}
 			>
-				<Avatar
-					sx={{
-						width: '100%',
-						height: '100%',
-						fontSize: 40,
-						bgcolor: 'primary.main',
-					}}
-				>
-					{userInitial}
-				</Avatar>
-			</IconButton>
+				{userInitial}
+			</Avatar>
 
 			<Typography variant="h6" align="center">
-				Артем Дедюхин
+				{user?.email || 'Пользователь'}
 			</Typography>
 			<Typography variant="body2" color="text.secondary" align="center">
-				Студент, ИИТТиЕН
+				{user?.uid ? 'Аккаунт активирован' : 'Гостевой режим'}
 			</Typography>
 		</Box>
 	);
 };
 
-export default function More({ themeConfig, onThemeChange }) {
-	const [darkMode, setDarkMode] = useState(themeConfig.mode === 'dark');
-	const [primaryColor, setPrimaryColor] = useState(themeConfig.color);
+export default function More({ themeConfig, onThemeChange, user, onLogout }) {
+	const [primaryColor, setPrimaryColor] = useState(themeConfig?.color || 'green');
+	const [darkMode, setDarkMode] = useState(themeConfig?.mode === 'dark');
 	const [aboutOpen, setAboutOpen] = useState(false);
-
-	useEffect(() => {
-		setDarkMode(themeConfig.mode === 'dark');
-		setPrimaryColor(themeConfig.color);
-	}, [themeConfig]);
-
-	const handleThemeChange = () => {
-		const newMode = !darkMode;
-		setDarkMode(newMode);
-		localStorage.setItem('themeMode', newMode ? 'dark' : 'light');
-		onThemeChange({
-			...themeConfig,
-			mode: newMode ? 'dark' : 'light'
-		});
-	};
-
-	const handleColorChange = (event) => {
-		const color = event.target.value;
-		setPrimaryColor(color);
-		localStorage.setItem('primaryColor', color);
-		onThemeChange({
-			...themeConfig,
-			color: color
-		});
-	};
-
-	const handleAboutOpen = () => {
-		setAboutOpen(true);
-	};
-
-	const handleAboutClose = () => {
-		setAboutOpen(false);
-	};
 
 	const colorOptions = {
 		green: '#4CAF50',
@@ -143,6 +76,21 @@ export default function More({ themeConfig, onThemeChange }) {
 		pink: '#E91E63'
 	};
 
+	const handleColorChange = (event) => {
+		const color = event.target.value;
+		setPrimaryColor(color);
+		onThemeChange({ ...themeConfig, color });
+	};
+
+	const handleThemeChange = (event) => {
+		const mode = event.target.checked ? 'dark' : 'light';
+		setDarkMode(event.target.checked);
+		onThemeChange({ ...themeConfig, mode });
+	};
+
+	const handleAboutOpen = () => setAboutOpen(true);
+	const handleAboutClose = () => setAboutOpen(false);
+
 	return (
 		<Box sx={{
 			pb: 2,
@@ -150,7 +98,7 @@ export default function More({ themeConfig, onThemeChange }) {
 			flexDirection: 'column',
 			height: '100%'
 		}}>
-			<ProfileSection />
+			<ProfileSection user={user} />
 
 			<Divider sx={{ my: 2 }} />
 
@@ -208,6 +156,29 @@ export default function More({ themeConfig, onThemeChange }) {
 			<List disablePadding>
 				<ListItem
 					component={Button}
+					onClick={() => console.log('Help clicked')}
+					sx={{
+						textTransform: 'none',
+						color: 'text.primary',
+						'&:hover': {
+							backgroundColor: 'action.hover'
+						},
+						'&.Mui-selected': {
+							outline: 'none'
+						},
+						'&:focus': {
+							outline: 'none'
+						}
+					}}
+				>
+					<ListItemIcon sx={{ minWidth: 40 }}>
+						<Description color="primary" />
+					</ListItemIcon>
+					<ListItemText primary="Документы" />
+				</ListItem>
+
+				<ListItem
+					component={Button}
 					onClick={() => console.log('All settings clicked')}
 					sx={{
 						textTransform: 'none',
@@ -231,9 +202,10 @@ export default function More({ themeConfig, onThemeChange }) {
 						secondary="Дополнительные параметры"
 					/>
 				</ListItem>
+
 				<ListItem
 					component={Button}
-					onClick={() => console.log('Support clicked')}
+					onClick={() => console.log('Help clicked')}
 					sx={{
 						textTransform: 'none',
 						color: 'text.primary',
@@ -251,8 +223,9 @@ export default function More({ themeConfig, onThemeChange }) {
 					<ListItemIcon sx={{ minWidth: 40 }}>
 						<HelpOutline color="primary" />
 					</ListItemIcon>
-					<ListItemText primary="Поддержка" />
+					<ListItemText primary="Помощь" />
 				</ListItem>
+
 				<ListItem
 					component={Button}
 					onClick={handleAboutOpen}
@@ -275,6 +248,31 @@ export default function More({ themeConfig, onThemeChange }) {
 					</ListItemIcon>
 					<ListItemText primary="О приложении" />
 				</ListItem>
+
+				{user?.uid && (
+					<ListItem
+						component={Button}
+						onClick={onLogout}
+						sx={{
+							textTransform: 'none',
+							color: 'error.main',
+							'&:hover': {
+								backgroundColor: 'action.hover'
+							},
+							'&.Mui-selected': {
+								outline: 'none'
+							},
+							'&:focus': {
+								outline: 'none'
+							}
+						}}
+					>
+						<ListItemIcon sx={{ minWidth: 40 }}>
+							<ExitToApp color="error" />
+						</ListItemIcon>
+						<ListItemText primary="Выйти из аккаунта" />
+					</ListItem>
+				)}
 			</List>
 
 			<Dialog
