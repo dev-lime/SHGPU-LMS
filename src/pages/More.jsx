@@ -82,13 +82,7 @@ export default function More({ user, onLogout }) {
 			name: "Помощь",
 			icon: <HelpOutline color="primary" />,
 			onClick: () => navigate('/support')
-		},
-		...(user?.uid ? [{
-			name: "Выйти из аккаунта",
-			icon: <ExitToApp color="error" />,
-			onClick: onLogout,
-			color: "error.main"
-		}] : [])
+		}
 	];
 
 	return (
