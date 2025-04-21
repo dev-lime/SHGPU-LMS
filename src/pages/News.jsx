@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
 	Card,
 	CardContent,
@@ -17,7 +18,6 @@ import {
 	Share,
 	Search
 } from '@mui/icons-material';
-import { useState } from 'react';
 
 export default function News() {
 	const [bookmarked, setBookmarked] = useState([]);
@@ -71,16 +71,18 @@ export default function News() {
 
 	return (
 		<Box sx={{
-			padding: { xs: 2, sm: 3 },
-			maxWidth: 800,
-			margin: '0 auto'
+			height: '100%',
+			display: 'flex',
+			flexDirection: 'column',
+			p: 2
 		}}>
 			<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
 				<Typography
 					variant="h5"
 					sx={{
 						fontWeight: 600,
-						color: 'text.primary'
+						color: 'text.primary',
+						whiteSpace: 'nowrap'
 					}}
 				>
 					Новости
@@ -93,7 +95,7 @@ export default function News() {
 					value={searchQuery}
 					onChange={(e) => setSearchQuery(e.target.value)}
 					sx={{
-						width: '65%',
+						width: '100%',
 						'& .MuiOutlinedInput-root': {
 							borderRadius: '28px',
 							backgroundColor: 'background.paper',
