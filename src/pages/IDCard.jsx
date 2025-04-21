@@ -28,7 +28,7 @@ export default function IDCard() {
                         '&:focus': { outline: 'none' }
                     }}
                 >
-                    <ArrowBack />
+                    <ArrowBack color="primary" />
                 </IconButton>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>Студенческий билет</Typography>
             </Box>

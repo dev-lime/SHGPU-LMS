@@ -1,13 +1,13 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import {
+    getAuth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    updateProfile
+} from 'firebase/auth';
+import { getFirestore, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -18,10 +18,61 @@ const firebaseConfig = {
     measurementId: "G-V2WQ92VDVP"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-export { auth, db, storage };
+// Функция для регистрации с дополнительными данными
+const registerWithProfile = async (email, password, profileData) => {
+    try {
+        // Создаем пользователя
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+        // Форматируем Telegram URL
+        let telegramUrl = profileData.telegramUrl;
+        if (telegramUrl && !telegramUrl.startsWith('https://t.me/')) {
+            telegramUrl = `https://t.me/${telegramUrl.replace(/^@/, '')}`;
+        }
+
+        // Сохраняем данные в Firestore
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
+            fullName: profileData.fullName,
+            email,
+            phone: profileData.phone,
+            studentGroup: profileData.studentGroup,
+            accountType: profileData.accountType,
+            telegramUrl,
+            avatarUrl: profileData.avatarUrl || null,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        // Обновляем профиль в Auth
+        await updateProfile(userCredential.user, {
+            displayName: profileData.fullName,
+            photoURL: profileData.avatarUrl || null
+        });
+
+        return userCredential;
+    } catch (error) {
+        console.error('Error registering user:', error);
+        throw error;
+    }
+};
+
+export {
+    auth,
+    db,
+    storage,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    updateProfile,
+    doc,
+    setDoc,
+    updateDoc,
+    ref,
+    uploadBytes,
+    getDownloadURL,
+    registerWithProfile // экспортируем новую функцию
+};

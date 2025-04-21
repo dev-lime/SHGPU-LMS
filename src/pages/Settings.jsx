@@ -24,16 +24,14 @@ import {
     Palette,
     Brightness4,
     Brightness7,
-    Info,
-    ExitToApp
+    Info
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
-export default function Settings({ themeConfig, onThemeChange, user, onLogout }) {
+export default function Settings({ themeConfig, onThemeChange }) {
     const navigate = useNavigate();
     const [primaryColor, setPrimaryColor] = useState(themeConfig?.color || 'green');
     const [darkMode, setDarkMode] = useState(themeConfig?.mode === 'dark');
-    const [notifications, setNotifications] = useState(true);
     const [aboutOpen, setAboutOpen] = useState(false);
 
     const colorOptions = {
@@ -104,14 +102,7 @@ export default function Settings({ themeConfig, onThemeChange, user, onLogout })
             icon: <Info color="primary" />,
             action: null,
             onClick: handleAboutOpen
-        },
-        ...(user?.uid ? [{
-            name: "Выйти из аккаунта",
-            icon: <ExitToApp color="error" />,
-            action: null,
-            color: "error.main",
-            onClick: onLogout
-        }] : [])
+        }
     ];
 
     return (
@@ -130,7 +121,7 @@ export default function Settings({ themeConfig, onThemeChange, user, onLogout })
                         cursor: 'pointer'
                     }}
                 >
-                    <ArrowBack />
+                    <ArrowBack color="primary" />
                 </IconButton>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>Настройки</Typography>
             </Box>

@@ -59,18 +59,24 @@ const Schedule = () => {
 		const generateWeekDates = () => {
 			const dates = [];
 			const now = new Date();
-			const currentDayOfWeek = now.getDay();
+			let currentDayOfWeek = now.getDay(); // 0 - воскресенье, 1 - понедельник, ..., 6 - суббота
+		
+			// Если сегодня воскресенье, то считаем, что уже началась следующая неделя
+			if (currentDayOfWeek === 0) {
+				now.setDate(now.getDate() + 1); // Перемещаемся на понедельник следующей недели
+			}
+		
+			// Находим понедельник текущей (или следующей, если воскресенье) недели
 			const monday = new Date(now);
-
-			monday.setDate(now.getDate() - (currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1));
-			monday.setDate(monday.getDate() + currentWeek * 7);
-
+			const offset = now.getDay() === 0 ? -6 : 1 - now.getDay(); // для понедельника будет 0
+			monday.setDate(now.getDate() + offset + currentWeek * 7);
+		
 			for (let i = 0; i < 6; i++) {
 				const date = new Date(monday);
 				date.setDate(monday.getDate() + i);
 				dates.push(date);
 			}
-
+		
 			return dates;
 		};
 

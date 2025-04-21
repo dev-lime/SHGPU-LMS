@@ -28,7 +28,7 @@ export default function Support() {
                         '&:focus': { outline: 'none' }
                     }}
                 >
-                    <ArrowBack />
+                    <ArrowBack color="primary" />
                 </IconButton>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>Поддержка</Typography>
             </Box>

@@ -96,7 +96,7 @@ export default function Documents() {
                         '&:focus': { outline: 'none' }
                     }}
                 >
-                    <ArrowBackIcon />
+                    <ArrowBackIcon color="primary" />
                 </IconButton>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>Документы</Typography>
             </Box>

@@ -22,7 +22,7 @@ import {
     Email, 
     Lock, 
     PersonAdd, 
-    Login, 
+    Login,
     Phone,
     School,
     Person
@@ -75,7 +75,7 @@ export default function Auth() {
             setLoading(false);
         }
     };
-    
+
     const getErrorMessage = (code) => {
         switch (code) {
             case 'auth/email-already-in-use':
