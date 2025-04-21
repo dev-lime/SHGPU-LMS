@@ -6,7 +6,6 @@ import {
 	List,
 	ListItem,
 	ListItemText,
-	ListItemIcon,
 	Divider,
 	Avatar
 } from '@mui/material';
@@ -15,7 +14,7 @@ import {
 	Settings,
 	HelpOutline,
 	AccountCircle,
-	ExitToApp
+	CreditCard
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -66,6 +65,11 @@ export default function More({ user, onLogout }) {
 	const navigate = useNavigate();
 
 	const menuItems = [
+		{
+			name: "Предъявить студенческий",
+			icon: <CreditCard color="primary" />,
+			onClick: () => console.log("student")
+		},
 		{
 			name: "Документы",
 			description: "Шаблоны для печати",
