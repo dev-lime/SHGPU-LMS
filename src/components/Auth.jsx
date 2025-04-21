@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import {
+import { 
     createUserWithEmailAndPassword,
-    signInWithEmailAndPassword
+    signInWithEmailAndPassword,
+    updateProfile 
 } from 'firebase/auth';
-import { auth } from '../firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase'; // Импортируйте db из firebase.js
 import {
     Box,
     TextField,
@@ -13,13 +15,26 @@ import {
     Tabs,
     Tab,
     Alert,
-    Divider
+    Divider,
+    Avatar
 } from '@mui/material';
-import { Email, Lock, PersonAdd, Login } from '@mui/icons-material';
+import { 
+    Email, 
+    Lock, 
+    PersonAdd, 
+    Login, 
+    Phone,
+    School,
+    Person
+} from '@mui/icons-material';
 
 export default function Auth() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [fullName, setFullName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [studentGroup, setStudentGroup] = useState('');
+    const [avatarUrl, setAvatarUrl] = useState('');
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -35,7 +50,24 @@ export default function Auth() {
                 await signInWithEmailAndPassword(auth, email, password);
             } else {
                 // Регистрация
-                await createUserWithEmailAndPassword(auth, email, password);
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                
+                // Обновляем профиль пользователя
+                await updateProfile(userCredential.user, {
+                    displayName: fullName,
+                    photoURL: avatarUrl || null
+                });
+
+                // Сохраняем дополнительные данные в Firestore
+                await setDoc(doc(db, 'users', userCredential.user.uid), {
+                    fullName,
+                    email,
+                    phone,
+                    studentGroup,
+                    avatarUrl,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                });
             }
         } catch (err) {
             setError(getErrorMessage(err.code));
@@ -43,7 +75,7 @@ export default function Auth() {
             setLoading(false);
         }
     };
-
+    
     const getErrorMessage = (code) => {
         switch (code) {
             case 'auth/email-already-in-use':
