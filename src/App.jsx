@@ -20,7 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ThemeProvider } from "@mui/material/styles";
 import { auth } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, useParams } from 'react-router-dom';
 import News from "./pages/News";
 import Eios from "./pages/Eios";
 import ChatPage from "./pages/Chat";
@@ -36,6 +36,17 @@ import { createAppTheme } from './theme';
 const MainLayout = ({ children, activeTab, setActiveTab, tabs, showBackButton = false }) => {
 	const navigate = useNavigate();
 	const location = useLocation();
+
+	const handleTabChange = (e, newValue) => {
+		setActiveTab(newValue);
+		// Сохраняем текущую вкладку в localStorage
+		localStorage.setItem('lastActiveTab', newValue);
+
+		// Навигация только если мы не на главной странице
+		if (location.pathname !== '/') {
+			navigate('/');
+		}
+	};
 
 	return (
 		<Box
@@ -73,7 +84,7 @@ const MainLayout = ({ children, activeTab, setActiveTab, tabs, showBackButton = 
 
 			<BottomNavigation
 				value={activeTab}
-				onChange={(e, newValue) => setActiveTab(newValue)}
+				onChange={handleTabChange}
 				showLabels
 				sx={{
 					position: 'sticky',
@@ -109,7 +120,11 @@ const MainLayout = ({ children, activeTab, setActiveTab, tabs, showBackButton = 
 export default function App() {
 	const [user, setUser] = useState(null);
 	const [loading, setLoading] = useState(true);
-	const [activeTab, setActiveTab] = useState(0);
+	const [activeTab, setActiveTab] = useState(() => {
+		// Восстанавливаем последнюю активную вкладку из localStorage
+		const savedTab = localStorage.getItem('lastActiveTab');
+		return savedTab ? parseInt(savedTab) : 0;
+	});
 	const [themeConfig, setThemeConfig] = useState({
 		color: 'green',
 		mode: 'light'
@@ -140,6 +155,7 @@ export default function App() {
 	const handleLogout = async () => {
 		try {
 			await signOut(auth);
+			localStorage.removeItem('lastActiveTab');
 		} catch (error) {
 			console.error('Ошибка при выходе:', error);
 		}
@@ -148,15 +164,11 @@ export default function App() {
 	const theme = createAppTheme(themeConfig.color, themeConfig.mode);
 
 	const tabs = [
-		{ label: "Новости", icon: <Article />, component: <News /> },
-		{ label: "ЭИОС", icon: <School />, component: <Eios /> },
-		{ label: "Чат", icon: <ChatIcon />, component: <ChatPage /> },
-		{ label: "Расписание", icon: <CalendarMonth />, component: <Schedule /> },
-		{
-			label: "Ещё",
-			icon: <AccountCircle />,
-			component: <More user={user}/>
-		}
+		{ label: "Новости", icon: <Article />, path: "/news", component: <News /> },
+		{ label: "ЭИОС", icon: <School />, path: "/eios", component: <Eios /> },
+		{ label: "Чат", icon: <ChatIcon />, path: "/chat", component: <ChatPage /> },
+		{ label: "Расписание", icon: <CalendarMonth />, path: "/schedule", component: <Schedule /> },
+		{ label: "Ещё", icon: <AccountCircle />, path: "/more", component: <More user={user} onLogout={handleLogout} /> }
 	];
 
 	if (loading) {
@@ -209,6 +221,18 @@ export default function App() {
 							</MainLayout>
 						}
 					/>
+
+					{tabs.map((tab, index) => (
+						<Route
+							key={index}
+							path={tab.path}
+							element={
+								<MainLayout activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs}>
+									{tab.component}
+								</MainLayout>
+							}
+						/>
+					))}
 
 					<Route
 						path="/documents"
