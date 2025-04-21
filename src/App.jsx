@@ -5,16 +5,14 @@ import {
 	BottomNavigation,
 	BottomNavigationAction,
 	CircularProgress,
-	Box,
-	IconButton
+	Box
 } from "@mui/material";
 import {
 	Article,
 	School,
 	Chat as ChatIcon,
 	CalendarMonth,
-	AccountCircle,
-	ArrowBack
+	AccountCircle
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeProvider } from "@mui/material/styles";
@@ -31,6 +29,7 @@ import Settings from './pages/Settings';
 import Documents from './pages/Documents';
 import Profile from './pages/Profile';
 import Support from './pages/Support';
+import IDCard from './pages/IDCard';
 import { createAppTheme } from './theme';
 
 const MainLayout = ({ children, activeTab, setActiveTab, tabs, showBackButton = false }) => {
@@ -271,6 +270,15 @@ export default function App() {
 						element={
 							<MainLayout activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs}>
 								<Support />
+							</MainLayout>
+						}
+					/>
+
+					<Route
+						path="/idcard"
+						element={
+							<MainLayout activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs}>
+								<IDCard />
 							</MainLayout>
 						}
 					/>

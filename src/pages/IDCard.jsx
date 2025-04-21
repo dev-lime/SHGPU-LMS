@@ -9,7 +9,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
-export default function Support() {
+export default function IDCard() {
     const navigate = useNavigate();
 
     return (
@@ -30,7 +30,7 @@ export default function Support() {
                 >
                     <ArrowBack />
                 </IconButton>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>Поддержка</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>Студенческий билет</Typography>
             </Box>
         </Box>
     );

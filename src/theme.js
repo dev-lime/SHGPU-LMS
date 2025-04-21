@@ -23,7 +23,7 @@ export const createAppTheme = (colorName = 'green', mode = 'light') => {
 			},
 			background: {
 				default: mode === 'light' ? '#FFFBFE' : '#1C1B1F',
-				paper: mode === 'light' ? '#FFFFFF' : '#313033',
+				paper: mode === 'light' ? '#FFFFFF' : '#000000',
 			},
 		},
 		shape: {

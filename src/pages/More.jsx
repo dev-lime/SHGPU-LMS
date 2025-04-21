@@ -68,7 +68,7 @@ export default function More({ user, onLogout }) {
 		{
 			name: "Предъявить студенческий",
 			icon: <CreditCard color="primary" />,
-			onClick: () => console.log("student")
+			onClick: () => navigate('/idcard')
 		},
 		{
 			name: "Документы",
