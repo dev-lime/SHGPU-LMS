@@ -95,7 +95,7 @@ export default function News() {
 					value={searchQuery}
 					onChange={(e) => setSearchQuery(e.target.value)}
 					sx={{
-						width: '100%',
+						width: '70%',
 						'& .MuiOutlinedInput-root': {
 							borderRadius: '28px',
 							backgroundColor: 'background.paper',

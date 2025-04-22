@@ -21,7 +21,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, useParams } from 'react-router-dom';
 import News from "./pages/News";
 import Eios from "./pages/Eios";
-import ChatPage from "./pages/Chat";
+import Messenger from "./pages/Messenger";
 import Schedule from "./pages/Schedule";
 import More from "./pages/More";
 import Auth from "./components/Auth";
@@ -165,7 +165,7 @@ export default function App() {
 	const tabs = [
 		{ label: "Новости", icon: <Article />, path: "/news", component: <News /> },
 		{ label: "ЭИОС", icon: <School />, path: "/eios", component: <Eios /> },
-		{ label: "Чат", icon: <ChatIcon />, path: "/chat", component: <ChatPage /> },
+		{ label: "Мессенджер", icon: <ChatIcon />, path: "/messenger", component: <Messenger /> },
 		{ label: "Расписание", icon: <CalendarMonth />, path: "/schedule", component: <Schedule /> },
 		{ label: "Ещё", icon: <AccountCircle />, path: "/more", component: <More user={user} onLogout={handleLogout} /> }
 	];
