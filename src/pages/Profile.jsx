@@ -35,7 +35,7 @@ import {
 	Person,
 	SupervisorAccount,
 	SupportAgent,
-	School as TeacherIcon,
+	AdminPanelSettings,
 	ExitToApp
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -46,8 +46,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const accountTypes = [
 	{ value: 'student', label: 'Студент', icon: <School color="primary" /> },
-	{ value: 'teacher', label: 'Преподаватель', icon: <TeacherIcon color="primary" /> },
-	{ value: 'admin', label: 'Администратор', icon: <SupervisorAccount color="primary" /> },
+	{ value: 'teacher', label: 'Преподаватель', icon: <SupervisorAccount color="primary" /> },
+	{ value: 'admin', label: 'Администратор', icon: <AdminPanelSettings color="primary" /> },
 	{ value: 'support', label: 'Техподдержка', icon: <SupportAgent color="primary" /> }
 ];
 

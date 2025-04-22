@@ -12,7 +12,7 @@ import {
 	School,
 	Chat as ChatIcon,
 	CalendarMonth,
-	AccountCircle
+	Pending
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeProvider } from "@mui/material/styles";
@@ -167,7 +167,7 @@ export default function App() {
 		{ label: "ЭИОС", icon: <School />, path: "/eios", component: <Eios /> },
 		{ label: "Мессенджер", icon: <ChatIcon />, path: "/messenger", component: <Messenger /> },
 		{ label: "Расписание", icon: <CalendarMonth />, path: "/schedule", component: <Schedule /> },
-		{ label: "Ещё", icon: <AccountCircle />, path: "/more", component: <More user={user} onLogout={handleLogout} /> }
+		{ label: "Ещё", icon: <Pending />, path: "/more", component: <More user={user} onLogout={handleLogout} /> }
 	];
 
 	if (loading) {

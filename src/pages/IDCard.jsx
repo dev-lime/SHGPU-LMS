@@ -2,10 +2,15 @@ import React from 'react';
 import {
     Box,
     Typography,
-    IconButton
+    IconButton,
+    Paper,
+    List,
+    ListItem,
+    ListItemText
 } from '@mui/material';
 import {
-    ArrowBack
+    ArrowBack,
+    EventRepeat
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -32,6 +37,38 @@ export default function IDCard() {
                 </IconButton>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>Студенческий билет</Typography>
             </Box>
+
+            <Paper elevation={0} sx={{
+                borderRadius: 3,
+                border: '1px solid',
+                overflow: 'hidden',
+                borderColor: 'divider'
+            }}>
+                <List disablePadding>
+
+                    <ListItem
+                        sx={{
+                            py: 2,
+                            px: 2,
+                            color: 'text.primary'
+                        }}
+                    >
+                        <Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
+                            <EventRepeat color="primary"/>
+                        </Box>
+
+                        <ListItemText
+                            primary={
+                                <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                                    В разработке
+                                </Typography>
+                            }
+                            secondary={"Здесь будет электронная копия студенческого билета"}
+                            sx={{ mr: 2 }}
+                        />
+                    </ListItem>
+                </List>
+            </Paper>
         </Box>
     );
 }
