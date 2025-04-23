@@ -7,7 +7,8 @@ import {
     IconButton,
     List,
     ListItem,
-    CircularProgress
+    CircularProgress,
+    InputAdornment
 } from '@mui/material';
 import { Send, ArrowBack } from '@mui/icons-material';
 import { db, auth } from '../firebase';
@@ -103,19 +104,30 @@ export default function Chat() {
         }
     }, [messages]);
 
+    // Функция для проверки, нужно ли показывать время сообщения
+    const shouldShowTime = (index) => {
+        if (index === messages.length - 1) return true;
+
+        const currentMessage = messages[index];
+        const nextMessage = messages[index + 1];
+
+        return (
+            currentMessage.sender !== nextMessage.sender ||
+            currentMessage.timestamp?.toDate().getTime() !== nextMessage.timestamp?.toDate().getTime()
+        );
+    };
+
     // Отправка нового сообщения
     const handleSendMessage = async () => {
         if (!newMessage.trim() || !chatId) return;
 
         try {
-            // Добавляем сообщение в подколлекцию messages
             await addDoc(collection(db, 'chats', chatId, 'messages'), {
                 text: newMessage,
                 sender: auth.currentUser.uid,
                 timestamp: serverTimestamp()
             });
 
-            // Обновляем lastMessage в документе чата
             await updateDoc(doc(db, 'chats', chatId), {
                 'lastMessage.text': newMessage,
                 'lastMessage.sender': auth.currentUser.uid,
@@ -146,7 +158,7 @@ export default function Chat() {
 
     return (
         <Box sx={{
-            height: '100vh',
+            height: '100%',
             display: 'flex',
             flexDirection: 'column',
             bgcolor: 'background.default'
@@ -155,7 +167,7 @@ export default function Chat() {
             <Box sx={{
                 display: 'flex',
                 alignItems: 'center',
-                p: 2,
+                p: 1,
                 borderBottom: '1px solid',
                 borderColor: 'divider',
                 bgcolor: 'background.paper',
@@ -198,21 +210,23 @@ export default function Chat() {
                 sx={{
                     flex: 1,
                     overflowY: 'auto',
-                    p: 2,
+                    p: 1,
                     bgcolor: 'background.default',
                     display: 'flex',
                     flexDirection: 'column'
                 }}
             >
                 <List sx={{ width: '100%', flex: 1 }}>
-                    {messages.map((message) => (
+                    {messages.map((message, index) => (
                         <ListItem
                             key={message.id}
                             sx={{
                                 justifyContent: message.sender === auth.currentUser?.uid ?
                                     'flex-end' : 'flex-start',
                                 px: 1,
-                                alignItems: 'flex-start'
+                                alignItems: 'flex-start',
+                                pt: 0.5,
+                                pb: 0.5
                             }}
                         >
                             <Box sx={{
@@ -229,7 +243,8 @@ export default function Chat() {
                                         sx={{
                                             width: 32,
                                             height: 32,
-                                            bgcolor: 'primary.main'
+                                            bgcolor: 'primary.main',
+                                            visibility: shouldShowAvatar(index) ? 'visible' : 'hidden'
                                         }}
                                     >
                                         {otherUser?.fullName?.charAt(0)}
@@ -249,19 +264,21 @@ export default function Chat() {
                                             'primary.main' : 'action.hover',
                                         color: message.sender === auth.currentUser?.uid ?
                                             'primary.contrastText' : 'text.primary',
-                                        mb: 0.5
                                     }}>
                                         <Typography>{message.text}</Typography>
                                     </Box>
-                                    <Typography
-                                        variant="caption"
-                                        sx={{
-                                            color: 'text.secondary',
-                                            px: 1
-                                        }}
-                                    >
-                                        {message.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </Typography>
+                                    {shouldShowTime(index) && (
+                                        <Typography
+                                            variant="caption"
+                                            sx={{
+                                                color: 'text.secondary',
+                                                px: 1,
+                                                mt: 0.5
+                                            }}
+                                        >
+                                            {message.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </Typography>
+                                    )}
                                 </Box>
                             </Box>
                         </ListItem>
@@ -272,38 +289,59 @@ export default function Chat() {
 
             {/* Поле ввода сообщения */}
             <Box sx={{
-                p: 2,
                 borderTop: '1px solid',
                 borderColor: 'divider',
                 bgcolor: 'background.paper',
                 flexShrink: 0
             }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <TextField
-                        fullWidth
-                        variant="outlined"
-                        placeholder="Написать сообщение..."
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        multiline
-                        maxRows={4}
-                        sx={{
-                            '& .MuiOutlinedInput-root': {
-                                borderRadius: '24px',
-                                bgcolor: 'background.default'
-                            }
-                        }}
-                    />
-                    <IconButton
-                        color="primary"
-                        onClick={handleSendMessage}
-                        disabled={!newMessage.trim()}
-                    >
-                        <Send />
-                    </IconButton>
-                </Box>
+                <TextField
+                    fullWidth
+                    variant="outlined"
+                    placeholder="Написать сообщение..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    multiline
+                    maxRows={4}
+                    sx={{
+                        '& .MuiOutlinedInput-root': {
+                            bgcolor: 'background.default',
+                            pr: 0
+                        },
+                        '& .MuiOutlinedInput-input': {
+                            pr: 1
+                        }
+                    }}
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <IconButton
+                                    color="primary"
+                                    onClick={handleSendMessage}
+                                    disabled={!newMessage.trim()}
+                                    sx={{
+                                        mr: 0.5,
+                                        '&.Mui-selected': { outline: 'none' },
+                                        '&:focus': { outline: 'none' }
+                                    }}
+                                >
+                                    <Send />
+                                </IconButton>
+                            </InputAdornment>
+                        )
+                    }}
+                />
             </Box>
         </Box>
     );
+
+    // Функция для проверки, нужно ли показывать аватар
+    function shouldShowAvatar(index) {
+        if (index === 0) return true;
+
+        const currentMessage = messages[index];
+        const prevMessage = messages[index - 1];
+
+        return currentMessage.sender !== prevMessage.sender;
+    }
 }
