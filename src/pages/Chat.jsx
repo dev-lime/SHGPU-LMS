@@ -81,10 +81,6 @@ export default function Chat() {
                     }));
                     setMessages(messagesData);
                     setLoading(false);
-
-                    setTimeout(() => {
-                        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-                    }, 100);
                 });
 
                 return () => unsubscribe();
@@ -104,17 +100,27 @@ export default function Chat() {
         }
     }, [messages]);
 
+    // Функция для проверки, нужно ли показывать аватар
+    const shouldShowAvatar = (index) => {
+        if (messages[index].sender === auth.currentUser?.uid) return false;
+        if (index === messages.length - 1) return true;
+        return messages[index].sender !== messages[index + 1].sender;
+    };
+
     // Функция для проверки, нужно ли показывать время сообщения
     const shouldShowTime = (index) => {
         if (index === messages.length - 1) return true;
 
-        const currentMessage = messages[index];
-        const nextMessage = messages[index + 1];
+        const currentTime = messages[index].timestamp?.toDate();
+        const nextTime = messages[index + 1].timestamp?.toDate();
 
-        return (
-            currentMessage.sender !== nextMessage.sender ||
-            currentMessage.timestamp?.toDate().getTime() !== nextMessage.timestamp?.toDate().getTime()
-        );
+        if (!currentTime || !nextTime) return true;
+
+        // Показываем время если следующее сообщение от другого пользователя
+        if (messages[index].sender !== messages[index + 1].sender) return true;
+
+        // Или если разница во времени больше минуты
+        return (nextTime.getTime() - currentTime.getTime()) > 60000;
     };
 
     // Отправка нового сообщения
@@ -216,7 +222,7 @@ export default function Chat() {
                     flexDirection: 'column'
                 }}
             >
-                <List sx={{ width: '100%', flex: 1 }}>
+                <List sx={{ width: '100%' }}>
                     {messages.map((message, index) => (
                         <ListItem
                             key={message.id}
@@ -296,7 +302,7 @@ export default function Chat() {
             }}>
                 <TextField
                     fullWidth
-                    variant="outlined"
+                    variant="standard"
                     placeholder="Написать сообщение..."
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
@@ -304,12 +310,12 @@ export default function Chat() {
                     multiline
                     maxRows={4}
                     sx={{
-                        '& .MuiOutlinedInput-root': {
-                            bgcolor: 'background.default',
-                            pr: 0
+                        '& .MuiInput-root': {
+                            px: 2,
+                            py: 1
                         },
-                        '& .MuiOutlinedInput-input': {
-                            pr: 1
+                        '& .MuiInput-root:before, & .MuiInput-root:after': {
+                            display: 'none'
                         }
                     }}
                     InputProps={{
@@ -320,7 +326,6 @@ export default function Chat() {
                                     onClick={handleSendMessage}
                                     disabled={!newMessage.trim()}
                                     sx={{
-                                        mr: 0.5,
                                         '&.Mui-selected': { outline: 'none' },
                                         '&:focus': { outline: 'none' }
                                     }}
@@ -328,20 +333,11 @@ export default function Chat() {
                                     <Send />
                                 </IconButton>
                             </InputAdornment>
-                        )
+                        ),
+                        disableUnderline: true
                     }}
                 />
             </Box>
         </Box>
     );
-
-    // Функция для проверки, нужно ли показывать аватар
-    function shouldShowAvatar(index) {
-        if (index === 0) return true;
-
-        const currentMessage = messages[index];
-        const prevMessage = messages[index - 1];
-
-        return currentMessage.sender !== prevMessage.sender;
-    }
 }
