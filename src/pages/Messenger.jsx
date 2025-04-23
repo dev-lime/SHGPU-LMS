@@ -16,7 +16,19 @@ import {
 } from '@mui/material';
 import { Search, ChatBubble, People } from '@mui/icons-material';
 import { db, auth } from '../firebase';
-import { collection, query, where, getDocs, doc, setDoc, orderBy, limit } from 'firebase/firestore';
+import {
+	collection,
+	query,
+	where,
+	getDocs,
+	doc,
+	setDoc,
+	orderBy,
+	limit,
+	getDoc,
+	serverTimestamp
+} from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 
 export default function Messenger() {
 	const [searchQuery, setSearchQuery] = useState('');
@@ -24,31 +36,47 @@ export default function Messenger() {
 	const [users, setUsers] = useState([]);
 	const [chats, setChats] = useState([]);
 	const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
 	// Поиск пользователей
 	useEffect(() => {
 		const searchUsers = async () => {
-			if (searchQuery.length < 2) {
-				setUsers([]);
-				return;
-			}
-
 			setLoading(true);
 			try {
-				const q = query(
-					collection(db, 'users'),
-					where('displayName', '>=', searchQuery),
-					where('displayName', '<=', searchQuery + '\uf8ff'),
-					limit(10)
-				);
+				let usersQuery;
 
-				const snapshot = await getDocs(q);
+				if (searchQuery.length === 0) {
+					// Получаем 10 случайных пользователей
+					usersQuery = query(
+						collection(db, 'users'),
+						where('fullName', '!=', ''),
+						limit(10)
+					);
+				} else if (searchQuery.length === 1) {
+					setUsers([]);
+					setLoading(false);
+					return;
+				} else {
+					// Поиск по имени
+					usersQuery = query(
+						collection(db, 'users'),
+						where('fullName', '>=', searchQuery),
+						where('fullName', '<=', searchQuery + '\uf8ff'),
+						limit(10)
+					);
+				}
+
+				const snapshot = await getDocs(usersQuery);
 				const usersData = snapshot.docs.map(doc => ({
 					id: doc.id,
 					...doc.data()
 				})).filter(user => user.id !== auth.currentUser?.uid);
 
-				setUsers(usersData);
+				// Убираем учет регистра при фильтрации
+				const filteredUsers = usersData.filter(user =>
+					user.fullName.toLowerCase().includes(searchQuery.toLowerCase())
+				);
+				setUsers(filteredUsers);
 			} catch (error) {
 				console.error("Error searching users:", error);
 			} finally {
@@ -60,7 +88,7 @@ export default function Messenger() {
 		return () => clearTimeout(timer);
 	}, [searchQuery]);
 
-	// Загрузка чатов текущего пользователя
+	// Загрузка чатов
 	useEffect(() => {
 		const loadChats = async () => {
 			try {
@@ -71,10 +99,34 @@ export default function Messenger() {
 				);
 
 				const snapshot = await getDocs(q);
-				const chatsData = snapshot.docs.map(doc => ({
-					id: doc.id,
-					...doc.data()
-				}));
+				const chatsData = await Promise.all(
+					snapshot.docs.map(async (document) => {
+						const chatData = document.data();
+						const otherParticipantId = chatData.participants.find(
+							id => id !== auth.currentUser?.uid
+						);
+
+						let participantName = chatData.participantNames || 'Unknown';
+						let participantPhoto = '';
+
+						if (otherParticipantId) {
+							const userDocRef = doc(db, 'users', otherParticipantId);
+							const userDoc = await getDoc(userDocRef);
+							if (userDoc.exists()) {
+								const userData = userDoc.data();
+								participantName = userData.fullName || userData.email;
+								participantPhoto = userData.avatarUrl || '';
+							}
+						}
+
+						return {
+							id: document.id,
+							...chatData,
+							participantName,
+							participantPhoto
+						};
+					})
+				);
 
 				setChats(chatsData);
 			} catch (error) {
@@ -87,35 +139,42 @@ export default function Messenger() {
 		loadChats();
 	}, []);
 
-	// Создание нового чата
+	// Создание чата
 	const createChat = async (userId) => {
 		try {
-			// Проверяем, существует ли уже чат
+			// Проверка существующего чата
+			const chatsRef = collection(db, 'chats');
 			const q = query(
-				collection(db, 'chats'),
+				chatsRef,
 				where('participants', 'array-contains', userId)
 			);
 
-			const snapshot = await getDocs(q);
-			const existingChat = snapshot.docs.find(doc =>
+			const querySnapshot = await getDocs(q);
+			const existingChat = querySnapshot.docs.find(doc =>
 				doc.data().participants.includes(auth.currentUser?.uid)
 			);
 
 			if (existingChat) {
-				// Переходим к существующему чату
-				console.log("Chat already exists:", existingChat.id);
+				console.log("Chat exists:", existingChat.id);
 				return;
 			}
 
+			// Получаем данные пользователя
+			const userDocRef = doc(db, 'users', userId);
+			const userDoc = await getDoc(userDocRef);
+			const userData = userDoc.exists() ? userDoc.data() : {};
+			const userName = userData.fullName || userData.email || 'Unknown';
+
 			// Создаем новый чат
-			const newChatRef = doc(collection(db, 'chats'));
+			const newChatRef = doc(chatsRef);
 			await setDoc(newChatRef, {
 				participants: [auth.currentUser?.uid, userId],
-				createdAt: new Date(),
+				participantNames: userName,
+				createdAt: serverTimestamp(),
 				lastMessage: {
 					text: 'Чат создан',
 					sender: auth.currentUser?.uid,
-					timestamp: new Date()
+					timestamp: serverTimestamp()
 				}
 			});
 
@@ -147,12 +206,9 @@ export default function Messenger() {
 						sx={{
 							display: 'flex',
 							alignItems: 'center',
-							'&.Mui-selected': {
-								outline: 'none'
-							},
-							'&:focus': {
-								outline: 'none'
-							}
+							'&:hover': { backgroundColor: 'action.hover' },
+							'&.Mui-selected': { outline: 'none' },
+							'&:focus': { outline: 'none' }
 						}}
 						label={
 							<Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -165,12 +221,9 @@ export default function Messenger() {
 						sx={{
 							display: 'flex',
 							alignItems: 'center',
-							'&.Mui-selected': {
-								outline: 'none'
-							},
-							'&:focus': {
-								outline: 'none'
-							}
+							'&:hover': { backgroundColor: 'action.hover' },
+							'&.Mui-selected': { outline: 'none' },
+							'&:focus': { outline: 'none' }
 						}}
 						label={
 							<Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -192,12 +245,8 @@ export default function Messenger() {
 						'& .MuiOutlinedInput-root': {
 							borderRadius: '28px',
 							backgroundColor: 'background.paper',
-							'& fieldset': {
-								borderColor: 'divider',
-							},
-							'&:hover fieldset': {
-								borderColor: 'primary.main',
-							},
+							'& fieldset': { borderColor: 'divider' },
+							'&:hover fieldset': { borderColor: 'primary.main' },
 							'&.Mui-focused fieldset': {
 								borderColor: 'primary.main',
 								borderWidth: '1px',
@@ -220,27 +269,41 @@ export default function Messenger() {
 					<CircularProgress />
 				</Box>
 			) : activeTab === 0 ? (
-				// Список чатов
 				<ChatList
 					chats={chats.filter(chat =>
-						chat.participantNames?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+						chat.participantName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
 						chat.lastMessage?.text.toLowerCase().includes(searchQuery.toLowerCase())
 					)}
+					onChatClick={(id) => navigate(`/chat/${id}`)}
 				/>
 			) : (
-				// Список пользователей
-				<UserList
-					users={users}
-					onUserClick={createChat}
-					currentUserId={auth.currentUser?.uid}
-				/>
+				<>
+					<UserList
+						users={users}
+						onUserClick={createChat}
+						currentUserId={auth.currentUser?.uid}
+					/>
+					{searchQuery.length === 1 && (
+						<Box sx={{
+							display: 'flex',
+							justifyContent: 'center',
+							alignItems: 'center',
+							p: 2,
+							color: 'text.secondary'
+						}}>
+							<Typography variant="body2">
+								Введите минимум 2 символа для поиска
+							</Typography>
+						</Box>
+					)}
+				</>
 			)}
 		</Box>
 	);
 }
 
 // Компонент списка чатов
-const ChatList = ({ chats }) => {
+const ChatList = ({ chats, onChatClick }) => {
 	if (chats.length === 0) {
 		return (
 			<Box sx={{
@@ -260,31 +323,32 @@ const ChatList = ({ chats }) => {
 			{chats.map((chat) => (
 				<React.Fragment key={chat.id}>
 					<ListItem
+						component="button"
+						onClick={() => onChatClick(chat.id)}
 						sx={{
-							py: 1.5,
 							px: 1,
-							display: 'flex',
-							alignItems: 'center',
-							'&:hover': {
-								backgroundColor: 'action.hover',
-								borderRadius: 1,
-								cursor: 'pointer'
-							}
+							borderRadius: 1,
+							'&:hover': { backgroundColor: 'action.hover' },
+							'&.Mui-selected': { outline: 'none' },
+							'&:focus': { outline: 'none' },
+							backgroundColor: 'transparent'
 						}}
 					>
 						<ListItemAvatar>
-							<Avatar sx={{ bgcolor: 'primary.main' }}>
-								{chat.participantNames?.charAt(0)}
+							<Avatar src={chat.participantPhoto} sx={{ bgcolor: 'primary.main' }}>
+								{chat.participantName?.charAt(0)}
 							</Avatar>
 						</ListItemAvatar>
 						<Box sx={{ flex: 1, minWidth: 0 }}>
 							<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
 								<Typography noWrap fontWeight="medium">
-									{chat.participantNames}
+									{chat.participantName}
 								</Typography>
-								<Typography variant="caption" color="text.secondary">
-									{formatDate(chat.lastMessage?.timestamp)}
-								</Typography>
+								{chat.lastMessage?.timestamp && (
+									<Typography variant="caption" color="text.secondary">
+										{formatDate(chat.lastMessage.timestamp)}
+									</Typography>
+								)}
 							</Box>
 							<Typography noWrap variant="body2" color="text.secondary">
 								{chat.lastMessage?.text}
@@ -294,14 +358,13 @@ const ChatList = ({ chats }) => {
 							<Badge badgeContent={chat.unreadCount} color="primary" />
 						)}
 					</ListItem>
-					<Divider variant="inset" />
 				</React.Fragment>
 			))}
 		</List>
 	);
 };
 
-// Компонент списка пользователей
+// Компонент UserList
 const UserList = ({ users, onUserClick, currentUserId }) => {
 	if (users.length === 0) {
 		return (
@@ -322,42 +385,58 @@ const UserList = ({ users, onUserClick, currentUserId }) => {
 			{users.map((user) => (
 				<React.Fragment key={user.id}>
 					<ListItem
-						button
+						component="button"
 						onClick={() => onUserClick(user.id)}
 						sx={{
-							py: 1.5,
 							px: 1,
-							'&:hover': {
-								backgroundColor: 'action.hover',
-								borderRadius: 1
-							}
+							borderRadius: 1,
+							'&:hover': { backgroundColor: 'action.hover' },
+							'&.Mui-selected': { outline: 'none' },
+							'&:focus': { outline: 'none' },
+							backgroundColor: 'transparent'
 						}}
 					>
 						<ListItemAvatar>
-							<Avatar src={user.photoURL} sx={{ bgcolor: 'primary.main' }}>
-								{user.displayName?.charAt(0)}
+							<Avatar src={user.avatarUrl} sx={{ bgcolor: 'primary.main' }}>
+								{user.fullName?.charAt(0)}
 							</Avatar>
 						</ListItemAvatar>
 						<Box sx={{ flex: 1, minWidth: 0 }}>
 							<Typography noWrap fontWeight="medium">
-								{user.displayName}
+								{user.fullName}
 							</Typography>
 							<Typography noWrap variant="body2" color="text.secondary">
 								{user.email}
 							</Typography>
 						</Box>
 					</ListItem>
-					<Divider variant="inset" />
 				</React.Fragment>
 			))}
 		</List>
 	);
 };
 
-// Вспомогательная функция для форматирования даты
 const formatDate = (timestamp) => {
 	if (!timestamp) return '';
-	const date = timestamp.toDate();
+
+	// Обрабатывает разные форматы timestamp:
+	// 1. Firebase Timestamp (имеет метод toDate)
+	// 2. Нативный объект Date
+	// 3. Строка, которую можно преобразовать в Date
+	let date;
+
+	if (typeof timestamp === 'object' && timestamp.toDate) {
+		// Firebase Timestamp
+		date = timestamp.toDate();
+	} else if (timestamp instanceof Date) {
+		// Уже объект Date
+		date = timestamp;
+	} else {
+		// Пытаемся преобразовать строку или число в Date
+		date = new Date(timestamp);
+		if (isNaN(date.getTime())) return ''; // Некорректная дата
+	}
+
 	const now = new Date();
 
 	if (date.toDateString() === now.toDateString()) {

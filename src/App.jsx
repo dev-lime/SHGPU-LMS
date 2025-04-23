@@ -30,6 +30,7 @@ import Documents from './pages/Documents';
 import Profile from './pages/Profile';
 import Support from './pages/Support';
 import IDCard from './pages/IDCard';
+import Chat from './pages/Chat';
 import { createAppTheme } from './theme';
 
 const MainLayout = ({ children, activeTab, setActiveTab, tabs, showBackButton = false }) => {
@@ -279,6 +280,15 @@ export default function App() {
 						element={
 							<MainLayout activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs}>
 								<IDCard />
+							</MainLayout>
+						}
+					/>
+
+					<Route
+						path="/chat/:chatId"
+						element={
+							<MainLayout activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs}>
+								<Chat />
 							</MainLayout>
 						}
 					/>
