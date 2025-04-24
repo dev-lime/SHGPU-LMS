@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
 	Table,
 	TableBody,
@@ -8,15 +8,18 @@ import {
 	Box,
 	IconButton,
 	Paper,
-	TableContainer
+	TableContainer,
+	Fab
 } from "@mui/material";
-import { ChevronLeft, ChevronRight } from "@mui/icons-material";
+import { ChevronLeft, ChevronRight, Schedule as ScheduleIcon } from "@mui/icons-material";
 
 const Schedule = () => {
 	const [currentWeek, setCurrentWeek] = useState(0);
 	const [currentDay, setCurrentDay] = useState(new Date().getDay());
 	const [currentPair, setCurrentPair] = useState(0);
 	const [weekDates, setWeekDates] = useState([]);
+	const tableRef = useRef(null);
+	const currentPairRef = useRef(null);
 
 	// Время пар
 	const pairTimes = [
@@ -59,29 +62,57 @@ const Schedule = () => {
 		const generateWeekDates = () => {
 			const dates = [];
 			const now = new Date();
-			let currentDayOfWeek = now.getDay(); // 0 - воскресенье, 1 - понедельник, ..., 6 - суббота
-		
-			// Если сегодня воскресенье, то считаем, что уже началась следующая неделя
+			let currentDayOfWeek = now.getDay();
+
 			if (currentDayOfWeek === 0) {
-				now.setDate(now.getDate() + 1); // Перемещаемся на понедельник следующей недели
+				now.setDate(now.getDate() + 1);
 			}
-		
-			// Находим понедельник текущей (или следующей, если воскресенье) недели
+
 			const monday = new Date(now);
-			const offset = now.getDay() === 0 ? -6 : 1 - now.getDay(); // для понедельника будет 0
+			const offset = now.getDay() === 0 ? -6 : 1 - now.getDay();
 			monday.setDate(now.getDate() + offset + currentWeek * 7);
-		
+
 			for (let i = 0; i < 6; i++) {
 				const date = new Date(monday);
 				date.setDate(monday.getDate() + i);
 				dates.push(date);
 			}
-		
+
 			return dates;
 		};
 
 		setWeekDates(generateWeekDates());
 	}, [currentWeek]);
+
+	// Автоматический скролл к текущей паре при открытии расписания
+	useEffect(() => {
+		if (currentPair > 0 && currentPairRef.current) {
+			setTimeout(() => {
+				currentPairRef.current.scrollIntoView({
+					behavior: 'smooth',
+					block: 'center'
+				});
+			}, 300);
+		}
+	}, [currentPair, weekDates]);
+
+	const scrollToCurrentPair = () => {
+		if (currentPair > 0 && currentPairRef.current) {
+			currentPairRef.current.scrollIntoView({
+				behavior: 'smooth',
+				block: 'center'
+			});
+		} else {
+			// Если сейчас нет текущей пары, прокручиваем к сегодняшнему дню
+			const todayRow = tableRef.current?.querySelector('.today-row');
+			if (todayRow) {
+				todayRow.scrollIntoView({
+					behavior: 'smooth',
+					block: 'center'
+				});
+			}
+		}
+	};
 
 	const isCurrentDay = (date) => {
 		const now = new Date();
@@ -176,7 +207,7 @@ const Schedule = () => {
 	};
 
 	return (
-		<Box sx={{ p: 2, overflowX: 'hidden' }}>
+		<Box sx={{ p: 2, overflowX: 'hidden', position: 'relative', pb: 8 }}>
 			<Box sx={{
 				display: 'flex',
 				alignItems: 'center',
@@ -209,7 +240,7 @@ const Schedule = () => {
 				</Box>
 			</Box>
 
-			<TableContainer component={Paper}>
+			<TableContainer component={Paper} ref={tableRef}>
 				<Table>
 					<TableBody>
 						{scheduleData.map(({ day, dateString, classes, isCurrent, date }) => {
@@ -217,7 +248,7 @@ const Schedule = () => {
 
 							return (
 								<React.Fragment key={day + dateString}>
-									<TableRow sx={{
+									<TableRow className={isToday ? 'today-row' : ''} sx={{
 										bgcolor: isToday ? 'rgba(76, 175, 80, 0.08)' : 'action.hover',
 										'& .MuiTableCell-root': {
 											borderBottom: 'none'
@@ -235,43 +266,62 @@ const Schedule = () => {
 										</TableCell>
 									</TableRow>
 
-									{classes.map((cls, idx) => (
-										<TableRow
-											key={idx}
-											sx={{
-												bgcolor: isToday && cls.num === currentPair ? 'primary.main' :
-													isToday ? 'rgba(76, 175, 80, 0.04)' : 'inherit',
-												color: isToday && cls.num === currentPair ? 'primary.contrastText' : 'inherit',
-												'&:last-child td': {
-													borderBottom: isToday ? 'none' : 'inherit'
-												}
-											}}
-										>
-											<TableCell width={60} align="center">
-												{cls.num}
-											</TableCell>
-											<TableCell>
-												<Typography fontWeight="medium">
-													{cls.name}
-												</Typography>
-												<Typography variant="body2" color="text.secondary">
-													{cls.teacher}
-												</Typography>
-											</TableCell>
-											<TableCell width={120}>
-												<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-													<Typography>{cls.type}</Typography>
-													<Typography>{cls.room}</Typography>
-												</Box>
-											</TableCell>
-										</TableRow>
-									))}
+									{classes.map((cls, idx) => {
+										const isCurrentPair = isToday && cls.num === currentPair;
+										return (
+											<TableRow
+												key={idx}
+												ref={isCurrentPair ? currentPairRef : null}
+												sx={{
+													bgcolor: isCurrentPair ? 'primary.main' :
+														isToday ? 'rgba(76, 175, 80, 0.04)' : 'inherit',
+													color: isCurrentPair ? 'primary.contrastText' : 'inherit',
+													'&:last-child td': {
+														borderBottom: isToday ? 'none' : 'inherit'
+													}
+												}}
+											>
+												<TableCell width={60} align="center">
+													{cls.num}
+												</TableCell>
+												<TableCell>
+													<Typography fontWeight="medium">
+														{cls.name}
+													</Typography>
+													<Typography variant="body2" color={isCurrentPair ? 'primary.contrastText' : 'text.secondary'}>
+														{cls.teacher}
+													</Typography>
+												</TableCell>
+												<TableCell width={120}>
+													<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+														<Typography>{cls.type}</Typography>
+														<Typography>{cls.room}</Typography>
+													</Box>
+												</TableCell>
+											</TableRow>
+										);
+									})}
 								</React.Fragment>
 							);
 						})}
 					</TableBody>
 				</Table>
 			</TableContainer>
+
+			{/* FAB кнопка для перехода к текущей паре */}
+			<Fab
+				color="primary"
+				aria-label="current-pair"
+				sx={{
+					position: 'fixed',
+					bottom: 80,
+					right: 16,
+					zIndex: 1000
+				}}
+				onClick={scrollToCurrentPair}
+			>
+				<ScheduleIcon />
+			</Fab>
 		</Box>
 	);
 };

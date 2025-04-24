@@ -25,7 +25,7 @@ import {
     Brightness4,
     Brightness7,
     Info,
-    Chat as ChatIcon
+    TextFields
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -110,7 +110,7 @@ export default function Settings({ themeConfig, onThemeChange, onHideTabLabelsCh
         },
         {
             name: "Скрыть текст вкладок",
-            icon: <ChatIcon color="primary" />,
+            icon: <TextFields color="primary" />,
             action: (
                 <Switch
                     checked={hideTabLabels}
