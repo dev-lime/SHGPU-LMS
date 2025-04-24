@@ -24,14 +24,16 @@ import {
     Palette,
     Brightness4,
     Brightness7,
-    Info
+    Info,
+    Chat as ChatIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
-export default function Settings({ themeConfig, onThemeChange }) {
+export default function Settings({ themeConfig, onThemeChange, onHideTabLabelsChange }) {
     const navigate = useNavigate();
     const [primaryColor, setPrimaryColor] = useState(themeConfig?.color || 'green');
     const [darkMode, setDarkMode] = useState(themeConfig?.mode === 'dark');
+    const [hideTabLabels, setHideTabLabels] = useState(localStorage.getItem('hideTabLabels') === 'true');
     const [aboutOpen, setAboutOpen] = useState(false);
 
     const colorOptions = {
@@ -53,6 +55,15 @@ export default function Settings({ themeConfig, onThemeChange }) {
         const mode = event.target.checked ? 'dark' : 'light';
         setDarkMode(event.target.checked);
         onThemeChange({ ...themeConfig, mode });
+    };
+
+    const handleTabLabelsChange = (event) => {
+        const hide = event.target.checked;
+        setHideTabLabels(hide);
+        localStorage.setItem('hideTabLabels', hide);
+        if (onHideTabLabelsChange) {
+            onHideTabLabelsChange(hide);
+        }
     };
 
     const handleAboutOpen = () => setAboutOpen(true);
@@ -93,6 +104,17 @@ export default function Settings({ themeConfig, onThemeChange }) {
                 <Switch
                     checked={darkMode}
                     onChange={handleThemeChange}
+                    color="primary"
+                />
+            )
+        },
+        {
+            name: "Скрыть текст вкладок",
+            icon: <ChatIcon color="primary" />,
+            action: (
+                <Switch
+                    checked={hideTabLabels}
+                    onChange={handleTabLabelsChange}
                     color="primary"
                 />
             )

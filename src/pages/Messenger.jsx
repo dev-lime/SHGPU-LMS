@@ -36,7 +36,7 @@ export default function Messenger() {
 	const [users, setUsers] = useState([]);
 	const [chats, setChats] = useState([]);
 	const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
+	const navigate = useNavigate();
 
 	// Поиск пользователей
 	useEffect(() => {
@@ -341,7 +341,13 @@ const ChatList = ({ chats, onChatClick }) => {
 						</ListItemAvatar>
 						<Box sx={{ flex: 1, minWidth: 0 }}>
 							<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-								<Typography noWrap fontWeight="medium">
+								<Typography
+									noWrap
+									fontWeight="medium"
+									sx={{
+										color: 'text.primary'
+									}}
+								>
 									{chat.participantName}
 								</Typography>
 								{chat.lastMessage?.timestamp && (

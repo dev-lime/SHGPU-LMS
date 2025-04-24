@@ -33,16 +33,14 @@ import IDCard from './pages/IDCard';
 import Chat from './pages/Chat';
 import { createAppTheme } from './theme';
 
-const MainLayout = ({ children, activeTab, setActiveTab, tabs, showBackButton = false }) => {
+const MainLayout = ({ children, activeTab, setActiveTab, tabs, hideTabLabels = false }) => {
 	const navigate = useNavigate();
 	const location = useLocation();
 
 	const handleTabChange = (e, newValue) => {
 		setActiveTab(newValue);
-		// Сохраняем текущую вкладку в localStorage
 		localStorage.setItem('lastActiveTab', newValue);
 
-		// Навигация только если мы не на главной странице
 		if (location.pathname !== '/') {
 			navigate('/');
 		}
@@ -85,7 +83,7 @@ const MainLayout = ({ children, activeTab, setActiveTab, tabs, showBackButton = 
 			<BottomNavigation
 				value={activeTab}
 				onChange={handleTabChange}
-				showLabels
+				showLabels={!hideTabLabels}
 				sx={{
 					position: 'sticky',
 					bottom: 0,
@@ -98,7 +96,7 @@ const MainLayout = ({ children, activeTab, setActiveTab, tabs, showBackButton = 
 				{tabs.map((tab, index) => (
 					<BottomNavigationAction
 						key={index}
-						label={tab.label}
+						label={hideTabLabels ? null : tab.label}
 						icon={tab.icon}
 						sx={{
 							minWidth: 'auto',
@@ -121,7 +119,6 @@ export default function App() {
 	const [user, setUser] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [activeTab, setActiveTab] = useState(() => {
-		// Восстанавливаем последнюю активную вкладку из localStorage
 		const savedTab = localStorage.getItem('lastActiveTab');
 		return savedTab ? parseInt(savedTab) : 0;
 	});
@@ -129,8 +126,10 @@ export default function App() {
 		color: 'green',
 		mode: 'light'
 	});
+	const [hideTabLabels, setHideTabLabels] = useState(
+		localStorage.getItem('hideTabLabels') === 'true'
+	);
 
-	// Проверка состояния аутентификации
 	useEffect(() => {
 		const unsubscribe = onAuthStateChanged(auth, (user) => {
 			setUser(user);
@@ -139,7 +138,6 @@ export default function App() {
 		return unsubscribe;
 	}, []);
 
-	// Загрузка темы
 	useEffect(() => {
 		const savedColor = localStorage.getItem('primaryColor') || 'green';
 		const savedMode = localStorage.getItem('themeMode') || 'light';
@@ -150,6 +148,11 @@ export default function App() {
 		setThemeConfig(newConfig);
 		localStorage.setItem('primaryColor', newConfig.color);
 		localStorage.setItem('themeMode', newConfig.mode);
+	};
+
+	const handleHideTabLabelsChange = (hide) => {
+		setHideTabLabels(hide);
+		localStorage.setItem('hideTabLabels', hide);
 	};
 
 	const handleLogout = async () => {
@@ -202,7 +205,12 @@ export default function App() {
 					<Route
 						path="/"
 						element={
-							<MainLayout activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs}>
+							<MainLayout
+								activeTab={activeTab}
+								setActiveTab={setActiveTab}
+								tabs={tabs}
+								hideTabLabels={hideTabLabels}
+							>
 								<AnimatePresence mode="wait">
 									<motion.div
 										key={activeTab}
@@ -227,7 +235,12 @@ export default function App() {
 							key={index}
 							path={tab.path}
 							element={
-								<MainLayout activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs}>
+								<MainLayout
+									activeTab={activeTab}
+									setActiveTab={setActiveTab}
+									tabs={tabs}
+									hideTabLabels={hideTabLabels}
+								>
 									{tab.component}
 								</MainLayout>
 							}
@@ -237,7 +250,12 @@ export default function App() {
 					<Route
 						path="/documents"
 						element={
-							<MainLayout activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs}>
+							<MainLayout
+								activeTab={activeTab}
+								setActiveTab={setActiveTab}
+								tabs={tabs}
+								hideTabLabels={hideTabLabels}
+							>
 								<Documents />
 							</MainLayout>
 						}
@@ -246,10 +264,16 @@ export default function App() {
 					<Route
 						path="/settings"
 						element={
-							<MainLayout activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs}>
+							<MainLayout
+								activeTab={activeTab}
+								setActiveTab={setActiveTab}
+								tabs={tabs}
+								hideTabLabels={hideTabLabels}
+							>
 								<Settings
 									themeConfig={themeConfig}
 									onThemeChange={handleThemeChange}
+									onHideTabLabelsChange={handleHideTabLabelsChange}
 									user={user}
 									onLogout={handleLogout}
 								/>
@@ -260,7 +284,12 @@ export default function App() {
 					<Route
 						path="/profile"
 						element={
-							<MainLayout activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs}>
+							<MainLayout
+								activeTab={activeTab}
+								setActiveTab={setActiveTab}
+								tabs={tabs}
+								hideTabLabels={hideTabLabels}
+							>
 								<Profile user={user} />
 							</MainLayout>
 						}
@@ -269,7 +298,12 @@ export default function App() {
 					<Route
 						path="/support"
 						element={
-							<MainLayout activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs}>
+							<MainLayout
+								activeTab={activeTab}
+								setActiveTab={setActiveTab}
+								tabs={tabs}
+								hideTabLabels={hideTabLabels}
+							>
 								<Support />
 							</MainLayout>
 						}
@@ -278,7 +312,12 @@ export default function App() {
 					<Route
 						path="/idcard"
 						element={
-							<MainLayout activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs}>
+							<MainLayout
+								activeTab={activeTab}
+								setActiveTab={setActiveTab}
+								tabs={tabs}
+								hideTabLabels={hideTabLabels}
+							>
 								<IDCard />
 							</MainLayout>
 						}
@@ -287,7 +326,12 @@ export default function App() {
 					<Route
 						path="/chat/:chatId"
 						element={
-							<MainLayout activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs}>
+							<MainLayout
+								activeTab={activeTab}
+								setActiveTab={setActiveTab}
+								tabs={tabs}
+								hideTabLabels={hideTabLabels}
+							>
 								<Chat />
 							</MainLayout>
 						}
