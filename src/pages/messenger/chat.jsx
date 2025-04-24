@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
 import {
     Box,
     Avatar,
@@ -12,7 +12,9 @@ import {
     Divider,
     Grow,
     Fade,
-    Slide
+    Slide,
+    Snackbar,
+    Alert
 } from '@mui/material';
 import { Send, ArrowBack } from '@mui/icons-material';
 import { db, auth } from '../../firebase';
@@ -21,20 +23,20 @@ import {
     getDoc,
     collection,
     query,
-    where,
     orderBy,
     onSnapshot,
     addDoc,
     serverTimestamp,
     updateDoc
 } from 'firebase/firestore';
-import { useNavigate, useParams } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+
+// Lazy load ReactMarkdown but not plugins (they need to be imported normally)
+const ReactMarkdown = lazy(() => import('react-markdown'));
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github.css';
 
-// Оптимизированный компонент для отображения сообщений
 const MessageItem = React.memo(({
     message,
     isOwnMessage,
@@ -44,15 +46,18 @@ const MessageItem = React.memo(({
     isNewMessage
 }) => {
     const timeString = useMemo(() => {
-        return message.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        try {
+            if (!message?.timestamp?.toDate) return '';
+            const date = message.timestamp.toDate();
+            return date?.toLocaleTimeString?.([], { hour: '2-digit', minute: '2-digit' }) || '';
+        } catch (e) {
+            console.error("Error formatting time:", e);
+            return '';
+        }
     }, [message.timestamp]);
 
     return (
-        <Grow
-            in={true}
-            style={{ transformOrigin: isOwnMessage ? 'right top' : 'left top' }}
-            timeout={isNewMessage ? 500 : 0}
-        >
+        <Grow in={true} timeout={isNewMessage ? 500 : 0}>
             <ListItem
                 sx={{
                     justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
@@ -69,16 +74,16 @@ const MessageItem = React.memo(({
                     alignItems: 'flex-end',
                     gap: 1
                 }}>
-                    {!isOwnMessage && showAvatar && (
+                    {!isOwnMessage && showAvatar && otherUser && (
                         <Avatar
-                            src={otherUser?.avatarUrl}
+                            src={otherUser?.avatarUrl || ''}
                             sx={{
                                 width: 32,
                                 height: 32,
                                 bgcolor: 'primary.main'
                             }}
                         >
-                            {otherUser?.fullName?.charAt(0)}
+                            {otherUser?.fullName?.charAt?.(0) || ''}
                         </Avatar>
                     )}
 
@@ -102,20 +107,21 @@ const MessageItem = React.memo(({
                             },
                             '& code': { fontFamily: 'monospace' }
                         }}>
-                            <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                rehypePlugins={[rehypeHighlight]}
-                                components={{
-                                    // Упрощенные компоненты для оптимизации
-                                    p: ({ node, ...props }) => <p {...props} />,
-                                    pre: ({ node, ...props }) => <pre {...props} />,
-                                    code: ({ node, ...props }) => <code {...props} />
-                                }}
-                            >
-                                {message.text}
-                            </ReactMarkdown>
+                            <Suspense fallback={<div>Loading...</div>}>
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    rehypePlugins={[rehypeHighlight]}
+                                    components={{
+                                        p: ({ node, ...props }) => <p {...props} />,
+                                        pre: ({ node, ...props }) => <pre {...props} />,
+                                        code: ({ node, ...props }) => <code {...props} />
+                                    }}
+                                >
+                                    {message?.text || ''}
+                                </ReactMarkdown>
+                            </Suspense>
                         </Box>
-                        {showTime && (
+                        {showTime && timeString && (
                             <Fade in={true} timeout={1000}>
                                 <Typography
                                     variant="caption"
@@ -139,129 +145,199 @@ const MessageItem = React.memo(({
 export default function Chat() {
     const { chatId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
     const [chatInfo, setChatInfo] = useState(null);
     const [otherUser, setOtherUser] = useState(null);
+    const [error, setError] = useState(null);
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const [lastMessageId, setLastMessageId] = useState(null);
+    const [initialScrollDone, setInitialScrollDone] = useState(false);
 
-    // Загрузка данных чата и сообщений
-    useEffect(() => {
-        const loadChatData = async () => {
-            try {
-                const chatDoc = await getDoc(doc(db, 'chats', chatId));
-                if (!chatDoc.exists()) {
-                    navigate('/messenger');
-                    return;
+    const isValidChatId = useCallback((id) => {
+        return id && typeof id === 'string' && id.trim().length > 0;
+    }, []);
+
+    // Scroll to bottom function
+    const scrollToBottom = useCallback((behavior = 'auto') => {
+        const scrollContainer = messagesContainerRef.current;
+        if (scrollContainer) {
+            scrollContainer.scrollTo({
+                top: scrollContainer.scrollHeight,
+                behavior: behavior
+            });
+        }
+    }, []);
+
+    // Memoized chat data loading
+    const loadChatData = useCallback(async () => {
+        if (!isValidChatId(chatId)) return;
+
+        try {
+            const chatRef = doc(db, 'chats', chatId);
+            const chatDoc = await getDoc(chatRef);
+
+            if (!chatDoc.exists()) {
+                throw new Error("Chat not found");
+            }
+
+            const chatData = chatDoc.data();
+            if (!chatData?.participants || !Array.isArray(chatData.participants)) {
+                throw new Error("Invalid chat data structure");
+            }
+
+            setChatInfo(chatData);
+
+            const otherUserId = chatData.participants.find(
+                id => id !== auth.currentUser?.uid
+            );
+
+            if (otherUserId) {
+                const userRef = doc(db, 'users', otherUserId);
+                const userDoc = await getDoc(userRef);
+                if (userDoc.exists()) {
+                    setOtherUser({
+                        id: userDoc.id,
+                        ...userDoc.data()
+                    });
                 }
+            }
 
-                const chatData = chatDoc.data();
-                if (!chatData || !Array.isArray(chatData.participants)) {
-                    console.error('Chat data is invalid:', chatData);
-                    navigate('/messenger');
-                    return;
-                }
-                setChatInfo(chatData);
+            return query(
+                collection(db, 'chats', chatId, 'messages'),
+                orderBy('timestamp', 'asc')
+            );
+        } catch (error) {
+            console.error("Error loading chat:", error);
+            setError(error.message || "Error loading chat data");
+            setLoading(false);
+            return null;
+        }
+    }, [chatId, isValidChatId]);
 
-                const otherUserId = chatData.participants.find(
-                    id => id !== auth.currentUser?.uid
-                );
-
-                if (otherUserId) {
-                    const userDoc = await getDoc(doc(db, 'users', otherUserId));
-                    if (userDoc.exists()) {
-                        setOtherUser({
-                            id: userDoc.id,
-                            ...userDoc.data()
-                        });
-                    }
-                }
-
-                const messagesQuery = query(
-                    collection(db, 'chats', chatId, 'messages'),
-                    orderBy('timestamp', 'asc')
-                );
-
-                const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-                    const messagesData = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
-                    setMessages(messagesData);
-                    setLoading(false);
-
-                    if (messagesData.length > 0) {
-                        const lastMsg = messagesData[messagesData.length - 1];
-                        if (lastMsg.id !== lastMessageId) {
-                            setLastMessageId(lastMsg.id);
-                        }
-                    }
-                });
-
-                return () => unsubscribe();
-            } catch (error) {
-                console.error("Error loading chat:", error);
+    // Load messages with memoized callback
+    const loadMessages = useCallback((messagesQuery) => {
+        return onSnapshot(messagesQuery,
+            (snapshot) => {
+                const messagesData = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                setMessages(messagesData);
                 setLoading(false);
+
+                if (messagesData.length > 0) {
+                    setLastMessageId(messagesData[messagesData.length - 1].id);
+                }
+            },
+            (error) => {
+                console.error("Error in messages subscription:", error);
+                setError("Error loading messages");
+                setLoading(false);
+            }
+        );
+    }, []);
+
+    // Combined data loading effect
+    useEffect(() => {
+        let unsubscribe = () => { };
+        let isMounted = true;
+
+        const initializeChat = async () => {
+            if (!isValidChatId(chatId) || !location.pathname.startsWith('/chat/')) return;
+
+            try {
+                const messagesQuery = await loadChatData();
+                if (messagesQuery) {
+                    unsubscribe = loadMessages(messagesQuery);
+                }
+            } catch (error) {
+                if (isMounted) {
+                    setLoading(false);
+                }
             }
         };
 
-        loadChatData();
-    }, [chatId, navigate, lastMessageId]);
+        initializeChat();
 
-    // Автоматическая прокрутка при новом сообщении
+        return () => {
+            isMounted = false;
+            unsubscribe();
+        };
+    }, [chatId, loadChatData, loadMessages, location.pathname, isValidChatId]);
+
+    // Initial scroll to bottom when messages first load
     useEffect(() => {
-        if (messagesContainerRef.current) {
-            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        if (messages.length > 0 && !initialScrollDone) {
+            scrollToBottom();
+            setInitialScrollDone(true);
         }
-    }, [messages]);
+    }, [messages, initialScrollDone, scrollToBottom]);
 
-    // Оптимизированные функции проверок
+    // Scroll to bottom when new messages arrive
+    useEffect(() => {
+        if (messages.length > 0) {
+            scrollToBottom('smooth');
+        }
+    }, [messages.length, scrollToBottom]);
+
+    // Memoized message display logic
     const shouldShowAvatar = useCallback((index) => {
-        if (messages[index].sender === auth.currentUser?.uid) return false;
+        if (!messages[index] || messages[index].sender === auth.currentUser?.uid) return false;
         if (index === messages.length - 1) return true;
-        return messages[index].sender !== messages[index + 1].sender;
+        return messages[index].sender !== messages[index + 1]?.sender;
     }, [messages]);
 
     const shouldShowTime = useCallback((index) => {
         if (index === messages.length - 1) return true;
+        if (!messages[index]?.timestamp || !messages[index + 1]?.timestamp) return true;
 
-        const currentTime = messages[index].timestamp?.toDate();
-        const nextTime = messages[index + 1].timestamp?.toDate();
-
-        if (!currentTime || !nextTime) return true;
-        if (messages[index].sender !== messages[index + 1].sender) return true;
-        return (nextTime.getTime() - currentTime.getTime()) > 60000;
+        try {
+            const currentTime = messages[index].timestamp.toDate();
+            const nextTime = messages[index + 1].timestamp.toDate();
+            return (messages[index].sender !== messages[index + 1].sender) ||
+                (nextTime.getTime() - currentTime.getTime()) > 60000;
+        } catch {
+            return true;
+        }
     }, [messages]);
 
     const isNewDay = useCallback((index) => {
         if (index === 0) return true;
+        if (!messages[index]?.timestamp || !messages[index - 1]?.timestamp) return false;
 
-        const currentDate = messages[index].timestamp?.toDate();
-        const prevDate = messages[index - 1].timestamp?.toDate();
-
-        if (!currentDate || !prevDate) return false;
-        return (
-            currentDate.getDate() !== prevDate.getDate() ||
-            currentDate.getMonth() !== prevDate.getMonth() ||
-            currentDate.getFullYear() !== prevDate.getFullYear()
-        );
+        try {
+            const currentDate = messages[index].timestamp.toDate();
+            const prevDate = messages[index - 1].timestamp.toDate();
+            return currentDate.toDateString() !== prevDate.toDateString();
+        } catch {
+            return false;
+        }
     }, [messages]);
 
     const formatDate = useCallback((date) => {
         if (!date) return '';
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        return date.toLocaleDateString('ru-RU', options);
+        try {
+            return date.toLocaleDateString('ru-RU', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        } catch {
+            return '';
+        }
     }, []);
 
-    // Отправка нового сообщения
-    const handleSendMessage = async () => {
-        if (!newMessage.trim() || !chatId) return;
+    // Optimized message sending
+    const handleSendMessage = useCallback(async () => {
+        if (!newMessage.trim() || !chatId || !isValidChatId(chatId)) return;
 
         try {
-            await addDoc(collection(db, 'chats', chatId, 'messages'), {
+            const messageRef = await addDoc(collection(db, 'chats', chatId, 'messages'), {
                 text: newMessage,
                 sender: auth.currentUser.uid,
                 timestamp: serverTimestamp()
@@ -276,16 +352,20 @@ export default function Chat() {
             setNewMessage('');
         } catch (error) {
             console.error("Error sending message:", error);
+            setError(error.message || "Error sending message");
         }
-    };
+    }, [newMessage, chatId, isValidChatId]);
 
-    // Обработка нажатия Enter
-    const handleKeyPress = (e) => {
+    const handleKeyPress = useCallback((e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSendMessage();
         }
-    };
+    }, [handleSendMessage]);
+
+    const handleCloseError = useCallback(() => {
+        setError(null);
+    }, []);
 
     if (loading) {
         return (
@@ -302,7 +382,18 @@ export default function Chat() {
             flexDirection: 'column',
             bgcolor: 'background.default'
         }}>
-            {/* Шапка чата */}
+            <Snackbar
+                open={!!error}
+                autoHideDuration={6000}
+                onClose={handleCloseError}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
+                    {error}
+                </Alert>
+            </Snackbar>
+
+            {/* Chat header */}
             <Slide direction="down" in={true} mountOnEnter unmountOnExit>
                 <Box sx={{
                     display: 'flex',
@@ -327,7 +418,7 @@ export default function Chat() {
                     {otherUser && (
                         <>
                             <Avatar
-                                src={otherUser.avatarUrl}
+                                src={otherUser.avatarUrl || ''}
                                 sx={{
                                     width: 40,
                                     height: 40,
@@ -335,17 +426,17 @@ export default function Chat() {
                                     bgcolor: 'primary.main'
                                 }}
                             >
-                                {otherUser.fullName?.charAt(0)}
+                                {otherUser.fullName?.charAt?.(0) || ''}
                             </Avatar>
                             <Typography variant="h6">
-                                {otherUser.fullName}
+                                {otherUser.fullName || 'Unknown User'}
                             </Typography>
                         </>
                     )}
                 </Box>
             </Slide>
 
-            {/* Список сообщений */}
+            {/* Messages list */}
             <Box
                 ref={messagesContainerRef}
                 sx={{
@@ -360,12 +451,12 @@ export default function Chat() {
                 <List sx={{ width: '100%' }}>
                     {messages.map((message, index) => {
                         const showDateDivider = isNewDay(index);
-                        const messageDate = message.timestamp?.toDate();
+                        const messageDate = message.timestamp?.toDate?.();
                         const isNewMessage = message.id === lastMessageId;
                         const isOwnMessage = message.sender === auth.currentUser?.uid;
 
                         return (
-                            <React.Fragment key={message.id}>
+                            <React.Fragment key={message.id || `msg-${index}`}>
                                 {showDateDivider && (
                                     <Fade in={true}>
                                         <Box sx={{
@@ -404,7 +495,7 @@ export default function Chat() {
                 </List>
             </Box>
 
-            {/* Поле ввода сообщения */}
+            {/* Message input */}
             <Slide direction="up" in={true} mountOnEnter unmountOnExit>
                 <Box sx={{
                     borderTop: '1px solid',

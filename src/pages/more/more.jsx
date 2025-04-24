@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import {
 	Box,
 	Typography,
@@ -7,62 +7,46 @@ import {
 	ListItem,
 	ListItemText,
 	Divider,
-	Avatar
+	CircularProgress
 } from '@mui/material';
-import {
-	Description,
-	Settings,
-	HelpOutline,
-	AccountCircle,
-	CreditCard
-} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../firebase'; // Убедитесь, что путь к firebase правильный
 
-const ProfileSection = ({ user, onClick }) => {
-	const userInitial = user?.email?.charAt(0).toUpperCase() || 'П';
-
-	return (
-		<ListItem
-			onClick={onClick}
-			sx={{
-				py: 2,
-				px: 2,
-				display: 'flex',
-				flexDirection: 'column',
-				alignItems: 'center',
-				'&:hover': {
-					backgroundColor: 'action.hover',
-					cursor: 'pointer'
-				}
-			}}
-		>
-			<Avatar
-				sx={{
-					width: 96,
-					height: 96,
-					mb: 2,
-					bgcolor: 'primary.main',
-					fontSize: 40,
-					'&:hover': {
-						opacity: 0.8,
-						transition: 'opacity 0.2s ease-in-out'
-					}
-				}}
-			>
-				{userInitial}
-			</Avatar>
-			<Typography variant="h6" align="center">
-				{user?.email || 'Пользователь'}
-			</Typography>
-			<Typography variant="body2" color="text.secondary" align="center">
-				{user?.uid ? 'Аккаунт активирован' : 'Гостевой режим'}
-			</Typography>
-		</ListItem>
-	);
-};
+const ProfileSection = lazy(() => import('./profile-section'));
+const Description = lazy(() => import('@mui/icons-material/Description'));
+const SettingsIcon = lazy(() => import('@mui/icons-material/Settings'));
+const HelpOutline = lazy(() => import('@mui/icons-material/HelpOutline'));
+const AccountCircle = lazy(() => import('@mui/icons-material/AccountCircle'));
+const CreditCard = lazy(() => import('@mui/icons-material/CreditCard'));
 
 export default function More({ user, onLogout }) {
 	const navigate = useNavigate();
+	const [userData, setUserData] = useState(null);
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		const fetchUserData = async () => {
+			if (user?.uid) {
+				try {
+					const docRef = doc(db, 'users', user.uid);
+					const docSnap = await getDoc(docRef);
+
+					if (docSnap.exists()) {
+						setUserData(docSnap.data());
+					}
+				} catch (error) {
+					console.error("Error fetching user data:", error);
+				} finally {
+					setLoading(false);
+				}
+			} else {
+				setLoading(false);
+			}
+		};
+
+		fetchUserData();
+	}, [user]);
 
 	const menuItems = [
 		{
@@ -79,7 +63,7 @@ export default function More({ user, onLogout }) {
 		{
 			name: "Настройки",
 			description: "Персонализация и параметры",
-			icon: <Settings color="primary" />,
+			icon: <SettingsIcon color="primary" />,
 			onClick: () => navigate('/settings')
 		},
 		{
@@ -96,10 +80,12 @@ export default function More({ user, onLogout }) {
 			flexDirection: 'column',
 			height: '100%'
 		}}>
-			<Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-				<AccountCircle color="primary" sx={{ mr: 1 }} />
-				<Typography variant="h6" sx={{ fontWeight: 600 }}>Профиль</Typography>
-			</Box>
+			<Suspense fallback={<div />}>
+				<Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+					<AccountCircle color="primary" sx={{ mr: 1 }} />
+					<Typography variant="h6" sx={{ fontWeight: 600 }}>Профиль</Typography>
+				</Box>
+			</Suspense>
 
 			<Paper elevation={0} sx={{
 				borderRadius: 3,
@@ -109,17 +95,30 @@ export default function More({ user, onLogout }) {
 				mb: 3
 			}}>
 				<List disablePadding>
-					<ProfileSection
-						user={user}
-						onClick={() => navigate('/profile')}
-					/>
+					<Suspense>
+						{loading ? (
+							<Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+								<CircularProgress size={48} />
+							</Box>
+						) : (
+							<ProfileSection
+								user={{
+									...user,           // Данные из Firebase Auth
+									userData: userData // Данные из Firestore
+								}}
+								onClick={() => navigate('/profile')}
+							/>
+						)}
+					</Suspense>
 				</List>
 			</Paper>
 
-			<Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-				<Settings color="primary" sx={{ mr: 1 }} />
-				<Typography variant="h6" sx={{ fontWeight: 600 }}>Меню</Typography>
-			</Box>
+			<Suspense fallback={<div />}>
+				<Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+					<SettingsIcon color="primary" sx={{ mr: 1 }} />
+					<Typography variant="h6" sx={{ fontWeight: 600 }}>Меню</Typography>
+				</Box>
+			</Suspense>
 
 			<Paper elevation={0} sx={{
 				borderRadius: 3,
@@ -142,9 +141,11 @@ export default function More({ user, onLogout }) {
 									color: item.color || 'text.primary'
 								}}
 							>
-								<Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
-									{item.icon}
-								</Box>
+								<Suspense fallback={<div style={{ width: 24, height: 24 }} />}>
+									<Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
+										{item.icon}
+									</Box>
+								</Suspense>
 
 								<ListItemText
 									primary={

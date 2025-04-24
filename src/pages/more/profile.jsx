@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import {
 	Box,
 	Typography,
@@ -13,13 +13,6 @@ import {
 	Button,
 	TextField,
 	CircularProgress,
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
-	Select,
-	MenuItem,
-	InputLabel,
 	FormControl,
 	FormHelperText,
 	InputAdornment
@@ -30,7 +23,6 @@ import {
 	Email,
 	School,
 	Edit,
-	Close,
 	Telegram,
 	Person,
 	SupervisorAccount,
@@ -44,6 +36,15 @@ import { updateProfile, signOut } from 'firebase/auth';
 import { auth, db, storage } from '../../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
+// Lazy-loaded components
+const Dialog = lazy(() => import('@mui/material/Dialog'));
+const DialogTitle = lazy(() => import('@mui/material/DialogTitle'));
+const DialogContent = lazy(() => import('@mui/material/DialogContent'));
+const Select = lazy(() => import('@mui/material/Select'));
+const MenuItem = lazy(() => import('@mui/material/MenuItem'));
+const InputLabel = lazy(() => import('@mui/material/InputLabel'));
+const CloseIcon = lazy(() => import('@mui/icons-material/Close'));
+
 const accountTypes = [
 	{ value: 'student', label: 'Студент', icon: <School color="primary" /> },
 	{ value: 'teacher', label: 'Преподаватель', icon: <SupervisorAccount color="primary" /> },
@@ -51,64 +52,72 @@ const accountTypes = [
 	{ value: 'support', label: 'Техподдержка', icon: <SupportAgent color="primary" /> }
 ];
 
-export default function Profile() {
+const Profile = () => {
 	const navigate = useNavigate();
 	const [userData, setUserData] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [editMode, setEditMode] = useState(false);
-	const [fullName, setFullName] = useState('');
-	const [phone, setPhone] = useState('');
-	const [studentGroup, setStudentGroup] = useState('');
-	const [accountType, setAccountType] = useState('student');
-	const [telegramUrl, setTelegramUrl] = useState('');
-	const [avatarUrl, setAvatarUrl] = useState('');
+	const [formData, setFormData] = useState({
+		fullName: '',
+		phone: '',
+		studentGroup: '',
+		accountType: 'student',
+		telegramUrl: '',
+		avatarUrl: ''
+	});
 	const [uploading, setUploading] = useState(false);
 	const [openAvatarDialog, setOpenAvatarDialog] = useState(false);
 	const [telegramError, setTelegramError] = useState('');
 	const [error, setError] = useState(null);
 
-	useEffect(() => {
-		const fetchUserData = async () => {
-			try {
-				if (auth.currentUser) {
-					const docRef = doc(db, 'users', auth.currentUser.uid);
-					const docSnap = await getDoc(docRef);
+	const fetchUserData = useCallback(async () => {
+		try {
+			if (auth.currentUser) {
+				const docRef = doc(db, 'users', auth.currentUser.uid);
+				const docSnap = await getDoc(docRef);
 
-					if (docSnap.exists()) {
-						const data = docSnap.data();
-						setUserData(data);
-						setFullName(data.fullName || '');
-						setPhone(data.phone || '');
-						setStudentGroup(data.studentGroup || '');
-						setAccountType(data.accountType || 'student');
-						setTelegramUrl(data.telegramUrl || '');
-						setAvatarUrl(data.avatarUrl || auth.currentUser.photoURL || '');
-					}
+				if (docSnap.exists()) {
+					const data = docSnap.data();
+					setUserData(data);
+					setFormData({
+						fullName: data.fullName || '',
+						phone: data.phone || '',
+						studentGroup: data.studentGroup || '',
+						accountType: data.accountType || 'student',
+						telegramUrl: data.telegramUrl || '',
+						avatarUrl: data.avatarUrl || auth.currentUser.photoURL || ''
+					});
 				}
-			} catch (err) {
-				console.error("Ошибка загрузки данных:", err);
-				setError("Не удалось загрузить данные профиля");
-			} finally {
-				setLoading(false);
 			}
-		};
-
-		fetchUserData();
+		} catch (err) {
+			console.error("Ошибка загрузки данных:", err);
+			setError("Не удалось загрузить данные профиля");
+		} finally {
+			setLoading(false);
+		}
 	}, []);
 
-	const validateTelegramUrl = (url) => {
+	useEffect(() => {
+		fetchUserData();
+	}, [fetchUserData]);
+
+	const validateTelegramUrl = useCallback((url) => {
 		if (!url) return true;
 		const telegramRegex = /^(https?:\/\/)?(t\.me\/|@)[a-zA-Z0-9_]{5,32}$/;
 		return telegramRegex.test(url);
-	};
+	}, []);
 
-	const handleTelegramChange = (e) => {
+	const handleTelegramChange = useCallback((e) => {
 		const url = e.target.value;
-		setTelegramUrl(url);
+		setFormData(prev => ({ ...prev, telegramUrl: url }));
 		setTelegramError(validateTelegramUrl(url) ? '' : 'Введите корректную ссылку Telegram (например: @username или t.me/username)');
-	};
+	}, [validateTelegramUrl]);
 
-	const handleFileUpload = async (e) => {
+	const handleInputChange = useCallback((field) => (e) => {
+		setFormData(prev => ({ ...prev, [field]: e.target.value }));
+	}, []);
+
+	const handleFileUpload = useCallback(async (e) => {
 		const file = e.target.files[0];
 		if (!file) return;
 
@@ -117,7 +126,7 @@ export default function Profile() {
 			const storageRef = ref(storage, `avatars/${auth.currentUser.uid}`);
 			await uploadBytes(storageRef, file);
 			const url = await getDownloadURL(storageRef);
-			setAvatarUrl(url);
+			setFormData(prev => ({ ...prev, avatarUrl: url }));
 			setOpenAvatarDialog(false);
 		} catch (err) {
 			console.error("Ошибка загрузки аватара:", err);
@@ -125,41 +134,34 @@ export default function Profile() {
 		} finally {
 			setUploading(false);
 		}
-	};
+	}, []);
 
-	const handleSaveChanges = async () => {
+	const handleSaveChanges = useCallback(async () => {
 		if (telegramError) return;
 
 		setLoading(true);
 		try {
-			let formattedTelegramUrl = telegramUrl;
-			if (telegramUrl && !telegramUrl.startsWith('https://t.me/')) {
-				formattedTelegramUrl = `https://t.me/${telegramUrl.replace(/^@/, '')}`;
+			let formattedTelegramUrl = formData.telegramUrl;
+			if (formData.telegramUrl && !formData.telegramUrl.startsWith('https://t.me/')) {
+				formattedTelegramUrl = `https://t.me/${formData.telegramUrl.replace(/^@/, '')}`;
 			}
 
-			await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-				fullName,
-				phone,
-				studentGroup,
-				accountType,
+			const updatedData = {
+				...formData,
 				telegramUrl: formattedTelegramUrl,
-				avatarUrl,
 				updatedAt: new Date()
-			});
+			};
+
+			await updateDoc(doc(db, 'users', auth.currentUser.uid), updatedData);
 
 			await updateProfile(auth.currentUser, {
-				displayName: fullName,
-				photoURL: avatarUrl
+				displayName: formData.fullName,
+				photoURL: formData.avatarUrl
 			});
 
 			setUserData(prev => ({
 				...prev,
-				fullName,
-				phone,
-				studentGroup,
-				accountType,
-				telegramUrl: formattedTelegramUrl,
-				avatarUrl
+				...updatedData
 			}));
 
 			setEditMode(false);
@@ -169,9 +171,9 @@ export default function Profile() {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [formData, telegramError]);
 
-	const handleLogout = async () => {
+	const handleLogout = useCallback(async () => {
 		try {
 			await signOut(auth);
 			navigate('/');
@@ -179,10 +181,15 @@ export default function Profile() {
 			console.error("Ошибка выхода:", err);
 			setError("Не удалось выйти из аккаунта");
 		}
-	};
+	}, [navigate]);
 
-	const getAccountTypeIcon = (type) => accountTypes.find(t => t.value === type)?.icon || <Person color="primary" />;
-	const getAccountTypeLabel = (type) => accountTypes.find(t => t.value === type)?.label || 'Пользователь';
+	const getAccountTypeIcon = useCallback((type) =>
+		accountTypes.find(t => t.value === type)?.icon || <Person color="primary" />,
+		[]);
+
+	const getAccountTypeLabel = useCallback((type) =>
+		accountTypes.find(t => t.value === type)?.label || 'Пользователь',
+		[]);
 
 	if (loading && !editMode) {
 		return (
@@ -245,7 +252,7 @@ export default function Profile() {
 				<>
 					<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
 						<Avatar
-							src={avatarUrl}
+							src={formData.avatarUrl}
 							sx={{
 								width: 120,
 								height: 120,
@@ -256,7 +263,7 @@ export default function Profile() {
 							}}
 							onClick={() => setOpenAvatarDialog(true)}
 						>
-							{fullName.charAt(0) || 'U'}
+							{formData.fullName.charAt(0) || 'U'}
 						</Avatar>
 						<Typography variant="body2" color="text.secondary">
 							Нажмите на аватар для изменения
@@ -267,8 +274,8 @@ export default function Profile() {
 						fullWidth
 						label="ФИО"
 						margin="normal"
-						value={fullName}
-						onChange={(e) => setFullName(e.target.value)}
+						value={formData.fullName}
+						onChange={handleInputChange('fullName')}
 						required
 					/>
 
@@ -276,8 +283,8 @@ export default function Profile() {
 						fullWidth
 						label="Телефон"
 						margin="normal"
-						value={phone}
-						onChange={(e) => setPhone(e.target.value)}
+						value={formData.phone}
+						onChange={handleInputChange('phone')}
 						InputProps={{
 							startAdornment: (
 								<InputAdornment position="start">
@@ -291,9 +298,9 @@ export default function Profile() {
 						fullWidth
 						label="Группа (если студент)"
 						margin="normal"
-						value={studentGroup}
-						onChange={(e) => setStudentGroup(e.target.value)}
-						disabled={accountType !== 'student'}
+						value={formData.studentGroup}
+						onChange={handleInputChange('studentGroup')}
+						disabled={formData.accountType !== 'student'}
 						InputProps={{
 							startAdornment: (
 								<InputAdornment position="start">
@@ -303,29 +310,31 @@ export default function Profile() {
 						}}
 					/>
 
-					<FormControl fullWidth margin="normal">
-						<InputLabel>Тип аккаунта</InputLabel>
-						<Select
-							value={accountType}
-							label="Тип аккаунта"
-							onChange={(e) => setAccountType(e.target.value)}
-						>
-							{accountTypes.map((type) => (
-								<MenuItem key={type.value} value={type.value}>
-									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-										{type.icon}
-										{type.label}
-									</Box>
-								</MenuItem>
-							))}
-						</Select>
-					</FormControl>
+					<Suspense fallback={<CircularProgress />}>
+						<FormControl fullWidth margin="normal">
+							<InputLabel>Тип аккаунта</InputLabel>
+							<Select
+								value={formData.accountType}
+								label="Тип аккаунта"
+								onChange={handleInputChange('accountType')}
+							>
+								{accountTypes.map((type) => (
+									<MenuItem key={type.value} value={type.value}>
+										<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+											{type.icon}
+											{type.label}
+										</Box>
+									</MenuItem>
+								))}
+							</Select>
+						</FormControl>
+					</Suspense>
 
 					<TextField
 						fullWidth
 						label="Telegram"
 						margin="normal"
-						value={telegramUrl}
+						value={formData.telegramUrl}
 						onChange={handleTelegramChange}
 						error={!!telegramError}
 						InputProps={{
@@ -484,41 +493,47 @@ export default function Profile() {
 			)}
 
 			{/* Диалог для загрузки аватара */}
-			<Dialog open={openAvatarDialog} onClose={() => setOpenAvatarDialog(false)}>
-				<DialogTitle>
-					Изменить аватар
-					<IconButton
-						aria-label="close"
-						onClick={() => setOpenAvatarDialog(false)}
-						sx={{
-							position: 'absolute',
-							right: 8,
-							top: 8,
-							color: (theme) => theme.palette.grey[500],
-						}}
-					>
-						<Close />
-					</IconButton>
-				</DialogTitle>
-				<DialogContent sx={{ p: 3, textAlign: 'center' }}>
-					<input
-						accept="image/*"
-						style={{ display: 'none' }}
-						id="avatar-upload"
-						type="file"
-						onChange={handleFileUpload}
-					/>
-					<label htmlFor="avatar-upload">
-						<Button
-							variant="contained"
-							component="span"
-							disabled={uploading}
-						>
-							{uploading ? 'Загрузка...' : 'Выбрать изображение'}
-						</Button>
-					</label>
-				</DialogContent>
-			</Dialog>
+			<Suspense fallback={null}>
+				{openAvatarDialog && (
+					<Dialog open={openAvatarDialog} onClose={() => setOpenAvatarDialog(false)}>
+						<DialogTitle>
+							Изменить аватар
+							<IconButton
+								aria-label="close"
+								onClick={() => setOpenAvatarDialog(false)}
+								sx={{
+									position: 'absolute',
+									right: 8,
+									top: 8,
+									color: (theme) => theme.palette.grey[500],
+								}}
+							>
+								<CloseIcon />
+							</IconButton>
+						</DialogTitle>
+						<DialogContent sx={{ p: 3, textAlign: 'center' }}>
+							<input
+								accept="image/*"
+								style={{ display: 'none' }}
+								id="avatar-upload"
+								type="file"
+								onChange={handleFileUpload}
+							/>
+							<label htmlFor="avatar-upload">
+								<Button
+									variant="contained"
+									component="span"
+									disabled={uploading}
+								>
+									{uploading ? 'Загрузка...' : 'Выбрать изображение'}
+								</Button>
+							</label>
+						</DialogContent>
+					</Dialog>
+				)}
+			</Suspense>
 		</Box>
 	);
-}
+};
+
+export default Profile;

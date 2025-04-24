@@ -61,7 +61,7 @@ const MainLayout = ({
 			sx={{
 				maxWidth: 450,
 				margin: '0 auto',
-				height: '100vh',
+				height: '100dvh',
 				display: 'flex',
 				flexDirection: 'column',
 				bgcolor: 'background.default',
