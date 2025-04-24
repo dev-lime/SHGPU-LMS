@@ -5,7 +5,10 @@ import {
 	BottomNavigation,
 	BottomNavigationAction,
 	CircularProgress,
-	Box
+	Box,
+	Collapse,
+	FormControlLabel,
+	Switch
 } from "@mui/material";
 import {
 	Article,
@@ -18,7 +21,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ThemeProvider } from "@mui/material/styles";
 import { auth } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import News from "./pages/News";
 import Eios from "./pages/Eios";
 import Messenger from "./pages/Messenger";
@@ -33,7 +36,14 @@ import IDCard from './pages/IDCard';
 import Chat from './pages/Chat';
 import { createAppTheme } from './theme';
 
-const MainLayout = ({ children, activeTab, setActiveTab, tabs, hideTabLabels = false }) => {
+const MainLayout = ({
+	children,
+	activeTab,
+	setActiveTab,
+	tabs,
+	hideTabLabels = false,
+	keepCurrentTabLabel = false
+}) => {
 	const navigate = useNavigate();
 	const location = useLocation();
 
@@ -83,7 +93,7 @@ const MainLayout = ({ children, activeTab, setActiveTab, tabs, hideTabLabels = f
 			<BottomNavigation
 				value={activeTab}
 				onChange={handleTabChange}
-				showLabels={!hideTabLabels}
+				showLabels={!hideTabLabels || keepCurrentTabLabel}
 				sx={{
 					position: 'sticky',
 					bottom: 0,
@@ -96,7 +106,11 @@ const MainLayout = ({ children, activeTab, setActiveTab, tabs, hideTabLabels = f
 				{tabs.map((tab, index) => (
 					<BottomNavigationAction
 						key={index}
-						label={hideTabLabels ? null : tab.label}
+						label={
+							(!hideTabLabels || (keepCurrentTabLabel && activeTab === index))
+								? tab.label
+								: null
+						}
 						icon={tab.icon}
 						sx={{
 							minWidth: 'auto',
@@ -129,6 +143,9 @@ export default function App() {
 	const [hideTabLabels, setHideTabLabels] = useState(
 		localStorage.getItem('hideTabLabels') === 'true'
 	);
+	const [keepCurrentTabLabel, setKeepCurrentTabLabel] = useState(
+		localStorage.getItem('keepCurrentTabLabel') === 'true'
+	);
 
 	useEffect(() => {
 		const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -153,6 +170,17 @@ export default function App() {
 	const handleHideTabLabelsChange = (hide) => {
 		setHideTabLabels(hide);
 		localStorage.setItem('hideTabLabels', hide);
+
+		// Если отключаем скрытие текста, отключаем и зависимую настройку
+		if (!hide) {
+			setKeepCurrentTabLabel(false);
+			localStorage.setItem('keepCurrentTabLabel', false);
+		}
+	};
+
+	const handleKeepCurrentTabLabelChange = (keep) => {
+		setKeepCurrentTabLabel(keep);
+		localStorage.setItem('keepCurrentTabLabel', keep);
 	};
 
 	const handleLogout = async () => {
@@ -210,6 +238,7 @@ export default function App() {
 								setActiveTab={setActiveTab}
 								tabs={tabs}
 								hideTabLabels={hideTabLabels}
+								keepCurrentTabLabel={keepCurrentTabLabel}
 							>
 								<AnimatePresence mode="wait">
 									<motion.div
@@ -240,6 +269,7 @@ export default function App() {
 									setActiveTab={setActiveTab}
 									tabs={tabs}
 									hideTabLabels={hideTabLabels}
+									keepCurrentTabLabel={keepCurrentTabLabel}
 								>
 									{tab.component}
 								</MainLayout>
@@ -255,6 +285,7 @@ export default function App() {
 								setActiveTab={setActiveTab}
 								tabs={tabs}
 								hideTabLabels={hideTabLabels}
+								keepCurrentTabLabel={keepCurrentTabLabel}
 							>
 								<Documents />
 							</MainLayout>
@@ -269,11 +300,15 @@ export default function App() {
 								setActiveTab={setActiveTab}
 								tabs={tabs}
 								hideTabLabels={hideTabLabels}
+								keepCurrentTabLabel={keepCurrentTabLabel}
 							>
 								<Settings
 									themeConfig={themeConfig}
 									onThemeChange={handleThemeChange}
+									hideTabLabels={hideTabLabels}
 									onHideTabLabelsChange={handleHideTabLabelsChange}
+									keepCurrentTabLabel={keepCurrentTabLabel}
+									onKeepCurrentTabLabelChange={handleKeepCurrentTabLabelChange}
 									user={user}
 									onLogout={handleLogout}
 								/>
@@ -289,6 +324,7 @@ export default function App() {
 								setActiveTab={setActiveTab}
 								tabs={tabs}
 								hideTabLabels={hideTabLabels}
+								keepCurrentTabLabel={keepCurrentTabLabel}
 							>
 								<Profile user={user} />
 							</MainLayout>
@@ -303,6 +339,7 @@ export default function App() {
 								setActiveTab={setActiveTab}
 								tabs={tabs}
 								hideTabLabels={hideTabLabels}
+								keepCurrentTabLabel={keepCurrentTabLabel}
 							>
 								<Support />
 							</MainLayout>
@@ -317,6 +354,7 @@ export default function App() {
 								setActiveTab={setActiveTab}
 								tabs={tabs}
 								hideTabLabels={hideTabLabels}
+								keepCurrentTabLabel={keepCurrentTabLabel}
 							>
 								<IDCard />
 							</MainLayout>
@@ -331,6 +369,7 @@ export default function App() {
 								setActiveTab={setActiveTab}
 								tabs={tabs}
 								hideTabLabels={hideTabLabels}
+								keepCurrentTabLabel={keepCurrentTabLabel}
 							>
 								<Chat />
 							</MainLayout>

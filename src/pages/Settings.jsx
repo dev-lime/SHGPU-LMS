@@ -17,7 +17,8 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    Divider
+    Divider,
+    Collapse
 } from '@mui/material';
 import {
     ArrowBack,
@@ -29,11 +30,19 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
-export default function Settings({ themeConfig, onThemeChange, onHideTabLabelsChange }) {
+export default function Settings({
+    themeConfig,
+    onThemeChange,
+    hideTabLabels,
+    onHideTabLabelsChange,
+    keepCurrentTabLabel,
+    onKeepCurrentTabLabelChange,
+    user,
+    onLogout
+}) {
     const navigate = useNavigate();
     const [primaryColor, setPrimaryColor] = useState(themeConfig?.color || 'green');
     const [darkMode, setDarkMode] = useState(themeConfig?.mode === 'dark');
-    const [hideTabLabels, setHideTabLabels] = useState(localStorage.getItem('hideTabLabels') === 'true');
     const [aboutOpen, setAboutOpen] = useState(false);
 
     const colorOptions = {
@@ -59,11 +68,11 @@ export default function Settings({ themeConfig, onThemeChange, onHideTabLabelsCh
 
     const handleTabLabelsChange = (event) => {
         const hide = event.target.checked;
-        setHideTabLabels(hide);
-        localStorage.setItem('hideTabLabels', hide);
-        if (onHideTabLabelsChange) {
-            onHideTabLabelsChange(hide);
-        }
+        onHideTabLabelsChange(hide);
+    };
+
+    const handleCurrentTabLabelChange = (event) => {
+        onKeepCurrentTabLabelChange(event.target.checked);
     };
 
     const handleAboutOpen = () => setAboutOpen(true);
@@ -109,13 +118,25 @@ export default function Settings({ themeConfig, onThemeChange, onHideTabLabelsCh
             )
         },
         {
-            name: "Скрыть текст вкладок",
+            name: "Скрыть названия вкладок",
             icon: <TextFields color="primary" />,
             action: (
                 <Switch
                     checked={hideTabLabels}
                     onChange={handleTabLabelsChange}
                     color="primary"
+                />
+            )
+        },
+        {
+            name: "Не скрывать название текущей вкладки",
+            description: !hideTabLabels ? "Доступно только при включённом 'Скрыть названия вкладок'" : null,
+            action: (
+                <Switch
+                    checked={keepCurrentTabLabel}
+                    onChange={handleCurrentTabLabelChange}
+                    color="primary"
+                    disabled={!hideTabLabels}
                 />
             )
         },
