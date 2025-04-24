@@ -2,11 +2,8 @@ import { createTheme } from '@mui/material/styles';
 
 const materialYouColors = {
 	green: '#4CAF50',
-	purple: '#6750A4',
 	blue: '#2196F3',
-	orange: '#FF9800',
-	red: '#F44336',
-	pink: '#E91E63'
+	red: '#F44336'
 };
 
 export const createAppTheme = (colorNameOrHex = 'green', mode = 'light') => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
     Box,
     Avatar,
@@ -9,7 +9,10 @@ import {
     ListItem,
     CircularProgress,
     InputAdornment,
-    Divider
+    Divider,
+    Grow,
+    Fade,
+    Slide
 } from '@mui/material';
 import { Send, ArrowBack } from '@mui/icons-material';
 import { db, auth } from '../firebase';
@@ -26,6 +29,112 @@ import {
     updateDoc
 } from 'firebase/firestore';
 import { useNavigate, useParams } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github.css';
+
+// Оптимизированный компонент для отображения сообщений
+const MessageItem = React.memo(({
+    message,
+    isOwnMessage,
+    showAvatar,
+    showTime,
+    otherUser,
+    isNewMessage
+}) => {
+    const timeString = useMemo(() => {
+        return message.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }, [message.timestamp]);
+
+    return (
+        <Grow
+            in={true}
+            style={{ transformOrigin: isOwnMessage ? 'right top' : 'left top' }}
+            timeout={isNewMessage ? 500 : 0}
+        >
+            <ListItem
+                sx={{
+                    justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
+                    px: 1,
+                    alignItems: 'flex-start',
+                    pt: 0.5,
+                    pb: 0.5
+                }}
+            >
+                <Box sx={{
+                    maxWidth: '70%',
+                    display: 'flex',
+                    flexDirection: isOwnMessage ? 'row-reverse' : 'row',
+                    alignItems: 'flex-end',
+                    gap: 1
+                }}>
+                    {!isOwnMessage && showAvatar && (
+                        <Avatar
+                            src={otherUser?.avatarUrl}
+                            sx={{
+                                width: 32,
+                                height: 32,
+                                bgcolor: 'primary.main'
+                            }}
+                        >
+                            {otherUser?.fullName?.charAt(0)}
+                        </Avatar>
+                    )}
+
+                    <Box sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: isOwnMessage ? 'flex-end' : 'flex-start'
+                    }}>
+                        <Box sx={{
+                            p: 1.5,
+                            borderRadius: 2,
+                            bgcolor: isOwnMessage ? 'primary.main' : 'action.hover',
+                            color: isOwnMessage ? 'primary.contrastText' : 'text.primary',
+                            '& p': { margin: 0, lineHeight: 1.5 },
+                            '& pre': {
+                                backgroundColor: 'rgba(0,0,0,0.1)',
+                                borderRadius: '4px',
+                                padding: '8px',
+                                overflowX: 'auto',
+                                margin: '8px 0'
+                            },
+                            '& code': { fontFamily: 'monospace' }
+                        }}>
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                rehypePlugins={[rehypeHighlight]}
+                                components={{
+                                    // Упрощенные компоненты для оптимизации
+                                    p: ({ node, ...props }) => <p {...props} />,
+                                    pre: ({ node, ...props }) => <pre {...props} />,
+                                    code: ({ node, ...props }) => <code {...props} />
+                                }}
+                            >
+                                {message.text}
+                            </ReactMarkdown>
+                        </Box>
+                        {showTime && (
+                            <Fade in={true} timeout={1000}>
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        color: 'text.secondary',
+                                        px: 1,
+                                        mt: 0.5
+                                    }}
+                                >
+                                    {timeString}
+                                </Typography>
+                            </Fade>
+                        )}
+                    </Box>
+                </Box>
+            </ListItem>
+        </Grow>
+    );
+});
 
 export default function Chat() {
     const { chatId } = useParams();
@@ -37,6 +146,7 @@ export default function Chat() {
     const [otherUser, setOtherUser] = useState(null);
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
+    const [lastMessageId, setLastMessageId] = useState(null);
 
     // Загрузка данных чата и сообщений
     useEffect(() => {
@@ -82,6 +192,13 @@ export default function Chat() {
                     }));
                     setMessages(messagesData);
                     setLoading(false);
+
+                    if (messagesData.length > 0) {
+                        const lastMsg = messagesData[messagesData.length - 1];
+                        if (lastMsg.id !== lastMessageId) {
+                            setLastMessageId(lastMsg.id);
+                        }
+                    }
                 });
 
                 return () => unsubscribe();
@@ -92,7 +209,7 @@ export default function Chat() {
         };
 
         loadChatData();
-    }, [chatId, navigate]);
+    }, [chatId, navigate, lastMessageId]);
 
     // Автоматическая прокрутка при новом сообщении
     useEffect(() => {
@@ -101,51 +218,43 @@ export default function Chat() {
         }
     }, [messages]);
 
-    // Функция для проверки, нужно ли показывать аватар
-    const shouldShowAvatar = (index) => {
+    // Оптимизированные функции проверок
+    const shouldShowAvatar = useCallback((index) => {
         if (messages[index].sender === auth.currentUser?.uid) return false;
         if (index === messages.length - 1) return true;
         return messages[index].sender !== messages[index + 1].sender;
-    };
+    }, [messages]);
 
-    // Функция для проверки, нужно ли показывать время сообщения
-    const shouldShowTime = (index) => {
+    const shouldShowTime = useCallback((index) => {
         if (index === messages.length - 1) return true;
 
         const currentTime = messages[index].timestamp?.toDate();
         const nextTime = messages[index + 1].timestamp?.toDate();
 
         if (!currentTime || !nextTime) return true;
-
-        // Показываем время если следующее сообщение от другого пользователя
         if (messages[index].sender !== messages[index + 1].sender) return true;
-
-        // Или если разница во времени больше минуты
         return (nextTime.getTime() - currentTime.getTime()) > 60000;
-    };
+    }, [messages]);
 
-    // Функция для проверки смены дня
-    const isNewDay = (index) => {
+    const isNewDay = useCallback((index) => {
         if (index === 0) return true;
 
         const currentDate = messages[index].timestamp?.toDate();
         const prevDate = messages[index - 1].timestamp?.toDate();
 
         if (!currentDate || !prevDate) return false;
-
         return (
             currentDate.getDate() !== prevDate.getDate() ||
             currentDate.getMonth() !== prevDate.getMonth() ||
             currentDate.getFullYear() !== prevDate.getFullYear()
         );
-    };
+    }, [messages]);
 
-    // Форматирование даты для разделителя
-    const formatDate = (date) => {
+    const formatDate = useCallback((date) => {
         if (!date) return '';
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         return date.toLocaleDateString('ru-RU', options);
-    };
+    }, []);
 
     // Отправка нового сообщения
     const handleSendMessage = async () => {
@@ -194,45 +303,47 @@ export default function Chat() {
             bgcolor: 'background.default'
         }}>
             {/* Шапка чата */}
-            <Box sx={{
-                display: 'flex',
-                alignItems: 'center',
-                p: 1,
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-                bgcolor: 'background.paper',
-                flexShrink: 0
-            }}>
-                <IconButton
-                    onClick={() => navigate('/messenger')}
-                    sx={{
-                        mr: 1,
-                        '&.Mui-selected': { outline: 'none' },
-                        '&:focus': { outline: 'none' }
-                    }}
-                >
-                    <ArrowBack color="primary" />
-                </IconButton>
+            <Slide direction="down" in={true} mountOnEnter unmountOnExit>
+                <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    p: 1,
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    bgcolor: 'background.paper',
+                    flexShrink: 0
+                }}>
+                    <IconButton
+                        onClick={() => navigate('/messenger')}
+                        sx={{
+                            mr: 1,
+                            '&.Mui-selected': { outline: 'none' },
+                            '&:focus': { outline: 'none' }
+                        }}
+                    >
+                        <ArrowBack color="primary" />
+                    </IconButton>
 
-                {otherUser && (
-                    <>
-                        <Avatar
-                            src={otherUser.avatarUrl}
-                            sx={{
-                                width: 40,
-                                height: 40,
-                                mr: 2,
-                                bgcolor: 'primary.main'
-                            }}
-                        >
-                            {otherUser.fullName?.charAt(0)}
-                        </Avatar>
-                        <Typography variant="h6">
-                            {otherUser.fullName}
-                        </Typography>
-                    </>
-                )}
-            </Box>
+                    {otherUser && (
+                        <>
+                            <Avatar
+                                src={otherUser.avatarUrl}
+                                sx={{
+                                    width: 40,
+                                    height: 40,
+                                    mr: 2,
+                                    bgcolor: 'primary.main'
+                                }}
+                            >
+                                {otherUser.fullName?.charAt(0)}
+                            </Avatar>
+                            <Typography variant="h6">
+                                {otherUser.fullName}
+                            </Typography>
+                        </>
+                    )}
+                </Box>
+            </Slide>
 
             {/* Список сообщений */}
             <Box
@@ -250,93 +361,42 @@ export default function Chat() {
                     {messages.map((message, index) => {
                         const showDateDivider = isNewDay(index);
                         const messageDate = message.timestamp?.toDate();
+                        const isNewMessage = message.id === lastMessageId;
+                        const isOwnMessage = message.sender === auth.currentUser?.uid;
 
                         return (
                             <React.Fragment key={message.id}>
                                 {showDateDivider && (
-                                    <Box sx={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        my: 2,
-                                        px: 1
-                                    }}>
-                                        <Divider sx={{ flex: 1 }} />
-                                        <Typography
-                                            variant="caption"
-                                            sx={{
-                                                mx: 2,
-                                                color: 'text.secondary'
-                                            }}
-                                        >
-                                            {formatDate(messageDate)}
-                                        </Typography>
-                                        <Divider sx={{ flex: 1 }} />
-                                    </Box>
-                                )}
-
-                                <ListItem
-                                    sx={{
-                                        justifyContent: message.sender === auth.currentUser?.uid ?
-                                            'flex-end' : 'flex-start',
-                                        px: 1,
-                                        alignItems: 'flex-start',
-                                        pt: 0.5,
-                                        pb: 0.5
-                                    }}
-                                >
-                                    <Box sx={{
-                                        maxWidth: '70%',
-                                        display: 'flex',
-                                        flexDirection: message.sender === auth.currentUser?.uid ?
-                                            'row-reverse' : 'row',
-                                        alignItems: 'flex-end',
-                                        gap: 1
-                                    }}>
-                                        {message.sender !== auth.currentUser?.uid && (
-                                            <Avatar
-                                                src={otherUser?.avatarUrl}
-                                                sx={{
-                                                    width: 32,
-                                                    height: 32,
-                                                    bgcolor: 'primary.main',
-                                                    visibility: shouldShowAvatar(index) ? 'visible' : 'hidden'
-                                                }}
-                                            >
-                                                {otherUser?.fullName?.charAt(0)}
-                                            </Avatar>
-                                        )}
-
+                                    <Fade in={true}>
                                         <Box sx={{
                                             display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: message.sender === auth.currentUser?.uid ?
-                                                'flex-end' : 'flex-start'
+                                            alignItems: 'center',
+                                            my: 2,
+                                            px: 1
                                         }}>
-                                            <Box sx={{
-                                                p: 1.5,
-                                                borderRadius: 2,
-                                                bgcolor: message.sender === auth.currentUser?.uid ?
-                                                    'primary.main' : 'action.hover',
-                                                color: message.sender === auth.currentUser?.uid ?
-                                                    'primary.contrastText' : 'text.primary',
-                                            }}>
-                                                <Typography>{message.text}</Typography>
-                                            </Box>
-                                            {shouldShowTime(index) && (
-                                                <Typography
-                                                    variant="caption"
-                                                    sx={{
-                                                        color: 'text.secondary',
-                                                        px: 1,
-                                                        mt: 0.5
-                                                    }}
-                                                >
-                                                    {message.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </Typography>
-                                            )}
+                                            <Divider sx={{ flex: 1 }} />
+                                            <Typography
+                                                variant="caption"
+                                                sx={{
+                                                    mx: 2,
+                                                    color: 'text.secondary'
+                                                }}
+                                            >
+                                                {formatDate(messageDate)}
+                                            </Typography>
+                                            <Divider sx={{ flex: 1 }} />
                                         </Box>
-                                    </Box>
-                                </ListItem>
+                                    </Fade>
+                                )}
+
+                                <MessageItem
+                                    message={message}
+                                    isOwnMessage={isOwnMessage}
+                                    showAvatar={!isOwnMessage && shouldShowAvatar(index)}
+                                    showTime={shouldShowTime(index)}
+                                    otherUser={otherUser}
+                                    isNewMessage={isNewMessage}
+                                />
                             </React.Fragment>
                         );
                     })}
@@ -345,50 +405,52 @@ export default function Chat() {
             </Box>
 
             {/* Поле ввода сообщения */}
-            <Box sx={{
-                borderTop: '1px solid',
-                borderColor: 'divider',
-                bgcolor: 'background.paper',
-                flexShrink: 0
-            }}>
-                <TextField
-                    fullWidth
-                    variant="standard"
-                    placeholder="Написать сообщение..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    multiline
-                    maxRows={4}
-                    sx={{
-                        '& .MuiInput-root': {
-                            px: 2,
-                            py: 1
-                        },
-                        '& .MuiInput-root:before, & .MuiInput-root:after': {
-                            display: 'none'
-                        }
-                    }}
-                    InputProps={{
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                <IconButton
-                                    color="primary"
-                                    onClick={handleSendMessage}
-                                    disabled={!newMessage.trim()}
-                                    sx={{
-                                        '&.Mui-selected': { outline: 'none' },
-                                        '&:focus': { outline: 'none' }
-                                    }}
-                                >
-                                    <Send />
-                                </IconButton>
-                            </InputAdornment>
-                        ),
-                        disableUnderline: true
-                    }}
-                />
-            </Box>
+            <Slide direction="up" in={true} mountOnEnter unmountOnExit>
+                <Box sx={{
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                    bgcolor: 'background.paper',
+                    flexShrink: 0
+                }}>
+                    <TextField
+                        fullWidth
+                        variant="standard"
+                        placeholder="Написать сообщение..."
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        multiline
+                        maxRows={4}
+                        sx={{
+                            '& .MuiInput-root': {
+                                px: 2,
+                                py: 1
+                            },
+                            '& .MuiInput-root:before, & .MuiInput-root:after': {
+                                display: 'none'
+                            }
+                        }}
+                        InputProps={{
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        color="primary"
+                                        onClick={handleSendMessage}
+                                        disabled={!newMessage.trim()}
+                                        sx={{
+                                            '&.Mui-selected': { outline: 'none' },
+                                            '&:focus': { outline: 'none' }
+                                        }}
+                                    >
+                                        <Send />
+                                    </IconButton>
+                                </InputAdornment>
+                            ),
+                            disableUnderline: true
+                        }}
+                    />
+                </Box>
+            </Slide>
         </Box>
     );
 }

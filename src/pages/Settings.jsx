@@ -42,19 +42,22 @@ export default function Settings({
     onLogout
 }) {
     const navigate = useNavigate();
-    const [primaryColor, setPrimaryColor] = useState(themeConfig?.color || 'green');
     const [darkMode, setDarkMode] = useState(themeConfig?.mode === 'dark');
     const [aboutOpen, setAboutOpen] = useState(false);
     const [expandedGroups, setExpendedGroups] = useState({});
-    const [customColor, setCustomColor] = useState('');
 
+    // Получаем текущий цвет из themeConfig
+    const currentColor = themeConfig?.color || 'green';
+    // Определяем, является ли текущий цвет кастомным HEX
+    const isCustomColor = /^#([0-9A-F]{3}){1,2}$/i.test(currentColor);
+    // Устанавливаем начальное значение для кастомного цвета
+    const [customColor, setCustomColor] = useState(isCustomColor ? currentColor : '');
+
+    // Сокращённый список цветовых пресетов
     const colorOptions = {
         green: '#4CAF50',
-        purple: '#6750A4',
         blue: '#2196F3',
-        orange: '#FF9800',
-        red: '#F44336',
-        pink: '#E91E63'
+        red: '#F44336'
     };
 
     const handleCustomColorChange = (e) => {
@@ -64,7 +67,6 @@ export default function Settings({
         // Проверяем валидность HEX-цвета
         const isHex = /^#([0-9A-F]{3}){1,2}$/i.test(value);
         if (isHex) {
-            setPrimaryColor(value);
             onThemeChange({ ...themeConfig, color: value });
         }
     };
@@ -78,7 +80,6 @@ export default function Settings({
 
     const handleColorChange = (event) => {
         const color = event.target.value;
-        setPrimaryColor(color);
         setCustomColor(''); // Очищаем кастомный цвет при выборе стандартного
         onThemeChange({ ...themeConfig, color });
     };
@@ -111,7 +112,7 @@ export default function Settings({
             action: (
                 <RadioGroup
                     row
-                    value={primaryColor}
+                    value={isCustomColor ? 'custom' : currentColor}
                     onChange={handleColorChange}
                     sx={{ ml: 2 }}
                 >
@@ -133,7 +134,7 @@ export default function Settings({
             ),
             children: [
                 {
-                    name: "Пользовательский цвет (HEX)",
+                    name: "Пользовательский цвет",
                     action: (
                         <TextField
                             value={customColor}

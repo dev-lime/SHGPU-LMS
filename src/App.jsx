@@ -107,9 +107,21 @@ const MainLayout = ({
 					<BottomNavigationAction
 						key={index}
 						label={
-							(!hideTabLabels || (keepCurrentTabLabel && activeTab === index))
-								? tab.label
-								: null
+							(!hideTabLabels || (keepCurrentTabLabel && activeTab === index)) ? (
+								<AnimatePresence mode="wait">
+									{(!hideTabLabels || (keepCurrentTabLabel && activeTab === index)) && (
+										<motion.div
+											key="label"
+											initial={{ opacity: 0, y: 5 }}
+											animate={{ opacity: 1, y: 0 }}
+											exit={{ opacity: 0, y: -5 }}
+											transition={{ duration: 0.3 }}
+										>
+											{tab.label}
+										</motion.div>
+									)}
+								</AnimatePresence>
+							) : null
 						}
 						icon={tab.icon}
 						sx={{
