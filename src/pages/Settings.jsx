@@ -61,9 +61,11 @@ export default function Settings({
         const value = e.target.value;
         setCustomColor(value);
 
+        // Проверяем валидность HEX-цвета
         const isHex = /^#([0-9A-F]{3}){1,2}$/i.test(value);
         if (isHex) {
-            setPrimaryColor(value); // обновит тему
+            setPrimaryColor(value);
+            onThemeChange({ ...themeConfig, color: value });
         }
     };
 
@@ -77,6 +79,7 @@ export default function Settings({
     const handleColorChange = (event) => {
         const color = event.target.value;
         setPrimaryColor(color);
+        setCustomColor(''); // Очищаем кастомный цвет при выборе стандартного
         onThemeChange({ ...themeConfig, color });
     };
 
