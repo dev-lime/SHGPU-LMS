@@ -9,15 +9,20 @@ import {
 	IconButton,
 	Paper,
 	TableContainer,
-	Fab
+	Fab,
+	useMediaQuery,
+	useTheme
 } from "@mui/material";
 import { ChevronLeft, ChevronRight, Schedule as ScheduleIcon } from "@mui/icons-material";
 
 const Schedule = () => {
+	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 	const [currentWeek, setCurrentWeek] = useState(0);
 	const [currentDay, setCurrentDay] = useState(new Date().getDay());
 	const [currentPair, setCurrentPair] = useState(0);
 	const [weekDates, setWeekDates] = useState([]);
+	const [initialLoad, setInitialLoad] = useState(true);
 	const tableRef = useRef(null);
 	const currentPairRef = useRef(null);
 
@@ -84,32 +89,55 @@ const Schedule = () => {
 		setWeekDates(generateWeekDates());
 	}, [currentWeek]);
 
-	// Автоматический скролл к текущей паре при открытии расписания
+	// Автоматический скролл только при первом открытии
 	useEffect(() => {
-		if (currentPair > 0 && currentPairRef.current) {
+		if (initialLoad && currentPair > 0 && currentPairRef.current) {
 			setTimeout(() => {
+				if (currentPairRef.current) {
+					currentPairRef.current.scrollIntoView({
+						behavior: 'smooth',
+						block: 'center'
+					});
+				}
+			}, 300);
+			setInitialLoad(false);
+		}
+	}, [currentPair, initialLoad]);
+
+	const scrollToCurrentPair = () => {
+		// Если не на текущей неделе, предлагаем переключиться
+		if (currentWeek !== 0) {
+			setCurrentWeek(0);
+			setTimeout(() => {
+				if (currentPair > 0 && currentPairRef.current) {
+					currentPairRef.current.scrollIntoView({
+						behavior: 'smooth',
+						block: 'center'
+					});
+				} else {
+					const todayRow = tableRef.current?.querySelector('.today-row');
+					if (todayRow) {
+						todayRow.scrollIntoView({
+							behavior: 'smooth',
+							block: 'center'
+						});
+					}
+				}
+			}, 300);
+		} else {
+			if (currentPair > 0 && currentPairRef.current) {
 				currentPairRef.current.scrollIntoView({
 					behavior: 'smooth',
 					block: 'center'
 				});
-			}, 300);
-		}
-	}, [currentPair, weekDates]);
-
-	const scrollToCurrentPair = () => {
-		if (currentPair > 0 && currentPairRef.current) {
-			currentPairRef.current.scrollIntoView({
-				behavior: 'smooth',
-				block: 'center'
-			});
-		} else {
-			// Если сейчас нет текущей пары, прокручиваем к сегодняшнему дню
-			const todayRow = tableRef.current?.querySelector('.today-row');
-			if (todayRow) {
-				todayRow.scrollIntoView({
-					behavior: 'smooth',
-					block: 'center'
-				});
+			} else {
+				const todayRow = tableRef.current?.querySelector('.today-row');
+				if (todayRow) {
+					todayRow.scrollIntoView({
+						behavior: 'smooth',
+						block: 'center'
+					});
+				}
 			}
 		}
 	};
@@ -191,8 +219,15 @@ const Schedule = () => {
 
 	const scheduleData = generateScheduleData();
 
-	const handlePrevWeek = () => setCurrentWeek(prev => prev - 1);
-	const handleNextWeek = () => setCurrentWeek(prev => prev + 1);
+	const handlePrevWeek = () => {
+		setCurrentWeek(prev => prev - 1);
+		setInitialLoad(false); // Указываем, что это ручное изменение
+	};
+
+	const handleNextWeek = () => {
+		setCurrentWeek(prev => prev + 1);
+		setInitialLoad(false); // Указываем, что это ручное изменение
+	};
 
 	const formatWeekRange = () => {
 		if (weekDates.length < 2) return '';
@@ -207,7 +242,15 @@ const Schedule = () => {
 	};
 
 	return (
-		<Box sx={{ p: 2, overflowX: 'hidden', position: 'relative', pb: 8 }}>
+		<Box sx={{
+			p: 2,
+			overflowX: 'hidden',
+			position: 'relative',
+			pb: 8,
+			maxWidth: 450,
+			margin: '0 auto',
+			width: '100%'
+		}}>
 			<Box sx={{
 				display: 'flex',
 				alignItems: 'center',
@@ -224,7 +267,17 @@ const Schedule = () => {
 					alignItems: 'center',
 					minWidth: 'fit-content'
 				}}>
-					<IconButton onClick={handlePrevWeek} size="small">
+					<IconButton
+						onClick={handlePrevWeek}
+						size="small"
+						sx={{
+							'&.Mui-selected': {
+								outline: 'none'
+							},
+							'&:focus': {
+								outline: 'none'
+							}
+						}}>
 						<ChevronLeft fontSize="small" />
 					</IconButton>
 					<Typography component="span" sx={{
@@ -234,7 +287,17 @@ const Schedule = () => {
 					}}>
 						{currentWeek === 0 ? 'Текущая неделя' : formatWeekRange()}
 					</Typography>
-					<IconButton onClick={handleNextWeek} size="small">
+					<IconButton
+						onClick={handleNextWeek}
+						size="small"
+						sx={{
+							'&.Mui-selected': {
+								outline: 'none'
+							},
+							'&:focus': {
+								outline: 'none'
+							}
+						}}>
 						<ChevronRight fontSize="small" />
 					</IconButton>
 				</Box>
@@ -316,7 +379,13 @@ const Schedule = () => {
 					position: 'fixed',
 					bottom: 80,
 					right: 16,
-					zIndex: 1000
+					zIndex: 1000,
+					'&.Mui-selected': {
+						outline: 'none'
+					},
+					'&:focus': {
+						outline: 'none'
+					}
 				}}
 				onClick={scrollToCurrentPair}
 			>
