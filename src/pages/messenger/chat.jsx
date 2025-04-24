@@ -15,7 +15,7 @@ import {
     Slide
 } from '@mui/material';
 import { Send, ArrowBack } from '@mui/icons-material';
-import { db, auth } from '../firebase';
+import { db, auth } from '../../firebase';
 import {
     doc,
     getDoc,

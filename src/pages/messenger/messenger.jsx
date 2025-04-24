@@ -15,7 +15,7 @@ import {
 	CircularProgress
 } from '@mui/material';
 import { Search, ChatBubble, People } from '@mui/icons-material';
-import { db, auth } from '../firebase';
+import { db, auth } from '../../firebase';
 import {
 	collection,
 	query,

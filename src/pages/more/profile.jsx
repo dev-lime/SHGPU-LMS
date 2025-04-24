@@ -41,7 +41,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile, signOut } from 'firebase/auth';
-import { auth, db, storage } from '../firebase';
+import { auth, db, storage } from '../../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const accountTypes = [
