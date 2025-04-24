@@ -8,7 +8,8 @@ import {
     List,
     ListItem,
     CircularProgress,
-    InputAdornment
+    InputAdornment,
+    Divider
 } from '@mui/material';
 import { Send, ArrowBack } from '@mui/icons-material';
 import { db, auth } from '../firebase';
@@ -123,6 +124,29 @@ export default function Chat() {
         return (nextTime.getTime() - currentTime.getTime()) > 60000;
     };
 
+    // Функция для проверки смены дня
+    const isNewDay = (index) => {
+        if (index === 0) return true;
+
+        const currentDate = messages[index].timestamp?.toDate();
+        const prevDate = messages[index - 1].timestamp?.toDate();
+
+        if (!currentDate || !prevDate) return false;
+
+        return (
+            currentDate.getDate() !== prevDate.getDate() ||
+            currentDate.getMonth() !== prevDate.getMonth() ||
+            currentDate.getFullYear() !== prevDate.getFullYear()
+        );
+    };
+
+    // Форматирование даты для разделителя
+    const formatDate = (date) => {
+        if (!date) return '';
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        return date.toLocaleDateString('ru-RU', options);
+    };
+
     // Отправка нового сообщения
     const handleSendMessage = async () => {
         if (!newMessage.trim() || !chatId) return;
@@ -223,72 +247,99 @@ export default function Chat() {
                 }}
             >
                 <List sx={{ width: '100%' }}>
-                    {messages.map((message, index) => (
-                        <ListItem
-                            key={message.id}
-                            sx={{
-                                justifyContent: message.sender === auth.currentUser?.uid ?
-                                    'flex-end' : 'flex-start',
-                                px: 1,
-                                alignItems: 'flex-start',
-                                pt: 0.5,
-                                pb: 0.5
-                            }}
-                        >
-                            <Box sx={{
-                                maxWidth: '70%',
-                                display: 'flex',
-                                flexDirection: message.sender === auth.currentUser?.uid ?
-                                    'row-reverse' : 'row',
-                                alignItems: 'flex-end',
-                                gap: 1
-                            }}>
-                                {message.sender !== auth.currentUser?.uid && (
-                                    <Avatar
-                                        src={otherUser?.avatarUrl}
-                                        sx={{
-                                            width: 32,
-                                            height: 32,
-                                            bgcolor: 'primary.main',
-                                            visibility: shouldShowAvatar(index) ? 'visible' : 'hidden'
-                                        }}
-                                    >
-                                        {otherUser?.fullName?.charAt(0)}
-                                    </Avatar>
-                                )}
+                    {messages.map((message, index) => {
+                        const showDateDivider = isNewDay(index);
+                        const messageDate = message.timestamp?.toDate();
 
-                                <Box sx={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: message.sender === auth.currentUser?.uid ?
-                                        'flex-end' : 'flex-start'
-                                }}>
+                        return (
+                            <React.Fragment key={message.id}>
+                                {showDateDivider && (
                                     <Box sx={{
-                                        p: 1.5,
-                                        borderRadius: 2,
-                                        bgcolor: message.sender === auth.currentUser?.uid ?
-                                            'primary.main' : 'action.hover',
-                                        color: message.sender === auth.currentUser?.uid ?
-                                            'primary.contrastText' : 'text.primary',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        my: 2,
+                                        px: 1
                                     }}>
-                                        <Typography>{message.text}</Typography>
-                                    </Box>
-                                    {shouldShowTime(index) && (
+                                        <Divider sx={{ flex: 1 }} />
                                         <Typography
                                             variant="caption"
                                             sx={{
-                                                color: 'text.secondary',
-                                                px: 1,
-                                                mt: 0.5
+                                                mx: 2,
+                                                color: 'text.secondary'
                                             }}
                                         >
-                                            {message.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {formatDate(messageDate)}
                                         </Typography>
-                                    )}
-                                </Box>
-                            </Box>
-                        </ListItem>
-                    ))}
+                                        <Divider sx={{ flex: 1 }} />
+                                    </Box>
+                                )}
+
+                                <ListItem
+                                    sx={{
+                                        justifyContent: message.sender === auth.currentUser?.uid ?
+                                            'flex-end' : 'flex-start',
+                                        px: 1,
+                                        alignItems: 'flex-start',
+                                        pt: 0.5,
+                                        pb: 0.5
+                                    }}
+                                >
+                                    <Box sx={{
+                                        maxWidth: '70%',
+                                        display: 'flex',
+                                        flexDirection: message.sender === auth.currentUser?.uid ?
+                                            'row-reverse' : 'row',
+                                        alignItems: 'flex-end',
+                                        gap: 1
+                                    }}>
+                                        {message.sender !== auth.currentUser?.uid && (
+                                            <Avatar
+                                                src={otherUser?.avatarUrl}
+                                                sx={{
+                                                    width: 32,
+                                                    height: 32,
+                                                    bgcolor: 'primary.main',
+                                                    visibility: shouldShowAvatar(index) ? 'visible' : 'hidden'
+                                                }}
+                                            >
+                                                {otherUser?.fullName?.charAt(0)}
+                                            </Avatar>
+                                        )}
+
+                                        <Box sx={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: message.sender === auth.currentUser?.uid ?
+                                                'flex-end' : 'flex-start'
+                                        }}>
+                                            <Box sx={{
+                                                p: 1.5,
+                                                borderRadius: 2,
+                                                bgcolor: message.sender === auth.currentUser?.uid ?
+                                                    'primary.main' : 'action.hover',
+                                                color: message.sender === auth.currentUser?.uid ?
+                                                    'primary.contrastText' : 'text.primary',
+                                            }}>
+                                                <Typography>{message.text}</Typography>
+                                            </Box>
+                                            {shouldShowTime(index) && (
+                                                <Typography
+                                                    variant="caption"
+                                                    sx={{
+                                                        color: 'text.secondary',
+                                                        px: 1,
+                                                        mt: 0.5
+                                                    }}
+                                                >
+                                                    {message.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </Typography>
+                                            )}
+                                        </Box>
+                                    </Box>
+                                </ListItem>
+                            </React.Fragment>
+                        );
+                    })}
                     <div ref={messagesEndRef} />
                 </List>
             </Box>

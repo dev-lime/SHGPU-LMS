@@ -18,7 +18,8 @@ import {
     DialogContent,
     DialogActions,
     Divider,
-    Collapse
+    Collapse,
+    TextField
 } from '@mui/material';
 import {
     ArrowBack,
@@ -44,6 +45,8 @@ export default function Settings({
     const [primaryColor, setPrimaryColor] = useState(themeConfig?.color || 'green');
     const [darkMode, setDarkMode] = useState(themeConfig?.mode === 'dark');
     const [aboutOpen, setAboutOpen] = useState(false);
+    const [expandedGroups, setExpendedGroups] = useState({});
+    const [customColor, setCustomColor] = useState('');
 
     const colorOptions = {
         green: '#4CAF50',
@@ -52,6 +55,23 @@ export default function Settings({
         orange: '#FF9800',
         red: '#F44336',
         pink: '#E91E63'
+    };
+
+    const handleCustomColorChange = (e) => {
+        const value = e.target.value;
+        setCustomColor(value);
+
+        const isHex = /^#([0-9A-F]{3}){1,2}$/i.test(value);
+        if (isHex) {
+            setPrimaryColor(value); // обновит тему
+        }
+    };
+
+    const toggleGroup = (name) => {
+        setExpendedGroups(prev => ({
+            ...prev,
+            [name]: !prev[name]
+        }));
     };
 
     const handleColorChange = (event) => {
@@ -82,6 +102,9 @@ export default function Settings({
         {
             name: "Цветовая схема",
             icon: <Palette color="primary" />,
+            expandable: true,
+            isExpanded: expandedGroups['color'],
+            toggle: () => toggleGroup('color'),
             action: (
                 <RadioGroup
                     row
@@ -104,7 +127,22 @@ export default function Settings({
                         />
                     ))}
                 </RadioGroup>
-            )
+            ),
+            children: [
+                {
+                    name: "Пользовательский цвет (HEX)",
+                    action: (
+                        <TextField
+                            value={customColor}
+                            onChange={handleCustomColorChange}
+                            placeholder="#RRGGBB"
+                            size="small"
+                            sx={{ width: 120 }}
+                            InputProps={{ sx: { fontSize: 14 } }}
+                        />
+                    )
+                }
+            ]
         },
         {
             name: "Тёмная тема",
@@ -120,25 +158,30 @@ export default function Settings({
         {
             name: "Скрыть названия вкладок",
             icon: <TextFields color="primary" />,
+            expandable: true,
+            isExpanded: expandedGroups['tabLabels'],
+            toggle: () => toggleGroup('tabLabels'),
             action: (
                 <Switch
                     checked={hideTabLabels}
                     onChange={handleTabLabelsChange}
                     color="primary"
                 />
-            )
-        },
-        {
-            name: "Не скрывать название текущей вкладки",
-            description: !hideTabLabels ? "Доступно только при включённом 'Скрыть названия вкладок'" : null,
-            action: (
-                <Switch
-                    checked={keepCurrentTabLabel}
-                    onChange={handleCurrentTabLabelChange}
-                    color="primary"
-                    disabled={!hideTabLabels}
-                />
-            )
+            ),
+            children: [
+                {
+                    name: "Не скрывать название текущей вкладки",
+                    description: !hideTabLabels ? "Доступно только при включённом 'Скрыть названия вкладок'" : null,
+                    action: (
+                        <Switch
+                            checked={keepCurrentTabLabel}
+                            onChange={handleCurrentTabLabelChange}
+                            color="primary"
+                            disabled={!hideTabLabels}
+                        />
+                    )
+                }
+            ]
         },
         {
             name: "О приложении",
@@ -179,7 +222,7 @@ export default function Settings({
                     {settingsItems.map((item, index) => (
                         <React.Fragment key={index}>
                             <ListItem
-                                onClick={item.onClick}
+                                onClick={item.expandable ? item.toggle : item.onClick}
                                 sx={{
                                     py: 2,
                                     px: 2,
@@ -193,23 +236,37 @@ export default function Settings({
                                 <Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
                                     {item.icon}
                                 </Box>
-
                                 <ListItemText
-                                    primary={
-                                        <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                                            {item.name}
-                                        </Typography>
-                                    }
+                                    primary={<Typography variant="subtitle1" sx={{ fontWeight: 500 }}>{item.name}</Typography>}
                                     secondary={item.description}
                                     sx={{ mr: 2 }}
                                 />
-
                                 {item.action && (
                                     <ListItemSecondaryAction>
                                         {item.action}
                                     </ListItemSecondaryAction>
                                 )}
                             </ListItem>
+
+                            {item.children && (
+                                <Collapse in={item.isExpanded} timeout="auto" unmountOnExit>
+                                    <List component="div" disablePadding>
+                                        {item.children.map((child, childIndex) => (
+                                            <ListItem key={childIndex} sx={{ pl: 6 }}>
+                                                <ListItemText
+                                                    primary={<Typography variant="body2">{child.name}</Typography>}
+                                                    secondary={child.description}
+                                                />
+                                                {child.action && (
+                                                    <ListItemSecondaryAction>
+                                                        {child.action}
+                                                    </ListItemSecondaryAction>
+                                                )}
+                                            </ListItem>
+                                        ))}
+                                    </List>
+                                </Collapse>
+                            )}
 
                             {index < settingsItems.length - 1 && (
                                 <Divider sx={{ mx: 2 }} />

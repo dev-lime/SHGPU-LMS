@@ -9,8 +9,11 @@ const materialYouColors = {
 	pink: '#E91E63'
 };
 
-export const createAppTheme = (colorName = 'green', mode = 'light') => {
-	const primaryColor = materialYouColors[colorName] || materialYouColors.green;
+export const createAppTheme = (colorNameOrHex = 'green', mode = 'light') => {
+	const isHex = /^#([0-9A-F]{3}){1,2}$/i.test(colorNameOrHex);
+	const primaryColor = isHex
+		? colorNameOrHex
+		: materialYouColors[colorNameOrHex] || materialYouColors.green;
 
 	return createTheme({
 		palette: {
