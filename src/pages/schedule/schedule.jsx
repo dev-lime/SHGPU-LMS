@@ -15,6 +15,8 @@ import {
 	Stack
 } from "@mui/material";
 import { ChevronLeft, ChevronRight, Schedule as ScheduleIcon } from "@mui/icons-material";
+import { transformScheduleData } from './schedule-transformer';
+import scheduleData from './schedule-data.json';
 
 const Schedule = () => {
 	const theme = useTheme();
@@ -26,6 +28,9 @@ const Schedule = () => {
 	const [fadeIn, setFadeIn] = useState(true);
 	const tableRef = useRef(null);
 	const currentPairRef = useRef(null);
+
+	// Преобразуем данные при загрузке
+	const transformedData = useMemo(() => transformScheduleData(scheduleData), []);
 
 	// Время пар
 	const pairTimes = [
@@ -141,72 +146,32 @@ const Schedule = () => {
 		);
 	};
 
-	const generateDaySchedule = (dayIndex) => {
-		const subjects = [
-			{
-				num: 1,
-				teacher: "Слинкин Д.А.",
-				name: "Структуры и алгоритмы обработки данных",
-				type: "п5",
-				room: "219А"
-			},
-			{
-				num: 2,
-				teacher: "Попова Е.И.",
-				name: "Экономика",
-				type: "л14",
-				room: "313В"
-			},
-			{
-				num: 3,
-				teacher: "Пирогов В.Ю.",
-				name: "Информационные системы",
-				type: "л4",
-				room: "235А"
-			},
-			{
-				num: 4,
-				teacher: "Баландина И.В.",
-				name: "Налоги и налогообложение",
-				type: "с4",
-				room: "214В"
-			},
-			{
-				num: 5,
-				teacher: "Иванов А.Б.",
-				name: "Иностранный язык",
-				type: "п3",
-				room: "105Г"
-			},
-			{
-				num: 6,
-				teacher: "Петрова С.Д.",
-				name: "Физическая культура",
-				type: "п2",
-				room: "Спортзал"
-			}
-		];
+	// Функция для получения расписания на конкретный день
+	const getDaySchedule = (date) => {
+		const dateStr = date.toISOString().split('T')[0];
+		const dayData = transformedData.find(item => item.date === dateStr);
 
-		return subjects.slice(0, 3 + dayIndex % 3);
+		return dayData ? dayData.pairs : [];
 	};
 
 	// Мемоизированные данные расписания
-	const scheduleData = useMemo(() => {
+	const scheduleDataForWeek = useMemo(() => {
 		const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 
 		return days.map((day, index) => {
 			const date = weekDates[index];
 			const dateString = date ? date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : '';
+			const classes = date ? getDaySchedule(date) : [];
 
 			return {
 				day,
 				date,
 				dateString,
-				classes: generateDaySchedule(index),
+				classes,
 				isCurrent: date ? isCurrentDay(date) : false
 			};
 		});
-	}, [weekDates]);
+	}, [weekDates, transformedData]);
 
 	const handleWeekChange = (direction) => {
 		setFadeIn(false);
@@ -242,7 +207,7 @@ const Schedule = () => {
 				<TableContainer component={Paper} ref={tableRef}>
 					<Table>
 						<TableBody>
-							{scheduleData.map(({ day, dateString, classes, isCurrent, date }) => {
+							{scheduleDataForWeek.map(({ day, dateString, classes, isCurrent, date }) => {
 								const isToday = date ? isCurrentDay(date) : false;
 
 								return (
@@ -266,7 +231,7 @@ const Schedule = () => {
 										</TableRow>
 
 										{classes.map((cls, idx) => {
-											const isCurrentPair = isToday && cls.num === currentPair;
+											const isCurrentPair = isToday && cls.number === currentPair;
 											return (
 												<TableRow
 													key={idx}
@@ -281,14 +246,14 @@ const Schedule = () => {
 													}}
 												>
 													<TableCell width={60} align="center">
-														{cls.num}
+														{cls.number}
 													</TableCell>
 													<TableCell>
 														<Typography fontWeight="medium">
-															{cls.name}
+															{cls.subject}
 														</Typography>
 														<Typography variant="body2" color={isCurrentPair ? 'primary.contrastText' : 'text.secondary'}>
-															{cls.teacher}
+															{cls.teachers}
 														</Typography>
 													</TableCell>
 													<TableCell width={120}>
@@ -308,7 +273,7 @@ const Schedule = () => {
 				</TableContainer>
 			</Fade>
 
-			{/* Группа FAB кнопок внизу слева */}
+			{/* Остальной код остается без изменений */}
 			<Stack
 				direction="row"
 				spacing={1}
@@ -332,7 +297,9 @@ const Schedule = () => {
 					sx={{
 						'&.Mui-disabled': {
 							opacity: 0.5
-						}
+						},
+						'&.Mui-selected': { outline: 'none' },
+						'&:focus': { outline: 'none' }
 					}}
 				>
 					<ChevronLeft />
@@ -360,14 +327,15 @@ const Schedule = () => {
 					sx={{
 						'&.Mui-disabled': {
 							opacity: 0.5
-						}
+						},
+						'&.Mui-selected': { outline: 'none' },
+						'&:focus': { outline: 'none' }
 					}}
 				>
 					<ChevronRight />
 				</Fab>
 			</Stack>
 
-			{/* FAB кнопка для перехода к текущей паре (справа) */}
 			<Fab
 				color="primary"
 				aria-label="current-pair"
@@ -375,7 +343,9 @@ const Schedule = () => {
 					position: 'fixed',
 					bottom: 80,
 					right: 16,
-					zIndex: 1000
+					zIndex: 1000,
+					'&.Mui-selected': { outline: 'none' },
+					'&:focus': { outline: 'none' }
 				}}
 				onClick={scrollToCurrentPair}
 			>
