@@ -9,12 +9,17 @@ import {
 	InputAdornment,
 	Badge,
 	Box,
-	Divider,
 	Tabs,
 	Tab,
-	CircularProgress
+	CircularProgress,
+	IconButton
 } from '@mui/material';
-import { Search, ChatBubble, People } from '@mui/icons-material';
+import {
+	Search,
+	ChatBubble,
+	People,
+	Send
+} from '@mui/icons-material';
 import { db, auth } from '../../firebase';
 import {
 	collection,
@@ -155,7 +160,8 @@ export default function Messenger() {
 			);
 
 			if (existingChat) {
-				console.log("Chat exists:", existingChat.id);
+				// Если чат существует - переходим к нему
+				navigate(`/chat/${existingChat.id}`);
 				return;
 			}
 
@@ -178,7 +184,8 @@ export default function Messenger() {
 				}
 			});
 
-			console.log("New chat created:", newChatRef.id);
+			// Переходим к новому чату
+			navigate(`/chat/${newChatRef.id}`);
 		} catch (error) {
 			console.error("Error creating chat:", error);
 		}
@@ -370,8 +377,17 @@ const ChatList = ({ chats, onChatClick }) => {
 	);
 };
 
-// Компонент UserList
+// UserList
 const UserList = ({ users, onUserClick, currentUserId }) => {
+	const handleUserClick = (userNick) => {
+		console.log(userNick); // Выводим ник пользователя в консоль
+	};
+
+	const handleChatButtonClick = (userId, e) => {
+		e.stopPropagation(); // Останавливаем всплытие события
+		onUserClick(userId); // Создаем/открываем чат
+	};
+
 	if (users.length === 0) {
 		return (
 			<Box sx={{
@@ -391,30 +407,52 @@ const UserList = ({ users, onUserClick, currentUserId }) => {
 			{users.map((user) => (
 				<React.Fragment key={user.id}>
 					<ListItem
-						component="button"
-						onClick={() => onUserClick(user.id)}
+						component="div"
+						onClick={() => handleUserClick(user.fullName)}
 						sx={{
 							px: 1,
 							borderRadius: 1,
 							'&:hover': { backgroundColor: 'action.hover' },
 							'&.Mui-selected': { outline: 'none' },
 							'&:focus': { outline: 'none' },
-							backgroundColor: 'transparent'
+							backgroundColor: 'transparent',
+							width: '100%',
+							display: 'flex',
+							justifyContent: 'space-between',
+							alignItems: 'center',
+							cursor: 'pointer'
 						}}
 					>
-						<ListItemAvatar>
-							<Avatar src={user.avatarUrl} sx={{ bgcolor: 'primary.main' }}>
-								{user.fullName?.charAt(0)}
-							</Avatar>
-						</ListItemAvatar>
-						<Box sx={{ flex: 1, minWidth: 0 }}>
-							<Typography noWrap fontWeight="medium">
-								{user.fullName}
-							</Typography>
-							<Typography noWrap variant="body2" color="text.secondary">
-								{user.email}
-							</Typography>
+						<Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+							<ListItemAvatar>
+								<Avatar src={user.avatarUrl} sx={{ bgcolor: 'primary.main' }}>
+									{user.fullName?.charAt(0)}
+								</Avatar>
+							</ListItemAvatar>
+							<Box sx={{ flex: 1, minWidth: 0 }}>
+								<Typography noWrap fontWeight="medium">
+									{user.fullName}
+								</Typography>
+								<Typography noWrap variant="body2" color="text.secondary">
+									{user.email}
+								</Typography>
+							</Box>
 						</Box>
+						<IconButton
+							onClick={(e) => handleChatButtonClick(user.id, e)}
+							size="medium"
+							sx={{
+								ml: 1,
+								'&:hover': {
+									backgroundColor: 'rgba(0, 0, 0, 0.04)',
+									color: 'primary.main'
+								},
+								'&.Mui-selected': { outline: 'none' },
+								'&:focus': { outline: 'none' }
+							}}
+						>
+							<Send fontSize="medium" color="primary" />
+						</IconButton>
 					</ListItem>
 				</React.Fragment>
 			))}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
 	Table,
 	TableBody,
@@ -12,11 +12,16 @@ import {
 	useMediaQuery,
 	useTheme,
 	Fade,
-	Stack
+	Stack,
+	CircularProgress,
+	Alert
 } from "@mui/material";
 import { ChevronLeft, ChevronRight, Schedule as ScheduleIcon } from "@mui/icons-material";
-import { transformScheduleData } from './schedule-transformer';
-import scheduleData from './schedule-data.json';
+import { auth, db } from '../../firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { useScheduleAPI } from './useScheduleAPI';
+import { transformScheduleData } from './scheduleTransformer';
+import _ from 'lodash';
 
 const Schedule = () => {
 	const theme = useTheme();
@@ -26,11 +31,13 @@ const Schedule = () => {
 	const [currentPair, setCurrentPair] = useState(0);
 	const [initialLoad, setInitialLoad] = useState(true);
 	const [fadeIn, setFadeIn] = useState(true);
+	const [userData, setUserData] = useState(null);
+	const [scheduleCache, setScheduleCache] = useState({});
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 	const tableRef = useRef(null);
 	const currentPairRef = useRef(null);
-
-	// Преобразуем данные при загрузке
-	const transformedData = useMemo(() => transformScheduleData(scheduleData), []);
+	const { getPairs, loading: apiLoading, error: apiError } = useScheduleAPI();
 
 	// Время пар
 	const pairTimes = [
@@ -42,7 +49,62 @@ const Schedule = () => {
 		[16, 30, 18, 10]  // 6 пара
 	];
 
-	// Генерация дат недели с мемоизацией
+	// 1. Подписка на данные пользователя с кешированием
+	useEffect(() => {
+		if (!auth.currentUser) return;
+
+		// Проверяем локальное хранилище
+		const cachedData = localStorage.getItem('userData');
+		if (cachedData) {
+			setUserData(JSON.parse(cachedData));
+			setLoading(false);
+		}
+
+		// Устанавливаем подписку на изменения
+		const unsubscribe = onSnapshot(doc(db, 'users', auth.currentUser.uid), (doc) => {
+			if (doc.exists()) {
+				const data = { ...doc.data(), timestamp: Date.now() };
+				localStorage.setItem('userData', JSON.stringify(data));
+				setUserData(data);
+				setLoading(false);
+			}
+		});
+
+		return () => unsubscribe();
+	}, []);
+
+	// 2. Загрузка расписания с кешированием
+	const loadSchedule = useCallback(async (date) => {
+		if (!userData?.studentGroup) return;
+
+		const cacheKey = `${userData.studentGroup}_${date}`;
+
+		// Проверяем кеш
+		if (scheduleCache[cacheKey]) {
+			return scheduleCache[cacheKey];
+		}
+
+		setLoading(true);
+		try {
+			const data = await getPairs(date, true, { groupName: userData.studentGroup.toLowerCase() });
+			const transformed = transformScheduleData(data);
+
+			setScheduleCache(prev => ({
+				...prev,
+				[cacheKey]: transformed
+			}));
+
+			return transformed;
+		} catch (err) {
+			console.error('Ошибка загрузки расписания:', err);
+			setError('Ошибка загрузки расписания');
+			return null;
+		} finally {
+			setLoading(false);
+		}
+	}, [userData, scheduleCache, getPairs]);
+
+	// 3. Генерация дат недели с мемоизацией
 	const weekDates = useMemo(() => {
 		const dates = [];
 		const now = new Date();
@@ -59,6 +121,20 @@ const Schedule = () => {
 		return dates;
 	}, [currentWeekOffset]);
 
+	// 4. Загрузка расписания при изменении недели
+	useEffect(() => {
+		if (!userData?.studentGroup) return;
+
+		const loadData = async () => {
+			const monday = weekDates[0];
+			const dateStr = monday.toISOString().split('T')[0];
+			await loadSchedule(dateStr);
+		};
+
+		loadData();
+	}, [weekDates, userData, loadSchedule]);
+
+	// 5. Определение текущей пары
 	useEffect(() => {
 		const updateCurrentTime = () => {
 			const now = new Date();
@@ -86,6 +162,7 @@ const Schedule = () => {
 		return () => clearInterval(interval);
 	}, []);
 
+	// 6. Прокрутка к текущей паре
 	useEffect(() => {
 		if (initialLoad && currentPair > 0 && currentPairRef.current) {
 			setTimeout(() => {
@@ -100,7 +177,28 @@ const Schedule = () => {
 		}
 	}, [currentPair, initialLoad]);
 
-	const scrollToCurrentPair = () => {
+	// 7. Оптимизированные обработчики
+	const isCurrentDay = useCallback((date) => {
+		const now = new Date();
+		return (
+			now.getDate() === date.getDate() &&
+			now.getMonth() === date.getMonth() &&
+			now.getFullYear() === date.getFullYear()
+		);
+	}, []);
+
+	const handleWeekChange = useCallback(_.debounce((direction) => {
+		setFadeIn(false);
+		setTimeout(() => {
+			setCurrentWeekOffset(prev => {
+				const newWeek = direction === 'left' ? Math.min(prev + 1, 1) : Math.max(prev - 1, -1);
+				return newWeek;
+			});
+			setFadeIn(true);
+		}, 150);
+	}, 300), []);
+
+	const scrollToCurrentPair = useCallback(() => {
 		if (currentWeekOffset !== 0) {
 			setCurrentWeekOffset(0);
 			setTimeout(() => {
@@ -109,52 +207,26 @@ const Schedule = () => {
 						behavior: 'smooth',
 						block: 'center'
 					});
-				} else {
-					const todayRow = tableRef.current?.querySelector('.today-row');
-					if (todayRow) {
-						todayRow.scrollIntoView({
-							behavior: 'smooth',
-							block: 'center'
-						});
-					}
 				}
 			});
-		} else {
-			if (currentPair > 0 && currentPairRef.current) {
-				currentPairRef.current.scrollIntoView({
-					behavior: 'smooth',
-					block: 'center'
-				});
-			} else {
-				const todayRow = tableRef.current?.querySelector('.today-row');
-				if (todayRow) {
-					todayRow.scrollIntoView({
-						behavior: 'smooth',
-						block: 'center'
-					});
-				}
-			}
+		} else if (currentPair > 0 && currentPairRef.current) {
+			currentPairRef.current.scrollIntoView({
+				behavior: 'smooth',
+				block: 'center'
+			});
 		}
-	};
+	}, [currentWeekOffset, currentPair]);
 
-	const isCurrentDay = (date) => {
-		const now = new Date();
-		return (
-			now.getDate() === date.getDate() &&
-			now.getMonth() === date.getMonth() &&
-			now.getFullYear() === date.getFullYear()
-		);
-	};
-
-	// Функция для получения расписания на конкретный день
-	const getDaySchedule = (date) => {
+	// 8. Получение расписания на день
+	const getDaySchedule = useCallback((date) => {
 		const dateStr = date.toISOString().split('T')[0];
-		const dayData = transformedData.find(item => item.date === dateStr);
+		const cacheKey = `${userData?.studentGroup}_${dateStr}`;
+		const weekData = scheduleCache[cacheKey];
 
-		return dayData ? dayData.pairs : [];
-	};
+		return weekData?.find(item => item.date === dateStr)?.pairs || [];
+	}, [userData, scheduleCache]);
 
-	// Мемоизированные данные расписания
+	// 9. Мемоизированные данные для отображения
 	const scheduleDataForWeek = useMemo(() => {
 		const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 
@@ -171,23 +243,41 @@ const Schedule = () => {
 				isCurrent: date ? isCurrentDay(date) : false
 			};
 		});
-	}, [weekDates, transformedData]);
+	}, [weekDates, getDaySchedule, isCurrentDay]);
 
-	const handleWeekChange = (direction) => {
-		setFadeIn(false);
-		setTimeout(() => {
-			setCurrentWeekOffset(prev => {
-				const newWeek = direction === 'left' ? Math.min(prev + 1, 1) : Math.max(prev - 1, -1);
-				return newWeek;
-			});
-			setFadeIn(true);
-		}, 150);
-	};
-
-	const getWeekLabel = () => {
+	const getWeekLabel = useCallback(() => {
 		if (currentWeekOffset === 0) return 'Текущая неделя';
 		return currentWeekOffset > 0 ? 'Следующая неделя' : 'Прошлая неделя';
-	};
+	}, [currentWeekOffset]);
+
+	// Отображение состояния загрузки
+	if (loading || apiLoading) {
+		return (
+			<Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+				<CircularProgress />
+			</Box>
+		);
+	}
+
+	// Отображение ошибок
+	if (error || apiError) {
+		return (
+			<Box sx={{ p: 2 }}>
+				<Alert severity="error">{error || apiError}</Alert>
+			</Box>
+		);
+	}
+
+	// Проверка группы пользователя
+	if (!userData?.studentGroup) {
+		return (
+			<Box sx={{ p: 2 }}>
+				<Alert severity="info">
+					Не удалось определить вашу группу. Пожалуйста, проверьте ваш профиль.
+				</Alert>
+			</Box>
+		);
+	}
 
 	return (
 		<Box sx={{
@@ -200,7 +290,7 @@ const Schedule = () => {
 			width: '100%'
 		}}>
 			<Typography variant="h5" sx={{ mb: 2 }}>
-				Расписание
+				Расписание {userData.studentGroup}
 			</Typography>
 
 			<Fade in={fadeIn} key={currentWeekOffset}>
@@ -273,7 +363,6 @@ const Schedule = () => {
 				</TableContainer>
 			</Fade>
 
-			{/* Остальной код остается без изменений */}
 			<Stack
 				direction="row"
 				spacing={1}
