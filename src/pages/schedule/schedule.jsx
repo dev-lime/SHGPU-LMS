@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
 	Table,
 	TableBody,
@@ -6,23 +6,24 @@ import {
 	TableRow,
 	Typography,
 	Box,
-	IconButton,
 	Paper,
 	TableContainer,
 	Fab,
 	useMediaQuery,
-	useTheme
+	useTheme,
+	Fade,
+	Stack
 } from "@mui/material";
 import { ChevronLeft, ChevronRight, Schedule as ScheduleIcon } from "@mui/icons-material";
 
 const Schedule = () => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-	const [currentWeek, setCurrentWeek] = useState(0);
+	const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
 	const [currentDay, setCurrentDay] = useState(new Date().getDay());
 	const [currentPair, setCurrentPair] = useState(0);
-	const [weekDates, setWeekDates] = useState([]);
 	const [initialLoad, setInitialLoad] = useState(true);
+	const [fadeIn, setFadeIn] = useState(true);
 	const tableRef = useRef(null);
 	const currentPairRef = useRef(null);
 
@@ -35,6 +36,23 @@ const Schedule = () => {
 		[14, 50, 16, 30],  // 5 пара
 		[16, 30, 18, 10]  // 6 пара
 	];
+
+	// Генерация дат недели с мемоизацией
+	const weekDates = useMemo(() => {
+		const dates = [];
+		const now = new Date();
+		const monday = new Date(now);
+		const offset = now.getDay() === 0 ? -6 : 1 - now.getDay();
+		monday.setDate(now.getDate() + offset + currentWeekOffset * 7);
+
+		for (let i = 0; i < 6; i++) {
+			const date = new Date(monday);
+			date.setDate(monday.getDate() + i);
+			dates.push(date);
+		}
+
+		return dates;
+	}, [currentWeekOffset]);
 
 	useEffect(() => {
 		const updateCurrentTime = () => {
@@ -64,33 +82,6 @@ const Schedule = () => {
 	}, []);
 
 	useEffect(() => {
-		const generateWeekDates = () => {
-			const dates = [];
-			const now = new Date();
-			let currentDayOfWeek = now.getDay();
-
-			if (currentDayOfWeek === 0) {
-				now.setDate(now.getDate() + 1);
-			}
-
-			const monday = new Date(now);
-			const offset = now.getDay() === 0 ? -6 : 1 - now.getDay();
-			monday.setDate(now.getDate() + offset + currentWeek * 7);
-
-			for (let i = 0; i < 6; i++) {
-				const date = new Date(monday);
-				date.setDate(monday.getDate() + i);
-				dates.push(date);
-			}
-
-			return dates;
-		};
-
-		setWeekDates(generateWeekDates());
-	}, [currentWeek]);
-
-	// Автоматический скролл только при первом открытии
-	useEffect(() => {
 		if (initialLoad && currentPair > 0 && currentPairRef.current) {
 			setTimeout(() => {
 				if (currentPairRef.current) {
@@ -99,15 +90,14 @@ const Schedule = () => {
 						block: 'center'
 					});
 				}
-			}, 300);
+			});
 			setInitialLoad(false);
 		}
 	}, [currentPair, initialLoad]);
 
 	const scrollToCurrentPair = () => {
-		// Если не на текущей неделе, предлагаем переключиться
-		if (currentWeek !== 0) {
-			setCurrentWeek(0);
+		if (currentWeekOffset !== 0) {
+			setCurrentWeekOffset(0);
 			setTimeout(() => {
 				if (currentPair > 0 && currentPairRef.current) {
 					currentPairRef.current.scrollIntoView({
@@ -123,7 +113,7 @@ const Schedule = () => {
 						});
 					}
 				}
-			}, 300);
+			});
 		} else {
 			if (currentPair > 0 && currentPairRef.current) {
 				currentPairRef.current.scrollIntoView({
@@ -149,23 +139,6 @@ const Schedule = () => {
 			now.getMonth() === date.getMonth() &&
 			now.getFullYear() === date.getFullYear()
 		);
-	};
-
-	const generateScheduleData = () => {
-		const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
-
-		return days.map((day, index) => {
-			const date = weekDates[index];
-			const dateString = date ? date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : '';
-
-			return {
-				day,
-				date,
-				dateString,
-				classes: generateDaySchedule(index),
-				isCurrent: date ? isCurrentDay(date) : false
-			};
-		});
 	};
 
 	const generateDaySchedule = (dayIndex) => {
@@ -217,28 +190,38 @@ const Schedule = () => {
 		return subjects.slice(0, 3 + dayIndex % 3);
 	};
 
-	const scheduleData = generateScheduleData();
+	// Мемоизированные данные расписания
+	const scheduleData = useMemo(() => {
+		const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 
-	const handlePrevWeek = () => {
-		setCurrentWeek(prev => prev - 1);
-		setInitialLoad(false); // Указываем, что это ручное изменение
+		return days.map((day, index) => {
+			const date = weekDates[index];
+			const dateString = date ? date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : '';
+
+			return {
+				day,
+				date,
+				dateString,
+				classes: generateDaySchedule(index),
+				isCurrent: date ? isCurrentDay(date) : false
+			};
+		});
+	}, [weekDates]);
+
+	const handleWeekChange = (direction) => {
+		setFadeIn(false);
+		setTimeout(() => {
+			setCurrentWeekOffset(prev => {
+				const newWeek = direction === 'left' ? Math.min(prev + 1, 1) : Math.max(prev - 1, -1);
+				return newWeek;
+			});
+			setFadeIn(true);
+		}, 150);
 	};
 
-	const handleNextWeek = () => {
-		setCurrentWeek(prev => prev + 1);
-		setInitialLoad(false); // Указываем, что это ручное изменение
-	};
-
-	const formatWeekRange = () => {
-		if (weekDates.length < 2) return '';
-
-		const startDate = weekDates[0];
-		const endDate = weekDates[5];
-
-		const startStr = startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-		const endStr = endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-
-		return `${startStr} - ${endStr}`;
+	const getWeekLabel = () => {
+		if (currentWeekOffset === 0) return 'Текущая неделя';
+		return currentWeekOffset > 0 ? 'Следующая неделя' : 'Прошлая неделя';
 	};
 
 	return (
@@ -246,132 +229,145 @@ const Schedule = () => {
 			p: 2,
 			overflowX: 'hidden',
 			position: 'relative',
-			pb: 8,
+			pb: 16,
 			maxWidth: 450,
 			margin: '0 auto',
 			width: '100%'
 		}}>
-			<Box sx={{
-				display: 'flex',
-				alignItems: 'center',
-				justifyContent: 'space-between',
-				mb: 2,
-				flexWrap: 'nowrap'
-			}}>
-				<Typography variant="h5" sx={{ mr: 2 }}>
-					Расписание
-				</Typography>
+			<Typography variant="h5" sx={{ mb: 2 }}>
+				Расписание
+			</Typography>
 
-				<Box sx={{
-					display: 'flex',
+			<Fade in={fadeIn} key={currentWeekOffset}>
+				<TableContainer component={Paper} ref={tableRef}>
+					<Table>
+						<TableBody>
+							{scheduleData.map(({ day, dateString, classes, isCurrent, date }) => {
+								const isToday = date ? isCurrentDay(date) : false;
+
+								return (
+									<React.Fragment key={day + dateString}>
+										<TableRow className={isToday ? 'today-row' : ''} sx={{
+											bgcolor: isToday ? 'rgba(76, 175, 80, 0.08)' : 'action.hover',
+											'& .MuiTableCell-root': {
+												borderBottom: 'none'
+											}
+										}}>
+											<TableCell colSpan={3}>
+												<Typography fontWeight="bold">
+													{day}, {dateString}
+													{isToday && (
+														<Typography component="span" variant="body2" color="primary" sx={{ ml: 1 }}>
+															(сегодня)
+														</Typography>
+													)}
+												</Typography>
+											</TableCell>
+										</TableRow>
+
+										{classes.map((cls, idx) => {
+											const isCurrentPair = isToday && cls.num === currentPair;
+											return (
+												<TableRow
+													key={idx}
+													ref={isCurrentPair ? currentPairRef : null}
+													sx={{
+														bgcolor: isCurrentPair ? 'primary.main' :
+															isToday ? 'rgba(76, 175, 80, 0.04)' : 'inherit',
+														color: isCurrentPair ? 'primary.contrastText' : 'inherit',
+														'&:last-child td': {
+															borderBottom: isToday ? 'none' : 'inherit'
+														}
+													}}
+												>
+													<TableCell width={60} align="center">
+														{cls.num}
+													</TableCell>
+													<TableCell>
+														<Typography fontWeight="medium">
+															{cls.name}
+														</Typography>
+														<Typography variant="body2" color={isCurrentPair ? 'primary.contrastText' : 'text.secondary'}>
+															{cls.teacher}
+														</Typography>
+													</TableCell>
+													<TableCell width={120}>
+														<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+															<Typography>{cls.type}</Typography>
+															<Typography>{cls.room}</Typography>
+														</Box>
+													</TableCell>
+												</TableRow>
+											);
+										})}
+									</React.Fragment>
+								);
+							})}
+						</TableBody>
+					</Table>
+				</TableContainer>
+			</Fade>
+
+			{/* Группа FAB кнопок внизу слева */}
+			<Stack
+				direction="row"
+				spacing={1}
+				sx={{
+					position: 'fixed',
+					left: 16,
+					bottom: 80,
+					zIndex: 1000,
 					alignItems: 'center',
-					minWidth: 'fit-content'
-				}}>
-					<IconButton
-						onClick={handlePrevWeek}
-						size="small"
+					bgcolor: 'background.paper',
+					borderRadius: 4,
+					p: 1,
+					boxShadow: 3
+				}}
+			>
+				<Fab
+					color="primary"
+					size="small"
+					onClick={() => handleWeekChange('right')}
+					disabled={currentWeekOffset === -1}
+					sx={{
+						'&.Mui-disabled': {
+							opacity: 0.5
+						}
+					}}
+				>
+					<ChevronLeft />
+				</Fab>
+
+				<Fade in={fadeIn}>
+					<Typography
+						variant="body2"
 						sx={{
-							'&.Mui-selected': {
-								outline: 'none'
-							},
-							'&:focus': {
-								outline: 'none'
-							}
-						}}>
-						<ChevronLeft fontSize="small" />
-					</IconButton>
-					<Typography component="span" sx={{
-						mx: 1,
-						fontSize: '0.9rem',
-						whiteSpace: 'nowrap'
-					}}>
-						{currentWeek === 0 ? 'Текущая неделя' : formatWeekRange()}
+							px: 1,
+							minWidth: 120,
+							textAlign: 'center',
+							fontWeight: 'medium'
+						}}
+					>
+						{getWeekLabel()}
 					</Typography>
-					<IconButton
-						onClick={handleNextWeek}
-						size="small"
-						sx={{
-							'&.Mui-selected': {
-								outline: 'none'
-							},
-							'&:focus': {
-								outline: 'none'
-							}
-						}}>
-						<ChevronRight fontSize="small" />
-					</IconButton>
-				</Box>
-			</Box>
+				</Fade>
 
-			<TableContainer component={Paper} ref={tableRef}>
-				<Table>
-					<TableBody>
-						{scheduleData.map(({ day, dateString, classes, isCurrent, date }) => {
-							const isToday = date ? isCurrentDay(date) : false;
+				<Fab
+					color="primary"
+					size="small"
+					onClick={() => handleWeekChange('left')}
+					disabled={currentWeekOffset === 1}
+					sx={{
+						'&.Mui-disabled': {
+							opacity: 0.5
+						}
+					}}
+				>
+					<ChevronRight />
+				</Fab>
+			</Stack>
 
-							return (
-								<React.Fragment key={day + dateString}>
-									<TableRow className={isToday ? 'today-row' : ''} sx={{
-										bgcolor: isToday ? 'rgba(76, 175, 80, 0.08)' : 'action.hover',
-										'& .MuiTableCell-root': {
-											borderBottom: 'none'
-										}
-									}}>
-										<TableCell colSpan={3}>
-											<Typography fontWeight="bold">
-												{day}, {dateString}
-												{isToday && (
-													<Typography component="span" variant="body2" color="primary" sx={{ ml: 1 }}>
-														(сегодня)
-													</Typography>
-												)}
-											</Typography>
-										</TableCell>
-									</TableRow>
-
-									{classes.map((cls, idx) => {
-										const isCurrentPair = isToday && cls.num === currentPair;
-										return (
-											<TableRow
-												key={idx}
-												ref={isCurrentPair ? currentPairRef : null}
-												sx={{
-													bgcolor: isCurrentPair ? 'primary.main' :
-														isToday ? 'rgba(76, 175, 80, 0.04)' : 'inherit',
-													color: isCurrentPair ? 'primary.contrastText' : 'inherit',
-													'&:last-child td': {
-														borderBottom: isToday ? 'none' : 'inherit'
-													}
-												}}
-											>
-												<TableCell width={60} align="center">
-													{cls.num}
-												</TableCell>
-												<TableCell>
-													<Typography fontWeight="medium">
-														{cls.name}
-													</Typography>
-													<Typography variant="body2" color={isCurrentPair ? 'primary.contrastText' : 'text.secondary'}>
-														{cls.teacher}
-													</Typography>
-												</TableCell>
-												<TableCell width={120}>
-													<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-														<Typography>{cls.type}</Typography>
-														<Typography>{cls.room}</Typography>
-													</Box>
-												</TableCell>
-											</TableRow>
-										);
-									})}
-								</React.Fragment>
-							);
-						})}
-					</TableBody>
-				</Table>
-			</TableContainer>
-
-			{/* FAB кнопка для перехода к текущей паре */}
+			{/* FAB кнопка для перехода к текущей паре (справа) */}
 			<Fab
 				color="primary"
 				aria-label="current-pair"
@@ -379,13 +375,7 @@ const Schedule = () => {
 					position: 'fixed',
 					bottom: 80,
 					right: 16,
-					zIndex: 1000,
-					'&.Mui-selected': {
-						outline: 'none'
-					},
-					'&:focus': {
-						outline: 'none'
-					}
+					zIndex: 1000
 				}}
 				onClick={scrollToCurrentPair}
 			>
