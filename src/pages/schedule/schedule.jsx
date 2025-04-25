@@ -17,82 +17,93 @@ import { ChevronLeft, ChevronRight, Schedule as ScheduleIcon } from "@mui/icons-
 import { transformScheduleData } from './schedule-transformer';
 import scheduleData from './schedule-data.json';
 
+// Константа для UTC+5 (Екатеринбург)
+const TIMEZONE_OFFSET = 5 * 60 * 60 * 1000; // 5 часов в миллисекундах
+
 const Schedule = () => {
 	const theme = useTheme();
 	const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
 	const [currentPair, setCurrentPair] = useState(0);
 	const [fadeIn, setFadeIn] = useState(true);
+	const [initialLoad, setInitialLoad] = useState(true);
 	const tableRef = useRef(null);
 	const currentPairRef = useRef(null);
-	const [initialLoad, setInitialLoad] = useState(true);
+	const todayRowRef = useRef(null);
 
-	// Преобразуем данные при загрузке
 	const transformedData = useMemo(() => transformScheduleData(scheduleData), []);
 
-	// Время пар
 	const pairTimes = [
-		[7, 50, 9, 30],   // 1 пара
-		[9, 30, 11, 10], // 2 пара
-		[11, 10, 12, 50], // 3 пара
-		[12, 50, 14, 50], // 4 пара
+		[7, 50, 9, 30],    // 1 пара
+		[9, 30, 11, 10],   // 2 пара
+		[11, 10, 12, 50],  // 3 пара
+		[12, 50, 14, 50],  // 4 пара
 		[14, 50, 16, 30],  // 5 пара
-		[16, 30, 18, 10]  // 6 пара
+		[16, 30, 18, 10]   // 6 пара
 	];
 
-	// Функция для получения даты в формате YYYY-MM-DD
+	// Функция для получения текущей даты в UTC+5
+	const getCurrentDate = () => {
+		const now = new Date();
+		return new Date(now.getTime() + TIMEZONE_OFFSET);
+	};
+
+	// Форматирование даты в YYYY-MM-DD с учетом UTC+5
 	const formatDate = (date) => {
-		const year = date.getFullYear();
-		const month = String(date.getMonth() + 1).padStart(2, '0');
-		const day = String(date.getDate()).padStart(2, '0');
+		const year = date.getUTCFullYear();
+		const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+		const day = String(date.getUTCDate()).padStart(2, '0');
 		return `${year}-${month}-${day}`;
 	};
 
-	// Генерация дат недели
+	// Генерация дат недели с учетом UTC+5
 	const getWeekDates = (offset = 0) => {
-		const dates = [];
-		const now = new Date();
-		const currentDay = now.getDay();
+		const now = getCurrentDate();
+		const currentDay = now.getUTCDay(); // 0 (воскресенье) до 6 (суббота)
 		const monday = new Date(now);
 
-		// Вычисляем понедельник текущей недели
-		monday.setDate(now.getDate() - (currentDay === 0 ? 6 : currentDay - 1));
-
-		// Применяем смещение недели
-		monday.setDate(monday.getDate() + offset * 7);
-
-		// Генерируем 6 дней (пн-сб)
-		for (let i = 0; i < 6; i++) {
-			const date = new Date(monday);
-			date.setDate(monday.getDate() + i);
-			dates.push(date);
+		// Для воскресенья показываем следующую неделю
+		if (currentDay === 0) {
+			monday.setUTCDate(now.getUTCDate() + 1); // Следующий день (понедельник)
+		} else {
+			monday.setUTCDate(now.getUTCDate() - (currentDay - 1)); // Текущий понедельник
 		}
 
-		return dates;
+		// Применяем смещение недели
+		monday.setUTCDate(monday.getUTCDate() + offset * 7);
+
+		// Генерируем 6 дней (пн-сб)
+		return Array.from({ length: 6 }, (_, i) => {
+			const date = new Date(monday);
+			date.setUTCDate(monday.getUTCDate() + i);
+			return date;
+		});
 	};
 
-	// Данные для текущей недели
 	const weekDates = useMemo(() => getWeekDates(currentWeekOffset), [currentWeekOffset]);
 
-	// Получаем расписание для конкретной даты
 	const getDaySchedule = (date) => {
 		const dateStr = formatDate(date);
 		const dayData = transformedData.find(item => item.date === dateStr);
 		return dayData ? dayData.pairs : [];
 	};
 
-	// Формируем данные для отображения
 	const scheduleDataForWeek = useMemo(() => {
 		const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+		const currentDateStr = formatDate(getCurrentDate());
 
 		return weekDates.map((date, index) => {
 			const dateStr = formatDate(date);
-			const isToday = formatDate(new Date()) === dateStr;
+			const isToday = currentDateStr === dateStr;
 			const classes = getDaySchedule(date);
 
 			return {
 				day: days[index],
 				date,
-				dateString: date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }),
+				dateString: date.toLocaleDateString('ru-RU', {
+					timeZone: 'Asia/Yekaterinburg',
+					day: 'numeric',
+					month: 'long'
+				}),
 				classes,
 				isToday,
 				isEmpty: classes.length === 0
@@ -100,18 +111,20 @@ const Schedule = () => {
 		});
 	}, [weekDates, transformedData]);
 
-	// Обновление текущей пары
+	// Определение текущей пары с учетом UTC+5
 	useEffect(() => {
 		const updateCurrentTime = () => {
-			const now = new Date();
+			const now = getCurrentDate();
 			let activePair = 0;
 
 			for (let i = 0; i < pairTimes.length; i++) {
 				const [startHour, startMinute, endHour, endMinute] = pairTimes[i];
+
 				const startTime = new Date(now);
-				startTime.setHours(startHour, startMinute, 0);
+				startTime.setUTCHours(startHour, startMinute, 0, 0);
+
 				const endTime = new Date(now);
-				endTime.setHours(endHour, endMinute, 0);
+				endTime.setUTCHours(endHour, endMinute, 0, 0);
 
 				if (now >= startTime && now <= endTime) {
 					activePair = i + 1;
@@ -127,64 +140,31 @@ const Schedule = () => {
 		return () => clearInterval(interval);
 	}, []);
 
-	useEffect(() => {
-		const scrollToCurrent = () => {
-			if (currentPair > 0 && currentPairRef.current) {
-				currentPairRef.current.scrollIntoView({
-					behavior: 'smooth',
-					block: 'center'
-				});
-			} else {
-				const todayRow = tableRef.current?.querySelector('.today-row');
-				if (todayRow) {
-					todayRow.scrollIntoView({
-						behavior: 'smooth',
-						block: 'center'
-					});
-				}
-			}
-		};
+	// Прокрутка к текущей паре/дню
+	const scrollToCurrent = () => {
+		if (currentPair > 0 && currentPairRef.current) {
+			currentPairRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		} else if (todayRowRef.current) {
+			todayRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		}
+	};
 
+	useEffect(() => {
 		if (initialLoad) {
 			setTimeout(scrollToCurrent, 100);
 			setInitialLoad(false);
 		}
 	}, [currentPair, initialLoad]);
 
-	// Прокрутка к текущей паре или дню
 	const scrollToCurrentPair = () => {
-		// Если мы не на текущей неделе, сначала переключаемся на неё
 		if (currentWeekOffset !== 0) {
 			setCurrentWeekOffset(0);
-			// Даем время для обновления данных перед прокруткой
-			setTimeout(() => {
-				scrollToCurrent();
-			}, 200);
+			setTimeout(scrollToCurrent, 200);
 		} else {
 			scrollToCurrent();
 		}
 	};
 
-	const scrollToCurrent = () => {
-		// Пытаемся найти текущую пару
-		if (currentPair > 0 && currentPairRef.current) {
-			currentPairRef.current.scrollIntoView({
-				behavior: 'smooth',
-				block: 'center'
-			});
-		} else {
-			// Если пар нет, прокручиваем к текущему дню
-			const todayRow = tableRef.current?.querySelector('.today-row');
-			if (todayRow) {
-				todayRow.scrollIntoView({
-					behavior: 'smooth',
-					block: 'center'
-				});
-			}
-		}
-	};
-
-	// Переключение недель
 	const handleWeekChange = (direction) => {
 		setFadeIn(false);
 		setTimeout(() => {
@@ -220,10 +200,14 @@ const Schedule = () => {
 						<TableBody>
 							{scheduleDataForWeek.map(({ day, dateString, classes, isToday, isEmpty }) => (
 								<React.Fragment key={day + dateString}>
-									<TableRow className={isToday ? 'today-row' : ''} sx={{
-										bgcolor: isToday ? 'rgba(76, 175, 80, 0.08)' : 'action.hover',
-										'& .MuiTableCell-root': { borderBottom: 'none' }
-									}}>
+									<TableRow
+										className={isToday ? 'today-row' : ''}
+										ref={isToday ? todayRowRef : null}
+										sx={{
+											bgcolor: isToday ? 'rgba(76, 175, 80, 0.08)' : 'action.hover',
+											'& .MuiTableCell-root': { borderBottom: 'none' }
+										}}
+									>
 										<TableCell colSpan={3}>
 											<Typography fontWeight="bold">
 												{day}, {dateString}
@@ -237,7 +221,12 @@ const Schedule = () => {
 									</TableRow>
 
 									{isEmpty ? (
-										<TableRow>
+										<TableRow
+											sx={{
+												bgcolor: isToday ? 'rgba(76, 175, 80, 0.04)' : 'inherit',
+												'&:last-child td': { borderBottom: isToday ? 'none' : 'inherit' }
+											}}
+										>
 											<TableCell colSpan={3} sx={{ textAlign: 'center', py: 2 }}>
 												<Typography variant="body2" color="text.secondary">
 													Нет занятий
