@@ -19,7 +19,8 @@ import {
     DialogActions,
     Divider,
     Collapse,
-    TextField
+    TextField,
+    Popover
 } from '@mui/material';
 import {
     ArrowBack,
@@ -27,9 +28,11 @@ import {
     Brightness4,
     Brightness7,
     Info,
-    TextFields
+    TextFields,
+    Colorize
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { HexColorPicker } from 'react-colorful';
 
 export default function Settings({
     themeConfig,
@@ -45,6 +48,8 @@ export default function Settings({
     const [darkMode, setDarkMode] = useState(themeConfig?.mode === 'dark');
     const [aboutOpen, setAboutOpen] = useState(false);
     const [expandedGroups, setExpendedGroups] = useState({});
+    const [colorPickerAnchor, setColorPickerAnchor] = useState(null);
+    const [selectedColor, setSelectedColor] = useState(''); // Временное хранение выбранного цвета
 
     // Получаем текущий цвет из themeConfig
     const currentColor = themeConfig?.color || 'green';
@@ -69,6 +74,28 @@ export default function Settings({
         if (isHex) {
             onThemeChange({ ...themeConfig, color: value });
         }
+    };
+
+    const handleColorPickerOpen = (event) => {
+        // Устанавливаем текущий цвет как начальный для пикера
+        setSelectedColor(customColor);
+        setColorPickerAnchor(event.currentTarget);
+    };
+
+    const handleColorPickerClose = () => {
+        setColorPickerAnchor(null);
+    };
+
+    const handleColorPickerChange = (color) => {
+        // Только обновляем временный цвет, не применяем его
+        setSelectedColor(color);
+    };
+
+    const handleColorPickerApply = () => {
+        // Применяем цвет только после нажатия "Готово"
+        setCustomColor(selectedColor);
+        onThemeChange({ ...themeConfig, color: selectedColor });
+        handleColorPickerClose();
     };
 
     const toggleGroup = (name) => {
@@ -136,14 +163,54 @@ export default function Settings({
                 {
                     name: "Пользовательский цвет",
                     action: (
-                        <TextField
-                            value={customColor}
-                            onChange={handleCustomColorChange}
-                            placeholder="#RRGGBB"
-                            size="small"
-                            sx={{ width: 120 }}
-                            InputProps={{ sx: { fontSize: 14 } }}
-                        />
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <TextField
+                                value={customColor}
+                                onChange={handleCustomColorChange}
+                                placeholder="#RRGGBB"
+                                size="small"
+                                sx={{ width: 120 }}
+                                InputProps={{ sx: { fontSize: 14 } }}
+                            />
+                            <IconButton
+                                onClick={handleColorPickerOpen}
+                                sx={{
+                                    ml: 1,
+                                    '&.Mui-selected, &:focus': { outline: 'none' }
+                                }}>
+                                <Colorize fontSize="small" />
+                            </IconButton>
+                            <Popover
+                                open={Boolean(colorPickerAnchor)}
+                                anchorEl={colorPickerAnchor}
+                                onClose={handleColorPickerClose}
+                                anchorOrigin={{
+                                    vertical: 'bottom',
+                                    horizontal: 'center',
+                                }}
+                                transformOrigin={{
+                                    vertical: 'top',
+                                    horizontal: 'center',
+                                }}
+                            >
+                                <HexColorPicker
+                                    color={selectedColor}
+                                    onChange={handleColorPickerChange}
+                                />
+                                <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
+                                    <Button
+                                        onClick={handleColorPickerApply}
+                                        size="small"
+                                        variant="contained"
+                                        sx={{
+                                            '&.Mui-selected, &:focus': { outline: 'none' }
+                                        }}
+                                    >
+                                        Готово
+                                    </Button>
+                                </Box>
+                            </Popover>
+                        </Box>
                     )
                 }
             ]

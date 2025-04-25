@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
 	Table,
 	TableBody,
@@ -9,35 +9,25 @@ import {
 	Paper,
 	TableContainer,
 	Fab,
-	useMediaQuery,
 	useTheme,
 	Fade,
-	Stack,
-	CircularProgress,
-	Alert
+	Stack
 } from "@mui/material";
 import { ChevronLeft, ChevronRight, Schedule as ScheduleIcon } from "@mui/icons-material";
-import { auth, db } from '../../firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { useScheduleAPI } from './useScheduleAPI';
-import { transformScheduleData } from './scheduleTransformer';
-import _ from 'lodash';
+import { transformScheduleData } from './schedule-transformer';
+import scheduleData from './schedule-data.json';
 
 const Schedule = () => {
 	const theme = useTheme();
-	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 	const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
-	const [currentDay, setCurrentDay] = useState(new Date().getDay());
 	const [currentPair, setCurrentPair] = useState(0);
-	const [initialLoad, setInitialLoad] = useState(true);
 	const [fadeIn, setFadeIn] = useState(true);
-	const [userData, setUserData] = useState(null);
-	const [scheduleCache, setScheduleCache] = useState({});
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
 	const tableRef = useRef(null);
 	const currentPairRef = useRef(null);
-	const { getPairs, loading: apiLoading, error: apiError } = useScheduleAPI();
+	const [initialLoad, setInitialLoad] = useState(true);
+
+	// Преобразуем данные при загрузке
+	const transformedData = useMemo(() => transformScheduleData(scheduleData), []);
 
 	// Время пар
 	const pairTimes = [
@@ -49,69 +39,28 @@ const Schedule = () => {
 		[16, 30, 18, 10]  // 6 пара
 	];
 
-	// 1. Подписка на данные пользователя с кешированием
-	useEffect(() => {
-		if (!auth.currentUser) return;
+	// Функция для получения даты в формате YYYY-MM-DD
+	const formatDate = (date) => {
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		return `${year}-${month}-${day}`;
+	};
 
-		// Проверяем локальное хранилище
-		const cachedData = localStorage.getItem('userData');
-		if (cachedData) {
-			setUserData(JSON.parse(cachedData));
-			setLoading(false);
-		}
-
-		// Устанавливаем подписку на изменения
-		const unsubscribe = onSnapshot(doc(db, 'users', auth.currentUser.uid), (doc) => {
-			if (doc.exists()) {
-				const data = { ...doc.data(), timestamp: Date.now() };
-				localStorage.setItem('userData', JSON.stringify(data));
-				setUserData(data);
-				setLoading(false);
-			}
-		});
-
-		return () => unsubscribe();
-	}, []);
-
-	// 2. Загрузка расписания с кешированием
-	const loadSchedule = useCallback(async (date) => {
-		if (!userData?.studentGroup) return;
-
-		const cacheKey = `${userData.studentGroup}_${date}`;
-
-		// Проверяем кеш
-		if (scheduleCache[cacheKey]) {
-			return scheduleCache[cacheKey];
-		}
-
-		setLoading(true);
-		try {
-			const data = await getPairs(date, true, { groupName: userData.studentGroup.toLowerCase() });
-			const transformed = transformScheduleData(data);
-
-			setScheduleCache(prev => ({
-				...prev,
-				[cacheKey]: transformed
-			}));
-
-			return transformed;
-		} catch (err) {
-			console.error('Ошибка загрузки расписания:', err);
-			setError('Ошибка загрузки расписания');
-			return null;
-		} finally {
-			setLoading(false);
-		}
-	}, [userData, scheduleCache, getPairs]);
-
-	// 3. Генерация дат недели с мемоизацией
-	const weekDates = useMemo(() => {
+	// Генерация дат недели
+	const getWeekDates = (offset = 0) => {
 		const dates = [];
 		const now = new Date();
+		const currentDay = now.getDay();
 		const monday = new Date(now);
-		const offset = now.getDay() === 0 ? -6 : 1 - now.getDay();
-		monday.setDate(now.getDate() + offset + currentWeekOffset * 7);
 
+		// Вычисляем понедельник текущей недели
+		monday.setDate(now.getDate() - (currentDay === 0 ? 6 : currentDay - 1));
+
+		// Применяем смещение недели
+		monday.setDate(monday.getDate() + offset * 7);
+
+		// Генерируем 6 дней (пн-сб)
 		for (let i = 0; i < 6; i++) {
 			const date = new Date(monday);
 			date.setDate(monday.getDate() + i);
@@ -119,34 +68,49 @@ const Schedule = () => {
 		}
 
 		return dates;
-	}, [currentWeekOffset]);
+	};
 
-	// 4. Загрузка расписания при изменении недели
-	useEffect(() => {
-		if (!userData?.studentGroup) return;
+	// Данные для текущей недели
+	const weekDates = useMemo(() => getWeekDates(currentWeekOffset), [currentWeekOffset]);
 
-		const loadData = async () => {
-			const monday = weekDates[0];
-			const dateStr = monday.toISOString().split('T')[0];
-			await loadSchedule(dateStr);
-		};
+	// Получаем расписание для конкретной даты
+	const getDaySchedule = (date) => {
+		const dateStr = formatDate(date);
+		const dayData = transformedData.find(item => item.date === dateStr);
+		return dayData ? dayData.pairs : [];
+	};
 
-		loadData();
-	}, [weekDates, userData, loadSchedule]);
+	// Формируем данные для отображения
+	const scheduleDataForWeek = useMemo(() => {
+		const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 
-	// 5. Определение текущей пары
+		return weekDates.map((date, index) => {
+			const dateStr = formatDate(date);
+			const isToday = formatDate(new Date()) === dateStr;
+			const classes = getDaySchedule(date);
+
+			return {
+				day: days[index],
+				date,
+				dateString: date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }),
+				classes,
+				isToday,
+				isEmpty: classes.length === 0
+			};
+		});
+	}, [weekDates, transformedData]);
+
+	// Обновление текущей пары
 	useEffect(() => {
 		const updateCurrentTime = () => {
 			const now = new Date();
-			const day = now.getDay();
-			setCurrentDay(day === 0 ? 6 : day - 1);
-
 			let activePair = 0;
+
 			for (let i = 0; i < pairTimes.length; i++) {
 				const [startHour, startMinute, endHour, endMinute] = pairTimes[i];
-				const startTime = new Date();
+				const startTime = new Date(now);
 				startTime.setHours(startHour, startMinute, 0);
-				const endTime = new Date();
+				const endTime = new Date(now);
 				endTime.setHours(endHour, endMinute, 0);
 
 				if (now >= startTime && now <= endTime) {
@@ -154,6 +118,7 @@ const Schedule = () => {
 					break;
 				}
 			}
+
 			setCurrentPair(activePair);
 		};
 
@@ -162,122 +127,78 @@ const Schedule = () => {
 		return () => clearInterval(interval);
 	}, []);
 
-	// 6. Прокрутка к текущей паре
 	useEffect(() => {
-		if (initialLoad && currentPair > 0 && currentPairRef.current) {
-			setTimeout(() => {
-				if (currentPairRef.current) {
-					currentPairRef.current.scrollIntoView({
+		const scrollToCurrent = () => {
+			if (currentPair > 0 && currentPairRef.current) {
+				currentPairRef.current.scrollIntoView({
+					behavior: 'smooth',
+					block: 'center'
+				});
+			} else {
+				const todayRow = tableRef.current?.querySelector('.today-row');
+				if (todayRow) {
+					todayRow.scrollIntoView({
 						behavior: 'smooth',
 						block: 'center'
 					});
 				}
-			});
+			}
+		};
+
+		if (initialLoad) {
+			setTimeout(scrollToCurrent, 100);
 			setInitialLoad(false);
 		}
 	}, [currentPair, initialLoad]);
 
-	// 7. Оптимизированные обработчики
-	const isCurrentDay = useCallback((date) => {
-		const now = new Date();
-		return (
-			now.getDate() === date.getDate() &&
-			now.getMonth() === date.getMonth() &&
-			now.getFullYear() === date.getFullYear()
-		);
-	}, []);
-
-	const handleWeekChange = useCallback(_.debounce((direction) => {
-		setFadeIn(false);
-		setTimeout(() => {
-			setCurrentWeekOffset(prev => {
-				const newWeek = direction === 'left' ? Math.min(prev + 1, 1) : Math.max(prev - 1, -1);
-				return newWeek;
-			});
-			setFadeIn(true);
-		}, 150);
-	}, 300), []);
-
-	const scrollToCurrentPair = useCallback(() => {
+	// Прокрутка к текущей паре или дню
+	const scrollToCurrentPair = () => {
+		// Если мы не на текущей неделе, сначала переключаемся на неё
 		if (currentWeekOffset !== 0) {
 			setCurrentWeekOffset(0);
+			// Даем время для обновления данных перед прокруткой
 			setTimeout(() => {
-				if (currentPair > 0 && currentPairRef.current) {
-					currentPairRef.current.scrollIntoView({
-						behavior: 'smooth',
-						block: 'center'
-					});
-				}
-			});
-		} else if (currentPair > 0 && currentPairRef.current) {
+				scrollToCurrent();
+			}, 200);
+		} else {
+			scrollToCurrent();
+		}
+	};
+
+	const scrollToCurrent = () => {
+		// Пытаемся найти текущую пару
+		if (currentPair > 0 && currentPairRef.current) {
 			currentPairRef.current.scrollIntoView({
 				behavior: 'smooth',
 				block: 'center'
 			});
+		} else {
+			// Если пар нет, прокручиваем к текущему дню
+			const todayRow = tableRef.current?.querySelector('.today-row');
+			if (todayRow) {
+				todayRow.scrollIntoView({
+					behavior: 'smooth',
+					block: 'center'
+				});
+			}
 		}
-	}, [currentWeekOffset, currentPair]);
+	};
 
-	// 8. Получение расписания на день
-	const getDaySchedule = useCallback((date) => {
-		const dateStr = date.toISOString().split('T')[0];
-		const cacheKey = `${userData?.studentGroup}_${dateStr}`;
-		const weekData = scheduleCache[cacheKey];
+	// Переключение недель
+	const handleWeekChange = (direction) => {
+		setFadeIn(false);
+		setTimeout(() => {
+			setCurrentWeekOffset(prev =>
+				direction === 'left' ? Math.min(prev + 1, 1) : Math.max(prev - 1, -1)
+			);
+			setFadeIn(true);
+		}, 150);
+	};
 
-		return weekData?.find(item => item.date === dateStr)?.pairs || [];
-	}, [userData, scheduleCache]);
-
-	// 9. Мемоизированные данные для отображения
-	const scheduleDataForWeek = useMemo(() => {
-		const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
-
-		return days.map((day, index) => {
-			const date = weekDates[index];
-			const dateString = date ? date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : '';
-			const classes = date ? getDaySchedule(date) : [];
-
-			return {
-				day,
-				date,
-				dateString,
-				classes,
-				isCurrent: date ? isCurrentDay(date) : false
-			};
-		});
-	}, [weekDates, getDaySchedule, isCurrentDay]);
-
-	const getWeekLabel = useCallback(() => {
+	const getWeekLabel = () => {
 		if (currentWeekOffset === 0) return 'Текущая неделя';
 		return currentWeekOffset > 0 ? 'Следующая неделя' : 'Прошлая неделя';
-	}, [currentWeekOffset]);
-
-	// Отображение состояния загрузки
-	if (loading || apiLoading) {
-		return (
-			<Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-				<CircularProgress />
-			</Box>
-		);
-	}
-
-	// Отображение ошибок
-	if (error || apiError) {
-		return (
-			<Box sx={{ p: 2 }}>
-				<Alert severity="error">{error || apiError}</Alert>
-			</Box>
-		);
-	}
-
-	// Проверка группы пользователя
-	if (!userData?.studentGroup) {
-		return (
-			<Box sx={{ p: 2 }}>
-				<Alert severity="info">
-					Не удалось определить вашу группу. Пожалуйста, проверьте ваш профиль.
-				</Alert>
-			</Box>
-		);
-	}
+	};
 
 	return (
 		<Box sx={{
@@ -290,74 +211,73 @@ const Schedule = () => {
 			width: '100%'
 		}}>
 			<Typography variant="h5" sx={{ mb: 2 }}>
-				Расписание {userData.studentGroup}
+				Расписание
 			</Typography>
 
 			<Fade in={fadeIn} key={currentWeekOffset}>
 				<TableContainer component={Paper} ref={tableRef}>
 					<Table>
 						<TableBody>
-							{scheduleDataForWeek.map(({ day, dateString, classes, isCurrent, date }) => {
-								const isToday = date ? isCurrentDay(date) : false;
+							{scheduleDataForWeek.map(({ day, dateString, classes, isToday, isEmpty }) => (
+								<React.Fragment key={day + dateString}>
+									<TableRow className={isToday ? 'today-row' : ''} sx={{
+										bgcolor: isToday ? 'rgba(76, 175, 80, 0.08)' : 'action.hover',
+										'& .MuiTableCell-root': { borderBottom: 'none' }
+									}}>
+										<TableCell colSpan={3}>
+											<Typography fontWeight="bold">
+												{day}, {dateString}
+												{isToday && (
+													<Typography component="span" variant="body2" color="primary" sx={{ ml: 1 }}>
+														(сегодня)
+													</Typography>
+												)}
+											</Typography>
+										</TableCell>
+									</TableRow>
 
-								return (
-									<React.Fragment key={day + dateString}>
-										<TableRow className={isToday ? 'today-row' : ''} sx={{
-											bgcolor: isToday ? 'rgba(76, 175, 80, 0.08)' : 'action.hover',
-											'& .MuiTableCell-root': {
-												borderBottom: 'none'
-											}
-										}}>
-											<TableCell colSpan={3}>
-												<Typography fontWeight="bold">
-													{day}, {dateString}
-													{isToday && (
-														<Typography component="span" variant="body2" color="primary" sx={{ ml: 1 }}>
-															(сегодня)
-														</Typography>
-													)}
+									{isEmpty ? (
+										<TableRow>
+											<TableCell colSpan={3} sx={{ textAlign: 'center', py: 2 }}>
+												<Typography variant="body2" color="text.secondary">
+													Нет занятий
 												</Typography>
 											</TableCell>
 										</TableRow>
-
-										{classes.map((cls, idx) => {
-											const isCurrentPair = isToday && cls.number === currentPair;
-											return (
-												<TableRow
-													key={idx}
-													ref={isCurrentPair ? currentPairRef : null}
-													sx={{
-														bgcolor: isCurrentPair ? 'primary.main' :
-															isToday ? 'rgba(76, 175, 80, 0.04)' : 'inherit',
-														color: isCurrentPair ? 'primary.contrastText' : 'inherit',
-														'&:last-child td': {
-															borderBottom: isToday ? 'none' : 'inherit'
-														}
-													}}
-												>
-													<TableCell width={60} align="center">
-														{cls.number}
-													</TableCell>
-													<TableCell>
-														<Typography fontWeight="medium">
-															{cls.subject}
-														</Typography>
-														<Typography variant="body2" color={isCurrentPair ? 'primary.contrastText' : 'text.secondary'}>
-															{cls.teachers}
-														</Typography>
-													</TableCell>
-													<TableCell width={120}>
-														<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-															<Typography>{cls.type}</Typography>
-															<Typography>{cls.room}</Typography>
-														</Box>
-													</TableCell>
-												</TableRow>
-											);
-										})}
-									</React.Fragment>
-								);
-							})}
+									) : (
+										classes.map((cls) => (
+											<TableRow
+												key={cls.number}
+												ref={isToday && cls.number === currentPair ? currentPairRef : null}
+												sx={{
+													bgcolor: isToday && cls.number === currentPair ? 'primary.main' :
+														isToday ? 'rgba(76, 175, 80, 0.04)' : 'inherit',
+													color: isToday && cls.number === currentPair ? 'primary.contrastText' : 'inherit',
+													'&:last-child td': { borderBottom: isToday ? 'none' : 'inherit' }
+												}}
+											>
+												<TableCell width={60} align="center">
+													{cls.number}
+												</TableCell>
+												<TableCell>
+													<Typography fontWeight="medium">
+														{cls.subject}
+													</Typography>
+													<Typography variant="body2" color={isToday && cls.number === currentPair ? 'primary.contrastText' : 'text.secondary'}>
+														{cls.teachers}
+													</Typography>
+												</TableCell>
+												<TableCell width={120}>
+													<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+														<Typography>{cls.type}</Typography>
+														<Typography>{cls.room}</Typography>
+													</Box>
+												</TableCell>
+											</TableRow>
+										))
+									)}
+								</React.Fragment>
+							))}
 						</TableBody>
 					</Table>
 				</TableContainer>
@@ -384,29 +304,24 @@ const Schedule = () => {
 					onClick={() => handleWeekChange('right')}
 					disabled={currentWeekOffset === -1}
 					sx={{
-						'&.Mui-disabled': {
-							opacity: 0.5
-						},
-						'&.Mui-selected': { outline: 'none' },
+						'&.Mui-disabled': { opacity: 0.5 },
 						'&:focus': { outline: 'none' }
 					}}
 				>
 					<ChevronLeft />
 				</Fab>
 
-				<Fade in={fadeIn}>
-					<Typography
-						variant="body2"
-						sx={{
-							px: 1,
-							minWidth: 120,
-							textAlign: 'center',
-							fontWeight: 'medium'
-						}}
-					>
-						{getWeekLabel()}
-					</Typography>
-				</Fade>
+				<Typography
+					variant="body2"
+					sx={{
+						px: 1,
+						minWidth: 120,
+						textAlign: 'center',
+						fontWeight: 'medium'
+					}}
+				>
+					{getWeekLabel()}
+				</Typography>
 
 				<Fab
 					color="primary"
@@ -414,10 +329,7 @@ const Schedule = () => {
 					onClick={() => handleWeekChange('left')}
 					disabled={currentWeekOffset === 1}
 					sx={{
-						'&.Mui-disabled': {
-							opacity: 0.5
-						},
-						'&.Mui-selected': { outline: 'none' },
+						'&.Mui-disabled': { opacity: 0.5 },
 						'&:focus': { outline: 'none' }
 					}}
 				>
@@ -433,7 +345,6 @@ const Schedule = () => {
 					bottom: 80,
 					right: 16,
 					zIndex: 1000,
-					'&.Mui-selected': { outline: 'none' },
 					'&:focus': { outline: 'none' }
 				}}
 				onClick={scrollToCurrentPair}

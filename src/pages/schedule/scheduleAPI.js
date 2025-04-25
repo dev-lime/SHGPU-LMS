@@ -1,13 +1,12 @@
 import { useState } from 'react';
 
-const PROXY_URL = 'https://cors-anywhere.herokuapp.com/';
 const API_URL = 'http://shspu.ru/sch_api/index.php';
 
 /**
  * Хук для работы с API расписания ШГПУ
  * @returns {Object} Объект с методами API и состоянием запроса
  */
-export function useScheduleAPI() {
+export function scheduleAPI() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -145,7 +144,7 @@ export function useScheduleAPI() {
 Импортируйте хук в нужном компоненте:
 
 javascript
-import { useScheduleAPI } from './useScheduleAPI';
+import { scheduleAPI } from './scheduleAPI';
 Используйте хук в вашем компоненте:
 
 javascript
