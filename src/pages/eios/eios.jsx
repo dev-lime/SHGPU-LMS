@@ -40,8 +40,8 @@ export default function Eios() {
 						maxWidth: 600,
 						borderRadius: 4,
 						background: theme.palette.mode === 'dark'
-							? 'linear-gradient(145deg, #1E3A1E 0%, #0D1F0D 100%)'
-							: 'linear-gradient(145deg, #E8F5E9 0%, #C8E6C9 100%)',
+							? `linear-gradient(145deg, ${theme.palette.tones[3]} 0%, ${theme.palette.tones[1]} 100%)`
+							: `linear-gradient(145deg, ${theme.palette.tones[11]} 0%, ${theme.palette.tones[9]} 100%)`,
 						display: 'flex',
 						flexDirection: 'column',
 						alignItems: 'center',
@@ -56,18 +56,18 @@ export default function Eios() {
 							width: 200,
 							height: 200,
 							borderRadius: '50%',
-							background: theme.palette.primary.light,
+							background: theme.palette.tones[5],
 							opacity: 0.2
 						}
 					}}
 				>
 					<Box
 						component={motion.div}
-						initial={{ scale: 0.9 }}
+						initial={{ scale: 0.7 }}
 						animate={{ scale: 1 }}
 						transition={{ duration: 0.5 }}
 						sx={{
-							bgcolor: 'primary.main',
+							bgcolor: theme.palette.tones[5],
 							width: 80,
 							height: 80,
 							borderRadius: '50%',
@@ -75,7 +75,7 @@ export default function Eios() {
 							alignItems: 'center',
 							justifyContent: 'center',
 							mb: 3,
-							color: 'primary.contrastText'
+							color: theme.palette.getContrastText(theme.palette.tones[5])
 						}}
 					>
 						<School fontSize="large" />
@@ -87,7 +87,7 @@ export default function Eios() {
 						sx={{
 							fontWeight: 700,
 							mb: 2,
-							color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.dark'
+							color: theme.palette.mode === 'dark' ? theme.palette.tones[7] : theme.palette.tones[3]
 						}}
 					>
 						ЭИОС ШГПУ
@@ -121,8 +121,10 @@ export default function Eios() {
 							textTransform: 'none',
 							fontWeight: 600,
 							boxShadow: theme.shadows[4],
+							backgroundColor: theme.palette.tones[5],
 							'&:hover': {
-								boxShadow: theme.shadows[8]
+								boxShadow: theme.shadows[8],
+								backgroundColor: theme.palette.tones[6]
 							},
 							'&.Mui-selected': {
 								outline: 'none'

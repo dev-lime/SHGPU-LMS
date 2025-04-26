@@ -1,5 +1,8 @@
 # SHGPU-LMS — Мобильное приложение для ШГПУ
 
+[![Vite](https://img.shields.io/badge/Vite-4.0+-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Firebase Hosting](https://img.shields.io/badge/Firebase-Hosting-FFCA28?logo=firebase&logoColor=white)](https://firebase.google.com/)
+
 > Внимание! Это *неофициальное* приложение ШГПУ. Мы не связаны с администрацией вуза или УВЦ.
 
 Мобильное веб-приложение для студентов, преподавателей и сотрудников ШГПУ. Выполнено в современном дизайне Material You, оптимизировано под смартфоны и хостится на [Firebase](https://shgpu-lms.web.app).
@@ -36,39 +39,48 @@
 
 ## 🗂 Структура проекта
 
-├── .firebase/<br>
-├── .github/<br>
-├── public/<br>
-├── src/<br>
-│   ├── components/<br>
-│   ├── context/<br>
-│   ├── pages/<br>
-│   │   ├── Chat.jsx<br>
-│   │   ├── Documents.jsx<br>
-│   │   ├── Eios.jsx<br>
-│   │   ├── IDCard.jsx<br>
-│   │   ├── Messenger.jsx<br>
-│   │   ├── More.jsx<br>
-│   │   ├── News.jsx<br>
-│   │   ├── Profile.jsx<br>
-│   │   ├── Schedule.jsx<br>
-│   │   ├── Settings.jsx<br>
-│   │   └── Support.jsx<br>
-│   ├── App.css<br>
-│   ├── App.jsx<br>
-│   ├── firebase.js<br>
-│   ├── index.css<br>
-│   ├── main.jsx<br>
-│   └── theme.js<br>
-├── .firebaserc<br>
-├── .gitignore<br>
-├── README.md<br>
-├── eslint.config.js<br>
-├── firebase.json<br>
-├── index.html<br>
-├── package-lock.json<br>
-├── package.json<br>
-└── vite.config.js<br>
+```
+.firebase/              # Конфигурация проекта Firebase
+.github/                # GitHub Workflows и настройки репозитория
+public/                 # Статические файлы и фавиконки
+src/                    # Исходный код приложения
+├── components/         # Переиспользуемые UI-компоненты
+├── context/            # Контексты для управления состоянием
+├── pages/              # Страницы приложения, разбитые по разделам
+│   ├── eios/           # Страница перехода в ЭИОС
+│   │   └── eios.jsx
+│   ├── messenger/      # Мессенджер: чаты и поиск пользователей
+│   │   ├── chat.jsx
+│   │   └── messenger.jsx
+│   ├── more/           # Вкладка "Ещё": доп. функции
+│   │   ├── documents.jsx   # Автозаполнение справок
+│   │   ├── idcard.jsx      # Студенческий билет
+│   │   ├── profile.jsx     # Профиль пользователя
+│   │   ├── settings.jsx    # Настройки приложения
+│   │   └── support.jsx     # Помощь (FAQ)
+│   ├── news/           # Новости вуза
+│   │   └── news.jsx
+│   ├── schedule/       # Расписание занятий
+│   │   ├── schedule-data.json     # Локальные данные примера расписания
+│   │   ├── schedule-transformer.js # Преобразование данных расписания
+│   │   ├── schedule.jsx            # Страница расписания
+│   │   └── scheduleAPI.js           # API-интеграция для получения расписания
+├── App.css             # Общие стили приложения
+├── App.jsx             # Основной компонент приложения
+├── firebase.js         # Инициализация Firebase
+├── index.css           # Базовые стили
+├── main.jsx            # Точка входа в приложение
+└── theme.js            # Системы тем оформления
+.firebaserc             # Ссылки на проекты Firebase
+.gitignore              # Игнорируемые файлы Git
+README.md               # README
+eslint.config.js        # Конфигурация ESLint
+firebase.json           # Настройки Firebase Hosting
+index.html              # Шаблон HTML страницы
+package-lock.json       # Автоматически сгенерированный lock-файл NPM
+package.json            # Зависимости и скрипты проекта
+vite.config.js          # Конфигурация Vite
+```
 
 ---
 
@@ -89,4 +101,4 @@
 
 ## 📬 Обратная связь
 
-По всем вопросам и предложениям — [создайте issue](https://github.com/SHGPU-LMS/issues)
+По всем вопросам и предложениям — [создайте issue](https://github.com/dev-lime/SHGPU-LMS/issues)

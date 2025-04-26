@@ -34,6 +34,7 @@ import {
 	serverTimestamp
 } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
+import { useSwipeable } from 'react-swipeable';
 
 export default function Messenger() {
 	const [searchQuery, setSearchQuery] = useState('');
@@ -42,6 +43,23 @@ export default function Messenger() {
 	const [chats, setChats] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const navigate = useNavigate();
+
+	// Обработчик свайпов
+	const swipeHandlers = useSwipeable({
+		onSwipedLeft: () => {
+			if (activeTab === 0) {
+				setActiveTab(1);
+			}
+		},
+		onSwipedRight: () => {
+			if (activeTab === 1) {
+				setActiveTab(0);
+			}
+		},
+		preventDefaultTouchmoveEvent: true,
+		trackMouse: true,
+		trackTouch: true
+	});
 
 	// Поиск пользователей
 	useEffect(() => {
@@ -192,12 +210,15 @@ export default function Messenger() {
 	};
 
 	return (
-		<Box sx={{
-			height: '100%',
-			display: 'flex',
-			flexDirection: 'column',
-			p: 2
-		}}>
+		<Box
+			sx={{
+				height: '100%',
+				display: 'flex',
+				flexDirection: 'column',
+				p: 2
+			}}
+			{...swipeHandlers}
+		>
 			{/* Заголовок и поиск */}
 			<Box sx={{
 				display: 'flex',
@@ -270,41 +291,56 @@ export default function Messenger() {
 				/>
 			</Box>
 
-			{/* Контент в зависимости от выбранной вкладки */}
-			{loading ? (
-				<Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-					<CircularProgress />
-				</Box>
-			) : activeTab === 0 ? (
-				<ChatList
-					chats={chats.filter(chat =>
-						chat.participantName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-						chat.lastMessage?.text.toLowerCase().includes(searchQuery.toLowerCase())
-					)}
-					onChatClick={(id) => navigate(`/chat/${id}`)}
-				/>
-			) : (
-				<>
-					<UserList
-						users={users}
-						onUserClick={createChat}
-						currentUserId={auth.currentUser?.uid}
-					/>
-					{searchQuery.length === 1 && (
-						<Box sx={{
-							display: 'flex',
-							justifyContent: 'center',
-							alignItems: 'center',
-							p: 2,
-							color: 'text.secondary'
-						}}>
-							<Typography variant="body2">
-								Введите минимум 2 символа для поиска
-							</Typography>
-						</Box>
-					)}
-				</>
-			)}
+			{/* Контент*/}
+			<Box sx={{
+				flex: 1,
+				overflow: 'hidden',
+				display: 'flex',
+				flexDirection: 'column'
+			}}>
+				{loading ? (
+					<Box sx={{
+						display: 'flex',
+						justifyContent: 'center',
+						alignItems: 'center',
+						flex: 1
+					}}>
+						<CircularProgress />
+					</Box>
+				) : activeTab === 0 ? (
+					<Box sx={{ flex: 1 }}>
+						<ChatList
+							chats={chats.filter(chat =>
+								chat.participantName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+								chat.lastMessage?.text.toLowerCase().includes(searchQuery.toLowerCase())
+							)}
+							onChatClick={(id) => navigate(`/chat/${id}`)}
+						/>
+					</Box>
+				) : (
+					<Box sx={{ flex: 1 }}>
+						<UserList
+							users={users}
+							onUserClick={createChat}
+							currentUserId={auth.currentUser?.uid}
+						/>
+						{searchQuery.length === 1 && (
+							<Box sx={{
+								display: 'flex',
+								justifyContent: 'center',
+								alignItems: 'center',
+								p: 2,
+								color: 'text.secondary',
+								flex: 1
+							}}>
+								<Typography variant="body2">
+									Введите минимум 2 символа для поиска
+								</Typography>
+							</Box>
+						)}
+					</Box>
+				)}
+			</Box>
 		</Box>
 	);
 }

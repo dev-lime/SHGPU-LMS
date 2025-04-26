@@ -41,6 +41,18 @@ const Schedule = () => {
 		[16, 30, 18, 10]   // 6 пара
 	];
 
+	// Обработчик клика по преподавателю
+	const handleTeacherClick = (teacherName, e) => {
+		e.stopPropagation();
+		console.log(`Нажат преподаватель: ${teacherName}`);
+	};
+
+	// Обработчик клика по аудитории
+	const handleRoomClick = (roomNumber, e) => {
+		e.stopPropagation();
+		console.log(`Нажата аудитория: ${roomNumber}`);
+	};
+
 	// Функция для получения текущей даты в UTC+5
 	const getCurrentDate = () => {
 		const now = new Date();
@@ -204,7 +216,7 @@ const Schedule = () => {
 										className={isToday ? 'today-row' : ''}
 										ref={isToday ? todayRowRef : null}
 										sx={{
-											bgcolor: isToday ? 'rgba(76, 175, 80, 0.08)' : 'action.hover',
+											bgcolor: isToday ? theme.palette.tones[2] : 'action.hover',
 											'& .MuiTableCell-root': { borderBottom: 'none' }
 										}}
 									>
@@ -223,7 +235,7 @@ const Schedule = () => {
 									{isEmpty ? (
 										<TableRow
 											sx={{
-												bgcolor: isToday ? 'rgba(76, 175, 80, 0.04)' : 'inherit',
+												bgcolor: isToday ? theme.palette.tones[1] : 'inherit',
 												'&:last-child td': { borderBottom: isToday ? 'none' : 'inherit' }
 											}}
 										>
@@ -240,26 +252,42 @@ const Schedule = () => {
 												ref={isToday && cls.number === currentPair ? currentPairRef : null}
 												sx={{
 													bgcolor: isToday && cls.number === currentPair ? 'primary.main' :
-														isToday ? 'rgba(76, 175, 80, 0.04)' : 'inherit',
+														isToday ? theme.palette.tones[1] : 'inherit',
 													color: isToday && cls.number === currentPair ? 'primary.contrastText' : 'inherit',
 													'&:last-child td': { borderBottom: isToday ? 'none' : 'inherit' }
 												}}
 											>
-												<TableCell width={60} align="center">
+												<TableCell
+													align="center"
+													sx={{
+														width: '40px',
+														padding: '0px 10px',
+														textAlign: 'right'
+													}}>
 													{cls.number}
 												</TableCell>
 												<TableCell>
 													<Typography fontWeight="medium">
 														{cls.subject}
 													</Typography>
-													<Typography variant="body2" color={isToday && cls.number === currentPair ? 'primary.contrastText' : 'text.secondary'}>
+													<Typography
+														variant="body2"
+														color={isToday && cls.number === currentPair ? 'primary.contrastText' : 'text.secondary'}
+														onClick={(e) => handleTeacherClick(cls.teachers, e)}
+														sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+													>
 														{cls.teachers}
 													</Typography>
 												</TableCell>
 												<TableCell width={120}>
 													<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
 														<Typography>{cls.type}</Typography>
-														<Typography>{cls.room}</Typography>
+														<Typography
+															onClick={(e) => handleRoomClick(cls.room, e)}
+															sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+														>
+															{cls.room}
+														</Typography>
 													</Box>
 												</TableCell>
 											</TableRow>

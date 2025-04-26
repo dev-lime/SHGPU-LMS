@@ -20,7 +20,8 @@ import {
     Divider,
     Collapse,
     TextField,
-    Popover
+    Popover,
+    InputAdornment
 } from '@mui/material';
 import {
     ArrowBack,
@@ -49,16 +50,12 @@ export default function Settings({
     const [aboutOpen, setAboutOpen] = useState(false);
     const [expandedGroups, setExpendedGroups] = useState({});
     const [colorPickerAnchor, setColorPickerAnchor] = useState(null);
-    const [selectedColor, setSelectedColor] = useState(''); // Временное хранение выбранного цвета
+    const [selectedColor, setSelectedColor] = useState('');
 
-    // Получаем текущий цвет из themeConfig
     const currentColor = themeConfig?.color || 'green';
-    // Определяем, является ли текущий цвет кастомным HEX
     const isCustomColor = /^#([0-9A-F]{3}){1,2}$/i.test(currentColor);
-    // Устанавливаем начальное значение для кастомного цвета
     const [customColor, setCustomColor] = useState(isCustomColor ? currentColor : '');
 
-    // Сокращённый список цветовых пресетов
     const colorOptions = {
         green: '#4CAF50',
         blue: '#2196F3',
@@ -69,7 +66,6 @@ export default function Settings({
         const value = e.target.value;
         setCustomColor(value);
 
-        // Проверяем валидность HEX-цвета
         const isHex = /^#([0-9A-F]{3}){1,2}$/i.test(value);
         if (isHex) {
             onThemeChange({ ...themeConfig, color: value });
@@ -77,7 +73,6 @@ export default function Settings({
     };
 
     const handleColorPickerOpen = (event) => {
-        // Устанавливаем текущий цвет как начальный для пикера
         setSelectedColor(customColor);
         setColorPickerAnchor(event.currentTarget);
     };
@@ -87,12 +82,10 @@ export default function Settings({
     };
 
     const handleColorPickerChange = (color) => {
-        // Только обновляем временный цвет, не применяем его
         setSelectedColor(color);
     };
 
     const handleColorPickerApply = () => {
-        // Применяем цвет только после нажатия "Готово"
         setCustomColor(selectedColor);
         onThemeChange({ ...themeConfig, color: selectedColor });
         handleColorPickerClose();
@@ -107,7 +100,7 @@ export default function Settings({
 
     const handleColorChange = (event) => {
         const color = event.target.value;
-        setCustomColor(''); // Очищаем кастомный цвет при выборе стандартного
+        setCustomColor('');
         onThemeChange({ ...themeConfig, color });
     };
 
@@ -163,54 +156,30 @@ export default function Settings({
                 {
                     name: "Пользовательский цвет",
                     action: (
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <TextField
-                                value={customColor}
-                                onChange={handleCustomColorChange}
-                                placeholder="#RRGGBB"
-                                size="small"
-                                sx={{ width: 120 }}
-                                InputProps={{ sx: { fontSize: 14 } }}
-                            />
-                            <IconButton
-                                onClick={handleColorPickerOpen}
-                                sx={{
-                                    ml: 1,
-                                    '&.Mui-selected, &:focus': { outline: 'none' }
-                                }}>
-                                <Colorize fontSize="small" />
-                            </IconButton>
-                            <Popover
-                                open={Boolean(colorPickerAnchor)}
-                                anchorEl={colorPickerAnchor}
-                                onClose={handleColorPickerClose}
-                                anchorOrigin={{
-                                    vertical: 'bottom',
-                                    horizontal: 'center',
-                                }}
-                                transformOrigin={{
-                                    vertical: 'top',
-                                    horizontal: 'center',
-                                }}
-                            >
-                                <HexColorPicker
-                                    color={selectedColor}
-                                    onChange={handleColorPickerChange}
-                                />
-                                <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
-                                    <Button
-                                        onClick={handleColorPickerApply}
-                                        size="small"
-                                        variant="contained"
-                                        sx={{
-                                            '&.Mui-selected, &:focus': { outline: 'none' }
-                                        }}
-                                    >
-                                        Готово
-                                    </Button>
-                                </Box>
-                            </Popover>
-                        </Box>
+                        <TextField
+                            value={customColor}
+                            onChange={handleCustomColorChange}
+                            placeholder="#RRGGBB"
+                            size="small"
+                            sx={{ width: 125 }}
+                            InputProps={{
+                                sx: { fontSize: 14 },
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <IconButton
+                                            onClick={handleColorPickerOpen}
+                                            edge="end"
+                                            sx={{
+                                                padding: '6px',
+                                                '&.Mui-selected, &:focus': { outline: 'none' }
+                                            }}
+                                        >
+                                            <Colorize fontSize="small" />
+                                        </IconButton>
+                                    </InputAdornment>
+                                )
+                            }}
+                        />
                     )
                 }
             ]
@@ -346,6 +315,37 @@ export default function Settings({
                     ))}
                 </List>
             </Paper>
+
+            <Popover
+                open={Boolean(colorPickerAnchor)}
+                anchorEl={colorPickerAnchor}
+                onClose={handleColorPickerClose}
+                anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'center',
+                }}
+                transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'center',
+                }}
+            >
+                <HexColorPicker
+                    color={selectedColor}
+                    onChange={handleColorPickerChange}
+                />
+                <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
+                    <Button
+                        onClick={handleColorPickerApply}
+                        size="small"
+                        variant="contained"
+                        sx={{
+                            '&.Mui-selected, &:focus': { outline: 'none' }
+                        }}
+                    >
+                        Готово
+                    </Button>
+                </Box>
+            </Popover>
 
             <Dialog
                 open={aboutOpen}
