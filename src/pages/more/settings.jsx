@@ -44,8 +44,6 @@ export default function Settings({
     onHideTabLabelsChange,
     keepCurrentTabLabel,
     onKeepCurrentTabLabelChange,
-    user,
-    onLogout,
     borderRadius,
     onBorderRadiusChange
 }) {
@@ -206,9 +204,6 @@ export default function Settings({
         {
             name: "Скругления",
             icon: <Interests color="primary" />,
-            expandable: true,
-            isExpanded: expandedGroups['borderRadius'],
-            toggle: () => toggleGroup('borderRadius'),
             action: (
                 <Slider
                     value={borderRadius}

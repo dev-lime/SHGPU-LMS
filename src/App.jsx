@@ -5,10 +5,7 @@ import {
 	BottomNavigation,
 	BottomNavigationAction,
 	CircularProgress,
-	Box,
-	Collapse,
-	FormControlLabel,
-	Switch
+	Box
 } from "@mui/material";
 import {
 	Article,
@@ -148,10 +145,15 @@ export default function App() {
 		const savedTab = localStorage.getItem('lastActiveTab');
 		return savedTab ? parseInt(savedTab) : 0;
 	});
-	const [themeConfig, setThemeConfig] = useState({
-		color: 'green',
-		mode: 'light',
-		borderRadius: 16
+	const [themeConfig, setThemeConfig] = useState(() => {
+		const savedColor = localStorage.getItem('primaryColor') || 'green';
+		const savedMode = localStorage.getItem('themeMode') || 'light';
+		const savedBorderRadius = parseInt(localStorage.getItem('borderRadius')) || 16;
+		return {
+			color: savedColor,
+			mode: savedMode,
+			borderRadius: savedBorderRadius
+		};
 	});
 	const [hideTabLabels, setHideTabLabels] = useState(
 		localStorage.getItem('hideTabLabels') === 'true'
@@ -166,12 +168,6 @@ export default function App() {
 			setLoading(false);
 		});
 		return unsubscribe;
-	}, []);
-
-	useEffect(() => {
-		const savedColor = localStorage.getItem('primaryColor') || 'green';
-		const savedMode = localStorage.getItem('themeMode') || 'light';
-		setThemeConfig({ color: savedColor, mode: savedMode });
 	}, []);
 
 	const handleThemeChange = (newConfig) => {
@@ -323,9 +319,7 @@ export default function App() {
 									onHideTabLabelsChange={handleHideTabLabelsChange}
 									keepCurrentTabLabel={keepCurrentTabLabel}
 									onKeepCurrentTabLabelChange={handleKeepCurrentTabLabelChange}
-									user={user}
-									onLogout={handleLogout}
-									borderRadius={theme.shape.borderRadius}
+									borderRadius={themeConfig.borderRadius}
 									onBorderRadiusChange={(newValue) => {
 										handleThemeChange({
 											...themeConfig,
