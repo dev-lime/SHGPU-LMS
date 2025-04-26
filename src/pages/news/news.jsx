@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
 	Card,
 	CardContent,
@@ -10,7 +10,8 @@ import {
 	CardActionArea,
 	TextField,
 	InputAdornment,
-	useTheme
+	useTheme,
+	styled
 } from '@mui/material';
 import {
 	BookmarkBorder,
@@ -19,41 +20,43 @@ import {
 	Search
 } from '@mui/icons-material';
 
+const EllipsisTypography = styled(Typography)({
+	display: '-webkit-box',
+	overflow: 'hidden',
+	textOverflow: 'ellipsis',
+	WebkitBoxOrient: 'vertical',
+});
+
+import newsData from './news.json';
+
 export default function News() {
 	const [bookmarked, setBookmarked] = useState([]);
 	const [searchQuery, setSearchQuery] = useState('');
+	const [newsItems, setNewsItems] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 	const theme = useTheme();
 
-	const newsItems = [
-		{
-			id: 1,
-			title: "Всероссийский марафон «Молодым хранить память»",
-			date: "15.04.2025",
-			content: "Ко Дню единых действий в память о геноциде советского народа в годы Великой Отечественной войны в ШГПУ проходит ряд мероприятий...",
-			category: "Новости"
-		},
-		{
-			id: 2,
-			title: "X региональный чемпионат «Абилипикс»",
-			date: "15.04.2025",
-			content: "11 апреля в Курганской области назвали Победителей X регионального чемпионата «Абилимпикс»",
-			category: "Наука"
-		},
-		{
-			id: 3,
-			title: "ШГПУ выпустили новых дизайнеров",
-			date: "15.04.2025",
-			content: "10 марта состоялись защиты дипломных проектов у дизайнеров, обучающихся на профиле \"Графический дизайн\"",
-			category: "Студенческая жизнь"
-		},
-		{
-			id: 4,
-			title: "Звёзды спорта зажгли: зарядка с легендами!",
-			date: "14.04.2025",
-			content: "В зарядке приняли участие ректор ШГПУ Артур Русланович Дзиов, Подкорытов Михаил, Парилова Екатерина...",
-			category: "Спорт"
+	useEffect(() => {
+		try {
+			const processedData = newsData.map(item => ({
+				id: item.id || '',
+				title: item.title || 'Без названия',
+				date: item.date || '',
+				image: item.image || null,
+				link: item.link || null,
+				content: item.content || '',
+				category: item.category || 'Без категории'
+			}));
+
+			setNewsItems(processedData);
+			setLoading(false);
+		} catch (err) {
+			setError('Ошибка загрузки новостей');
+			console.error('Ошибка парсинга новостей:', err);
+			setLoading(false);
 		}
-	];
+	}, []);
 
 	const toggleBookmark = (id) => {
 		if (bookmarked.includes(id)) {
@@ -63,11 +66,33 @@ export default function News() {
 		}
 	};
 
+	const handleOpenNews = (link) => {
+		if (link) {
+			window.open(link, '_blank');
+		}
+	};
+
 	const filteredNews = newsItems.filter(item =>
 		item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-		item.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+		(item.content && item.content.toLowerCase().includes(searchQuery.toLowerCase())) ||
 		item.category.toLowerCase().includes(searchQuery.toLowerCase())
 	);
+
+	if (loading) {
+		return (
+			<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+				<Typography variant="h6">Загрузка новостей...</Typography>
+			</Box>
+		);
+	}
+
+	if (error) {
+		return (
+			<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+				<Typography variant="h6" color="error">{error}</Typography>
+			</Box>
+		);
+	}
 
 	return (
 		<Box sx={{
@@ -140,9 +165,9 @@ export default function News() {
 						}}
 					>
 						<CardContent sx={{ p: 3 }}>
-							{/* News title */}
+							{/* Заголовок */}
 							<CardActionArea
-								onClick={() => console.log('Open news', item.id)}
+								onClick={() => handleOpenNews(item.link)}
 								sx={{
 									mb: 1.5,
 									'&.Mui-selected': {
@@ -154,62 +179,121 @@ export default function News() {
 									borderRadius: 0
 								}}
 							>
-								<Typography
+								<EllipsisTypography
 									variant="h6"
 									sx={{
 										fontWeight: 600,
-										color: 'text.primary'
+										color: 'text.primary',
+										minHeight: '3em',
+										lineHeight: '1.5em',
+										WebkitLineClamp: 2
 									}}
 								>
 									{item.title}
-								</Typography>
+								</EllipsisTypography>
 							</CardActionArea>
 
-							{/* News content */}
-							<Typography
-								variant="body1"
-								color="text.secondary"
-								sx={{ mb: 2 }}
-							>
-								{item.content}
-							</Typography>
+							{/* Изображение */}
+							{item.image && (
+								<CardActionArea
+									onClick={() => handleOpenNews(item.link)}
+									sx={{
+										mb: 2,
+										'&.Mui-selected': {
+											outline: 'none'
+										},
+										'&:focus': {
+											outline: 'none'
+										},
+										borderRadius: 0
+									}}
+								>
+									<img
+										src={item.image}
+										alt={item.title}
+										style={{
+											maxWidth: '100%',
+											height: 'auto',
+											borderRadius: '8px'
+										}}
+										onError={(e) => {
+											e.target.style.display = 'none';
+										}}
+									/>
+								</CardActionArea>
+							)}
+
+							{/* Описание */}
+							{item.content && (
+								<CardActionArea
+									onClick={() => handleOpenNews(item.link)}
+									sx={{
+										mb: 2,
+										'&.Mui-selected': {
+											outline: 'none'
+										},
+										'&:focus': {
+											outline: 'none'
+										},
+										borderRadius: 0
+									}}
+								>
+									<EllipsisTypography
+										variant="body1"
+										color="text.secondary"
+										sx={{
+											minHeight: '6em',
+											lineHeight: '1.5em',
+											WebkitLineClamp: 4
+										}}
+									>
+										{item.content}
+									</EllipsisTypography>
+								</CardActionArea>
+							)}
 
 							<Divider sx={{
 								my: 1.5,
 								backgroundColor: 'divider'
 							}} />
 
-							{/* Bottom section - category, date and buttons */}
 							<Box sx={{
 								display: 'flex',
 								justifyContent: 'space-between',
 								alignItems: 'center'
 							}}>
 								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-									<Chip
-										label={item.category}
-										size="small"
-										variant="outlined"
-										sx={{
-											fontWeight: 500,
-											borderColor: 'primary.main',
-											color: 'primary.main',
-											backgroundColor: 'transparent'
-										}}
-									/>
-									<Typography
-										color="text.secondary"
-										variant="body2"
-										sx={{ fontSize: '0.8rem' }}
-									>
-										{item.date}
-									</Typography>
+									{item.category && (
+										<Chip
+											label={item.category}
+											size="small"
+											variant="outlined"
+											sx={{
+												fontWeight: 500,
+												borderColor: 'primary.main',
+												color: 'primary.main',
+												backgroundColor: 'transparent'
+											}}
+										/>
+									)}
+									{item.date && (
+										<Typography
+											color="text.secondary"
+											variant="body2"
+											sx={{ fontSize: '0.8rem' }}
+										>
+											{item.date}
+										</Typography>
+									)}
 								</Box>
 
 								<Box>
 									<IconButton
 										size="small"
-										onClick={() => toggleBookmark(item.id)}
+										onClick={(e) => {
+											e.stopPropagation();
+											toggleBookmark(item.id);
+										}}
 										sx={{
 											color: bookmarked.includes(item.id) ? 'primary.main' : 'text.secondary',
 											'&:hover': {
@@ -229,6 +313,7 @@ export default function News() {
 									</IconButton>
 									<IconButton
 										size="small"
+										onClick={(e) => e.stopPropagation()}
 										sx={{
 											color: 'text.secondary',
 											'&:hover': {
