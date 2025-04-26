@@ -1,4 +1,3 @@
-// scheduleTransformer.js
 export const transformScheduleData = (originalData) => {
     if (!Array.isArray(originalData)) {
         return [];
@@ -88,3 +87,58 @@ export const transformScheduleData = (originalData) => {
 
     return transformedData;
 };
+
+/*
+
+Документация: transformScheduleData
+Назначение:
+Функция преобразует сырые данные расписания в структурированный формат, удаляя ненужные записи и разбивая информацию о парах на отдельные компоненты.
+
+Входные данные:
+originalData: Массив объектов с расписанием в формате:
+
+[{
+    date: "YYYY-MM-DD",
+    pairs: [{
+        text: "Преподаватель / Предмет (тип) Аудитория",
+        num: номер_пары
+    }]
+}]
+
+Выходные данные:
+Массив объектов с преобразованными данными:
+
+[{
+    date: "YYYY-MM-DD",
+    pairs: [{
+        number: номер_пары,
+        teachers: "Преподаватель(и)",
+        subject: "Название предмета",
+        type: "тип_пары", // л1, п2 и т.д.
+        room: "Аудитория",
+        originalText: "оригинальный_текст"
+    }]
+}]
+
+Особенности:
+
+Фильтрация - автоматически удаляет пары, содержащие фразы:
+"День самостоятельной работы"
+"Праздничный день"
+"Проектная среда"
+
+Парсинг текста:
+
+Разделяет преподавателей, предмет, тип пары и аудиторию
+Тип пары определяется по шаблону(буква + цифра), например: (л1), (п3)
+Корректно обрабатывает строки с несколькими преподавателями
+
+Пример использования:
+import { transformScheduleData } from './scheduleTransformer';
+import rawData from './schedule-data.json';
+const formattedSchedule = transformScheduleData(rawData);
+console.log(formattedSchedule);
+
+Функция не требует дополнительных зависимостей и работает исключительно с переданными данными.
+
+*/
