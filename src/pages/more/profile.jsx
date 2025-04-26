@@ -35,8 +35,8 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile, signOut } from 'firebase/auth';
 import { auth, db, storage } from '../../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { validatePhone, getPhoneError, validateGroup, getGroupError, normalizeGroupName } from '../../utils/validators';
 
-// Lazy-loaded components
 const Dialog = lazy(() => import('@mui/material/Dialog'));
 const DialogTitle = lazy(() => import('@mui/material/DialogTitle'));
 const DialogContent = lazy(() => import('@mui/material/DialogContent'));
@@ -68,6 +68,8 @@ const Profile = () => {
 	const [uploading, setUploading] = useState(false);
 	const [openAvatarDialog, setOpenAvatarDialog] = useState(false);
 	const [telegramError, setTelegramError] = useState('');
+	const [phoneError, setPhoneError] = useState('');
+	const [groupError, setGroupError] = useState('');
 	const [error, setError] = useState(null);
 
 	const fetchUserData = useCallback(async () => {
@@ -113,6 +115,18 @@ const Profile = () => {
 		setTelegramError(validateTelegramUrl(url) ? '' : 'Введите корректную ссылку Telegram (например: @username или t.me/username)');
 	}, [validateTelegramUrl]);
 
+	const handlePhoneChange = useCallback((e) => {
+		const value = e.target.value;
+		setFormData(prev => ({ ...prev, phone: value }));
+		setPhoneError(getPhoneError(value));
+	}, []);
+
+	const handleGroupChange = useCallback((e) => {
+		const value = e.target.value;
+		setFormData(prev => ({ ...prev, studentGroup: value }));
+		setGroupError(getGroupError(value));
+	}, []);
+
 	const handleInputChange = useCallback((field) => (e) => {
 		setFormData(prev => ({ ...prev, [field]: e.target.value }));
 	}, []);
@@ -137,7 +151,7 @@ const Profile = () => {
 	}, []);
 
 	const handleSaveChanges = useCallback(async () => {
-		if (telegramError) return;
+		if (telegramError || phoneError || groupError) return;
 
 		setLoading(true);
 		try {
@@ -147,23 +161,22 @@ const Profile = () => {
 			}
 
 			const updatedData = {
-				...formData,
+				fullName: formData.fullName,
+				phone: formData.phone,
+				studentGroup: formData.accountType === 'student' ? normalizeGroupName(formData.studentGroup) : '',
+				accountType: formData.accountType,
 				telegramUrl: formattedTelegramUrl,
+				avatarUrl: formData.avatarUrl,
 				updatedAt: new Date()
 			};
 
 			await updateDoc(doc(db, 'users', auth.currentUser.uid), updatedData);
-
 			await updateProfile(auth.currentUser, {
 				displayName: formData.fullName,
 				photoURL: formData.avatarUrl
 			});
 
-			setUserData(prev => ({
-				...prev,
-				...updatedData
-			}));
-
+			setUserData(prev => ({ ...prev, ...updatedData }));
 			setEditMode(false);
 		} catch (err) {
 			console.error("Ошибка сохранения:", err);
@@ -171,7 +184,7 @@ const Profile = () => {
 		} finally {
 			setLoading(false);
 		}
-	}, [formData, telegramError]);
+	}, [formData, telegramError, phoneError, groupError]);
 
 	const handleLogout = useCallback(async () => {
 		try {
@@ -235,12 +248,7 @@ const Profile = () => {
 				{!editMode && (
 					<Button
 						startIcon={<Edit color="primary" />}
-						sx={{
-							ml: 'auto',
-							color: 'primary.main',
-							'&.Mui-selected': { outline: 'none' },
-							'&:focus': { outline: 'none' }
-						}}
+						sx={{ ml: 'auto', color: 'primary.main' }}
 						onClick={() => setEditMode(true)}
 					>
 						Редактировать
@@ -284,30 +292,26 @@ const Profile = () => {
 						label="Телефон"
 						margin="normal"
 						value={formData.phone}
-						onChange={handleInputChange('phone')}
+						onChange={handlePhoneChange}
+						error={!!phoneError}
 						InputProps={{
-							startAdornment: (
-								<InputAdornment position="start">
-									<Phone color="primary" />
-								</InputAdornment>
-							),
+							startAdornment: <Phone color="primary" />
 						}}
 					/>
+					{phoneError && <FormHelperText error>{phoneError}</FormHelperText>}
 
 					<TextField
 						fullWidth
 						label="Группа (если студент)"
 						margin="normal"
 						value={formData.studentGroup}
-						onChange={handleInputChange('studentGroup')}
+						onChange={handleGroupChange}
+						error={!!groupError}
 						disabled={formData.accountType !== 'student'}
 						InputProps={{
-							startAdornment: (
-								<InputAdornment position="start">
-									<School color="primary" />
-								</InputAdornment>
-							),
+							startAdornment: <School color="primary" />
 						}}
+						helperText={groupError || 'Пример: 230б, 133б-а, 2-11б'}
 					/>
 
 					<Suspense fallback={<CircularProgress />}>
@@ -338,11 +342,7 @@ const Profile = () => {
 						onChange={handleTelegramChange}
 						error={!!telegramError}
 						InputProps={{
-							startAdornment: (
-								<InputAdornment position="start">
-									<Telegram color="primary" />
-								</InputAdornment>
-							),
+							startAdornment: <Telegram color="primary" />
 						}}
 						placeholder="@username или t.me/username"
 					/>
@@ -365,11 +365,7 @@ const Profile = () => {
 							fullWidth
 							variant="contained"
 							onClick={handleSaveChanges}
-							disabled={loading}
-							sx={{
-								'&.Mui-selected': { outline: 'none' },
-								'&:focus': { outline: 'none' }
-							}}
+							disabled={loading || !!telegramError || !!phoneError || !!groupError}
 						>
 							{loading ? <CircularProgress size={24} /> : 'Сохранить'}
 						</Button>
@@ -492,7 +488,6 @@ const Profile = () => {
 				</>
 			)}
 
-			{/* Диалог для загрузки аватара */}
 			<Suspense fallback={null}>
 				{openAvatarDialog && (
 					<Dialog open={openAvatarDialog} onClose={() => setOpenAvatarDialog(false)}>

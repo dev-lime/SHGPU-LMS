@@ -206,7 +206,7 @@ export default function Settings({
             icon: <Interests color="primary" />,
             action: (
                 <Slider
-                    value={borderRadius}
+                    value={themeConfig.borderRadius}
                     onChange={handleBorderRadiusChange}
                     min={0}
                     max={24}

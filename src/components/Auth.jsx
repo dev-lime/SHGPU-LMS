@@ -7,6 +7,12 @@ import {
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import {
+	validatePhone,
+	getPhoneError,
+	validateGroup,
+	getGroupError
+} from '../utils/validators';
+import {
 	Box,
 	TextField,
 	Button,
@@ -16,7 +22,6 @@ import {
 	Tab,
 	Alert,
 	Divider,
-	Avatar,
 	FormHelperText
 } from '@mui/material';
 import {
@@ -35,26 +40,22 @@ export default function Auth() {
 	const [fullName, setFullName] = useState('');
 	const [phone, setPhone] = useState('');
 	const [studentGroup, setStudentGroup] = useState('');
-	const [avatarUrl, setAvatarUrl] = useState('');
 	const [error, setError] = useState('');
 	const [activeTab, setActiveTab] = useState(0);
 	const [loading, setLoading] = useState(false);
 	const [phoneError, setPhoneError] = useState('');
-
-	const validatePhone = (phoneNumber) => {
-		const regex = /^(\+7|8)[0-9]{10}$/;
-		return regex.test(phoneNumber);
-	};
+	const [groupError, setGroupError] = useState('');
 
 	const handlePhoneChange = (e) => {
 		const value = e.target.value;
 		setPhone(value);
+		setPhoneError(getPhoneError(value));
+	};
 
-		if (value && !validatePhone(value)) {
-			setPhoneError('Телефон должен начинаться с +7 или 8 и содержать 11 цифр');
-		} else {
-			setPhoneError('');
-		}
+	const handleGroupChange = (e) => {
+		const value = e.target.value;
+		setStudentGroup(value);
+		setGroupError(getGroupError(value));
 	};
 
 	const handleSubmit = async (e) => {
@@ -64,30 +65,25 @@ export default function Auth() {
 
 		try {
 			if (activeTab === 0) {
-				// Вход
 				await signInWithEmailAndPassword(auth, email, password);
 			} else {
-				// Проверка телефона перед регистрацией
 				if (phone && !validatePhone(phone)) {
 					throw new Error('invalid-phone');
 				}
+				if (studentGroup && !validateGroup(studentGroup)) {
+					throw new Error('invalid-group');
+				}
 
-				// Регистрация
 				const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-
-				// Обновляем профиль пользователя
 				await updateProfile(userCredential.user, {
-					displayName: fullName,
-					photoURL: avatarUrl || null
+					displayName: fullName
 				});
 
-				// Сохраняем дополнительные данные в Firestore
 				await setDoc(doc(db, 'users', userCredential.user.uid), {
 					fullName,
 					email,
 					phone,
-					studentGroup,
-					avatarUrl,
+					studentGroup: studentGroup ? normalizeGroupName(studentGroup) : '',
 					createdAt: new Date(),
 					updatedAt: new Date()
 				});
@@ -113,6 +109,8 @@ export default function Auth() {
 				return 'Неверный пароль';
 			case 'invalid-phone':
 				return 'Неверный формат телефона';
+			case 'invalid-group':
+				return 'Неверный формат группы';
 			default:
 				return 'Ошибка аутентификации';
 		}
@@ -159,11 +157,7 @@ export default function Auth() {
 						}} />
 				</Tabs>
 
-				{error && (
-					<Alert severity="error" sx={{ mb: 3 }}>
-						{error}
-					</Alert>
-				)}
+				{error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
 				<form onSubmit={handleSubmit}>
 					{activeTab === 1 && (
@@ -174,9 +168,7 @@ export default function Auth() {
 								margin="normal"
 								value={fullName}
 								onChange={(e) => setFullName(e.target.value)}
-								InputProps={{
-									startAdornment: <Person sx={{ color: 'action.active', mr: 1 }} />
-								}}
+								InputProps={{ startAdornment: <Person sx={{ color: 'action.active', mr: 1 }} /> }}
 								required
 							/>
 
@@ -187,9 +179,7 @@ export default function Auth() {
 								value={phone}
 								onChange={handlePhoneChange}
 								error={!!phoneError}
-								InputProps={{
-									startAdornment: <Phone sx={{ color: 'action.active', mr: 1 }} />
-								}}
+								InputProps={{ startAdornment: <Phone sx={{ color: 'action.active', mr: 1 }} /> }}
 								placeholder="+7 или 8"
 							/>
 							{phoneError && <FormHelperText error>{phoneError}</FormHelperText>}
@@ -199,10 +189,10 @@ export default function Auth() {
 								label="Группа"
 								margin="normal"
 								value={studentGroup}
-								onChange={(e) => setStudentGroup(e.target.value)}
-								InputProps={{
-									startAdornment: <School sx={{ color: 'action.active', mr: 1 }} />
-								}}
+								onChange={handleGroupChange}
+								error={!!groupError}
+								InputProps={{ startAdornment: <School sx={{ color: 'action.active', mr: 1 }} /> }}
+								helperText={groupError || 'Пример: 230б, 133б-а, 2-11б'}
 							/>
 						</>
 					)}
@@ -214,9 +204,7 @@ export default function Auth() {
 						margin="normal"
 						value={email}
 						onChange={(e) => setEmail(e.target.value)}
-						InputProps={{
-							startAdornment: <Email sx={{ color: 'action.active', mr: 1 }} />
-						}}
+						InputProps={{ startAdornment: <Email sx={{ color: 'action.active', mr: 1 }} /> }}
 						required
 					/>
 
@@ -227,9 +215,7 @@ export default function Auth() {
 						margin="normal"
 						value={password}
 						onChange={(e) => setPassword(e.target.value)}
-						InputProps={{
-							startAdornment: <Lock sx={{ color: 'action.active', mr: 1 }} />
-						}}
+						InputProps={{ startAdornment: <Lock sx={{ color: 'action.active', mr: 1 }} /> }}
 						required
 					/>
 
@@ -247,27 +233,16 @@ export default function Auth() {
 								outline: 'none'
 							}
 						}}
-						disabled={loading || (activeTab === 1 && phoneError)}
+						disabled={loading || (activeTab === 1 && (phoneError || groupError))}
 						startIcon={loading ? null : (activeTab === 0 ? <Login /> : <PersonAdd />)}
 					>
-						{loading ? (
-							'Загрузка...'
-						) : activeTab === 0 ? (
-							'Войти'
-						) : (
-							'Зарегистрироваться'
-						)}
+						{loading ? 'Загрузка...' : activeTab === 0 ? 'Войти' : 'Зарегистрироваться'}
 					</Button>
 				</form>
 
 				<Divider sx={{ my: 3 }} />
-
 				<Typography variant="body2" color="text.secondary" align="center">
-					{activeTab === 0 ? (
-						'Нет аккаунта? Переключитесь на регистрацию'
-					) : (
-						'Уже есть аккаунт? Переключитесь на вход'
-					)}
+					{activeTab === 0 ? 'Нет аккаунта? Переключитесь на регистрацию' : 'Уже есть аккаунт? Переключитесь на вход'}
 				</Typography>
 			</Paper>
 		</Box>
