@@ -63,7 +63,7 @@ const generateTonalPalette = (hex) => {
 	return tonalSteps.map(l => hslToHex(h, s, l));
 };
 
-export const createAppTheme = (colorNameOrHex = 'green', mode = 'light') => {
+export const createAppTheme = (colorNameOrHex = 'green', mode = 'light', borderRadius = 16) => {
 	const isHex = /^#([0-9A-F]{3}){1,2}$/i.test(colorNameOrHex);
 	const primaryColor = isHex
 		? colorNameOrHex
@@ -87,7 +87,7 @@ export const createAppTheme = (colorNameOrHex = 'green', mode = 'light') => {
 			tones
 		},
 		shape: {
-			borderRadius: 16,
+			borderRadius: borderRadius,
 		},
 		components: {
 			MuiListItem: {

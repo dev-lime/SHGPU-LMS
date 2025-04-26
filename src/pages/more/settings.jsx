@@ -21,7 +21,8 @@ import {
     Collapse,
     TextField,
     Popover,
-    InputAdornment
+    InputAdornment,
+    Slider
 } from '@mui/material';
 import {
     ArrowBack,
@@ -30,7 +31,8 @@ import {
     Brightness7,
     Info,
     TextFields,
-    Colorize
+    Colorize,
+    Interests
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { HexColorPicker } from 'react-colorful';
@@ -43,7 +45,9 @@ export default function Settings({
     keepCurrentTabLabel,
     onKeepCurrentTabLabelChange,
     user,
-    onLogout
+    onLogout,
+    borderRadius,
+    onBorderRadiusChange
 }) {
     const navigate = useNavigate();
     const [darkMode, setDarkMode] = useState(themeConfig?.mode === 'dark');
@@ -60,6 +64,10 @@ export default function Settings({
         green: '#4CAF50',
         blue: '#2196F3',
         red: '#F44336'
+    };
+
+    const handleBorderRadiusChange = (event, newValue) => {
+        onBorderRadiusChange(newValue);
     };
 
     const handleCustomColorChange = (e) => {
@@ -192,6 +200,30 @@ export default function Settings({
                     checked={darkMode}
                     onChange={handleThemeChange}
                     color="primary"
+                />
+            )
+        },
+        {
+            name: "Скругления",
+            icon: <Interests color="primary" />,
+            expandable: true,
+            isExpanded: expandedGroups['borderRadius'],
+            toggle: () => toggleGroup('borderRadius'),
+            action: (
+                <Slider
+                    value={borderRadius}
+                    onChange={handleBorderRadiusChange}
+                    min={0}
+                    max={24}
+                    step={1}
+                    valueLabelDisplay="auto"
+                    sx={{ width: 150 }}
+                    marks={[
+                        { value: 0, label: '0' },
+                        { value: 8, label: '8' },
+                        { value: 16, label: '16' },
+                        { value: 24, label: '24' }
+                    ]}
                 />
             )
         },

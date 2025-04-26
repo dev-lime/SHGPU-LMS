@@ -150,7 +150,8 @@ export default function App() {
 	});
 	const [themeConfig, setThemeConfig] = useState({
 		color: 'green',
-		mode: 'light'
+		mode: 'light',
+		borderRadius: 16
 	});
 	const [hideTabLabels, setHideTabLabels] = useState(
 		localStorage.getItem('hideTabLabels') === 'true'
@@ -177,6 +178,7 @@ export default function App() {
 		setThemeConfig(newConfig);
 		localStorage.setItem('primaryColor', newConfig.color);
 		localStorage.setItem('themeMode', newConfig.mode);
+		localStorage.setItem('borderRadius', newConfig.borderRadius);
 	};
 
 	const handleHideTabLabelsChange = (hide) => {
@@ -204,7 +206,7 @@ export default function App() {
 		}
 	};
 
-	const theme = createAppTheme(themeConfig.color, themeConfig.mode);
+	const theme = createAppTheme(themeConfig.color, themeConfig.mode, themeConfig.borderRadius);
 
 	const tabs = [
 		{ label: "Новости", icon: <Article />, path: "/news", component: <News /> },
@@ -323,6 +325,13 @@ export default function App() {
 									onKeepCurrentTabLabelChange={handleKeepCurrentTabLabelChange}
 									user={user}
 									onLogout={handleLogout}
+									borderRadius={theme.shape.borderRadius}
+									onBorderRadiusChange={(newValue) => {
+										handleThemeChange({
+											...themeConfig,
+											borderRadius: newValue
+										});
+									}}
 								/>
 							</MainLayout>
 						}
