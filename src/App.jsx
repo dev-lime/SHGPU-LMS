@@ -143,12 +143,12 @@ export default function App() {
 	const [loading, setLoading] = useState(true);
 	const [activeTab, setActiveTab] = useState(() => {
 		const savedTab = localStorage.getItem('lastActiveTab');
-		return savedTab ? parseInt(savedTab) : 0;
+		return savedTab ? Number(savedTab) : 0;
 	});
 	const [themeConfig, setThemeConfig] = useState(() => {
 		const savedColor = localStorage.getItem('primaryColor') || 'green';
 		const savedMode = localStorage.getItem('themeMode') || 'light';
-		const savedBorderRadius = parseInt(localStorage.getItem('borderRadius')) || 16;
+		const savedBorderRadius = Number(localStorage.getItem('borderRadius')) || 16;
 		return {
 			color: savedColor,
 			mode: savedMode,
