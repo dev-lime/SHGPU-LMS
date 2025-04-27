@@ -5,17 +5,17 @@ import {
     CalendarMonth,
     Pending
 } from "@mui/icons-material";
-import News from "./pages/news/news";
-import Eios from "./pages/eios/eios";
-import Messenger from "./pages/messenger/messenger";
-import Schedule from "./pages/schedule/schedule";
-import More from "./pages/more/more";
-import Documents from './pages/more/documents';
-import Settings from './pages/more/settings';
-import Profile from './pages/more/profile';
-import Support from './pages/more/support';
-import IDCard from './pages/more/idcard';
-import Chat from './pages/messenger/chat';
+import News from "@pages/news/News";
+import Eios from "@pages/eios/EIOS";
+import Messenger from "@pages/messenger/Messenger";
+import Schedule from "@pages/schedule/Schedule";
+import More from "@pages/more/More";
+import Documents from '@pages/more/Documents';
+import Settings from '@pages/more/Settings';
+import Profile from '@pages/more/Profile';
+import Support from '@pages/more/Support';
+import IDCard from '@pages/more/IDCard';
+import Chat from '@pages/messenger/Chat';
 
 export const mainTabs = [
     {

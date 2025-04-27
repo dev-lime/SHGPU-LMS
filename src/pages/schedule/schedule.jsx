@@ -14,7 +14,7 @@ import {
 	Stack
 } from "@mui/material";
 import { ChevronLeft, ChevronRight, Schedule as ScheduleIcon } from "@mui/icons-material";
-import { transformScheduleData } from './schedule-transformer';
+import { transformScheduleData } from './scheduleTransformer';
 import scheduleData from './schedule-data.json';
 
 // Константа для UTC+5 (Екатеринбург)

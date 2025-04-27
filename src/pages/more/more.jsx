@@ -11,9 +11,9 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../firebase'; // Убедитесь, что путь к firebase правильный
+import { db } from '../../firebase';
 
-const ProfileSection = lazy(() => import('./profile-section'));
+const ProfileSection = lazy(() => import('./ProfileSection'));
 const Description = lazy(() => import('@mui/icons-material/Description'));
 const SettingsIcon = lazy(() => import('@mui/icons-material/Settings'));
 const HelpOutline = lazy(() => import('@mui/icons-material/HelpOutline'));
