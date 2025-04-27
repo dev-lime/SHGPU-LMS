@@ -90,11 +90,7 @@ export default function Documents() {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <IconButton
                     onClick={() => navigate(-1)}
-                    sx={{
-                        mr: 1,
-                        '&.Mui-selected': { outline: 'none' },
-                        '&:focus': { outline: 'none' }
-                    }}
+                    sx={{ mr: 1 }}
                 >
                     <ArrowBackIcon color="primary" />
                 </IconButton>

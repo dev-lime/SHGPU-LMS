@@ -5,8 +5,6 @@ import {
 	ListItem,
 	ListItemAvatar,
 	Avatar,
-	TextField,
-	InputAdornment,
 	Badge,
 	Box,
 	Tabs,
@@ -15,7 +13,6 @@ import {
 	IconButton
 } from '@mui/material';
 import {
-	Search,
 	ChatBubble,
 	People,
 	Send
@@ -35,6 +32,7 @@ import {
 } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { useSwipeable } from 'react-swipeable';
+import SearchBar from '@components/SearchBar';
 
 export default function Messenger() {
 	const [searchQuery, setSearchQuery] = useState('');
@@ -262,32 +260,10 @@ export default function Messenger() {
 					/>
 				</Tabs>
 
-				<TextField
-					variant="outlined"
+				<SearchBar
 					placeholder={activeTab === 0 ? "Поиск чатов" : "Поиск пользователей"}
-					size="small"
 					value={searchQuery}
-					onChange={(e) => setSearchQuery(e.target.value)}
-					sx={{
-						width: '100%',
-						'& .MuiOutlinedInput-root': {
-							borderRadius: '28px',
-							backgroundColor: 'background.paper',
-							'& fieldset': { borderColor: 'divider' },
-							'&:hover fieldset': { borderColor: 'primary.main' },
-							'&.Mui-focused fieldset': {
-								borderColor: 'primary.main',
-								borderWidth: '1px',
-							},
-						},
-					}}
-					InputProps={{
-						startAdornment: (
-							<InputAdornment position="start">
-								<Search color="primary" />
-							</InputAdornment>
-						),
-					}}
+					onChange={setSearchQuery}
 				/>
 			</Box>
 
@@ -482,9 +458,7 @@ const UserList = ({ users, onUserClick, currentUserId }) => {
 								'&:hover': {
 									backgroundColor: 'rgba(0, 0, 0, 0.04)',
 									color: 'primary.main'
-								},
-								'&.Mui-selected': { outline: 'none' },
-								'&:focus': { outline: 'none' }
+								}
 							}}
 						>
 							<Send fontSize="medium" color="primary" />

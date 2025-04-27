@@ -406,11 +406,7 @@ export default function Chat() {
                 }}>
                     <IconButton
                         onClick={() => navigate('/messenger')}
-                        sx={{
-                            mr: 1,
-                            '&.Mui-selected': { outline: 'none' },
-                            '&:focus': { outline: 'none' }
-                        }}
+                        sx={{ mr: 1  }}
                     >
                         <ArrowBack color="primary" />
                     </IconButton>
@@ -528,10 +524,6 @@ export default function Chat() {
                                         color="primary"
                                         onClick={handleSendMessage}
                                         disabled={!newMessage.trim()}
-                                        sx={{
-                                            '&.Mui-selected': { outline: 'none' },
-                                            '&:focus': { outline: 'none' }
-                                        }}
                                     >
                                         <Send />
                                     </IconButton>

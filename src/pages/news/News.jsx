@@ -19,6 +19,7 @@ import {
 	Share,
 	Search
 } from '@mui/icons-material';
+import SearchBar from '@components/SearchBar';
 
 const EllipsisTypography = styled(Typography)({
 	display: '-webkit-box',
@@ -128,36 +129,11 @@ export default function News() {
 					Новости
 				</Typography>
 
-				<TextField
-					variant="outlined"
+				<SearchBar
 					placeholder="Поиск"
-					size="small"
 					value={searchQuery}
-					onChange={(e) => setSearchQuery(e.target.value)}
-					sx={{
-						width: '70%',
-						'& .MuiOutlinedInput-root': {
-							borderRadius: '28px',
-							backgroundColor: 'background.paper',
-							'& fieldset': {
-								borderColor: 'divider',
-							},
-							'&:hover fieldset': {
-								borderColor: 'primary.main',
-							},
-							'&.Mui-focused fieldset': {
-								borderColor: 'primary.main',
-								borderWidth: '1px',
-							},
-						},
-					}}
-					InputProps={{
-						startAdornment: (
-							<InputAdornment position="start">
-								<Search color="primary" />
-							</InputAdornment>
-						),
-					}}
+					onChange={setSearchQuery}
+					width="70%"
 				/>
 			</Box>
 
@@ -315,12 +291,6 @@ export default function News() {
 												backgroundColor: 'transparent',
 												color: 'primary.main'
 											},
-											'&.Mui-selected': {
-												outline: 'none'
-											},
-											'&:focus': {
-												outline: 'none'
-											},
 											borderRadius: 0
 										}}
 									>
@@ -337,12 +307,6 @@ export default function News() {
 											'&:hover': {
 												backgroundColor: 'transparent',
 												color: 'primary.main'
-											},
-											'&.Mui-selected': {
-												outline: 'none'
-											},
-											'&:focus': {
-												outline: 'none'
 											},
 											borderRadius: 0
 										}}

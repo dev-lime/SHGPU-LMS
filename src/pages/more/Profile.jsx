@@ -170,11 +170,7 @@ const Profile = () => {
 			<Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
 				<IconButton
 					onClick={() => navigate(-1)}
-					sx={{
-						mr: 1,
-						'&.Mui-selected': { outline: 'none' },
-						'&:focus': { outline: 'none' }
-					}}
+					sx={{ mr: 1 }}
 				>
 					<ArrowBack color="primary" />
 				</IconButton>
@@ -185,7 +181,11 @@ const Profile = () => {
 				{!editMode && (
 					<Button
 						startIcon={<Edit color="primary" />}
-						sx={{ ml: 'auto', color: 'primary.main' }}
+						sx={{
+							ml: 'auto',
+							color: 'primary.main',
+							'&.Mui-selected, &:focus': { outline: 'none' }
+						}}
 						onClick={() => setEditMode(true)}
 					>
 						Редактировать
@@ -410,7 +410,10 @@ const Profile = () => {
 						color="error"
 						startIcon={<ExitToApp />}
 						onClick={handleLogoutClick}
-						sx={{ mt: 'auto' }}
+						sx={{
+							mt: 'auto',
+							'&.Mui-selected, &:focus': { outline: 'none' }
+						}}
 					>
 						Выйти из аккаунта
 					</Button>

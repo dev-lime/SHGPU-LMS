@@ -90,6 +90,13 @@ export const createAppTheme = (colorNameOrHex = 'green', mode = 'light', borderR
 			borderRadius: borderRadius,
 		},
 		components: {
+			MuiIconButton: {
+                styleOverrides: {
+                    root: {
+                        '&.Mui-selected, &:focus': { outline: 'none' },
+                    },
+                },
+            },
 			MuiListItem: {
 				styleOverrides: {
 					root: {
@@ -118,19 +125,15 @@ return createTheme({
 	palette: {
 		mode,
 		primary: {
-			main: tones[4], // 40
+			main: tones[4],
 		},
 		secondary: {
 			main: mode === 'light' ? '#8BC34A' : '#A5D6A7',
 		},
 		background: {
-			default: mode === 'light' ? tones[11] : tones[1], // 99 / 10
-			paper: mode === 'light' ? tones[12] : tones[3],   // 100 / 30
-		},
-		tones // теперь доступно: theme.palette.tones[индекс]
-	},
-	shape: {
-		borderRadius: 16,
+			default: mode === 'light' ? tones[11] : tones[1],
+			paper: mode === 'light' ? tones[12] : tones[3],
+		}
 	}
 })
 

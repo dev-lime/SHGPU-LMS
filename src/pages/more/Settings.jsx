@@ -175,10 +175,7 @@ export default function Settings({
                                         <IconButton
                                             onClick={handleColorPickerOpen}
                                             edge="end"
-                                            sx={{
-                                                padding: '6px',
-                                                '&.Mui-selected, &:focus': { outline: 'none' }
-                                            }}
+                                            sx={{ padding: '6px' }}
                                         >
                                             <Colorize fontSize="small" />
                                         </IconButton>
@@ -270,7 +267,6 @@ export default function Settings({
                     onClick={() => navigate(-1)}
                     sx={{
                         mr: 1,
-                        '&.Mui-selected, &:focus': { outline: 'none' },
                         cursor: 'pointer'
                     }}
                 >

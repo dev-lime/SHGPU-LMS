@@ -3,15 +3,13 @@ import {
     Box,
     Typography,
     IconButton,
-    Paper,
-    TextField,
-    InputAdornment
+    Paper
 } from '@mui/material';
 import {
-    ArrowBack,
-    Search
+    ArrowBack
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import SearchBar from '@components/SearchBar';
 
 const FAQ_CATEGORIES = [
     {
@@ -95,45 +93,17 @@ export default function Support() {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <IconButton
                     onClick={() => navigate(-1)}
-                    sx={{
-                        mr: 1,
-                        '&:focus': { outline: 'none' }
-                    }}
+                    sx={{ mr: 1 }}
                 >
                     <ArrowBack color="primary" />
                 </IconButton>
                 <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1 }}>Поддержка</Typography>
 
-                <TextField
-                    variant="outlined"
+                <SearchBar
                     placeholder="Поиск"
-                    size="small"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    sx={{
-                        width: '55%',
-                        '& .MuiOutlinedInput-root': {
-                            borderRadius: '28px',
-                            backgroundColor: 'background.paper',
-                            '& fieldset': {
-                                borderColor: 'divider',
-                            },
-                            '&:hover fieldset': {
-                                borderColor: 'primary.main',
-                            },
-                            '&.Mui-focused fieldset': {
-                                borderColor: 'primary.main',
-                                borderWidth: '1px',
-                            },
-                        },
-                    }}
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <Search color="primary" />
-                            </InputAdornment>
-                        ),
-                    }}
+                    onChange={setSearchTerm}
+                    width="55%"
                 />
             </Box>
 
