@@ -1,6 +1,36 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Typography, Paper, IconButton, Avatar, List, ListItem, ListItemText, ListItemAvatar, Divider, Button, TextField, CircularProgress, FormControl, FormHelperText, Dialog, DialogTitle, DialogContent, Select, MenuItem, InputLabel } from '@mui/material';
-import { ArrowBack, Phone, Email, School, Edit, Telegram, Person, SupervisorAccount, SupportAgent, AdminPanelSettings, ExitToApp, Close as CloseIcon } from '@mui/icons-material';
+import {
+	Box,
+	Typography,
+	Paper,
+	IconButton,
+	Avatar, List,
+	ListItem,
+	ListItemText,
+	ListItemAvatar,
+	Divider,
+	Button,
+	TextField,
+	CircularProgress,
+	FormControl,
+	FormHelperText,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	Select,
+	MenuItem,
+	InputLabel
+} from '@mui/material';
+import {
+	ArrowBack,
+	Phone,
+	Email,
+	School,
+	Edit,
+	Telegram,
+	ExitToApp,
+	Close as CloseIcon
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { auth, storage } from '@src/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
