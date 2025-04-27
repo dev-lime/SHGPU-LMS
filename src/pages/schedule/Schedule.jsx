@@ -16,6 +16,7 @@ import {
 import { ChevronLeft, ChevronRight, Schedule as ScheduleIcon } from "@mui/icons-material";
 import { transformScheduleData } from './scheduleTransformer';
 import scheduleData from './schedule-data.json';
+import useProfile from '@hooks/useProfile';
 
 // Константа для UTC+5 (Екатеринбург)
 const TIMEZONE_OFFSET = 5 * 60 * 60 * 1000; // 5 часов в миллисекундах
@@ -29,6 +30,8 @@ const Schedule = () => {
 	const tableRef = useRef(null);
 	const currentPairRef = useRef(null);
 	const todayRowRef = useRef(null);
+	const { userData } = useProfile();
+	const studentGroup = userData?.accountType === 'student' ? userData.studentGroup : null;
 
 	const transformedData = useMemo(() => transformScheduleData(scheduleData), []);
 
@@ -203,7 +206,7 @@ const Schedule = () => {
 			width: '100%'
 		}}>
 			<Typography variant="h5" sx={{ mb: 2 }}>
-				Расписание
+				Расписание {studentGroup && `для ${studentGroup}`}
 			</Typography>
 
 			<Fade in={fadeIn} key={currentWeekOffset}>
