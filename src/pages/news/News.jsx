@@ -27,7 +27,7 @@ const EllipsisTypography = styled(Typography)({
 	WebkitBoxOrient: 'vertical',
 });
 
-import newsData from './news.json';
+import newsData from './news-data.json';
 
 export default function News() {
 	const [bookmarked, setBookmarked] = useState([]);
@@ -69,6 +69,21 @@ export default function News() {
 	const handleOpenNews = (link) => {
 		if (link) {
 			window.open(link, '_blank');
+		}
+	};
+
+	const handleShare = (link) => {
+		if (navigator.share) {
+			navigator.share({
+				title: 'Поделиться новостью',
+				url: link
+			}).then(() => {
+				console.log('Успешно поделились!');
+			}).catch((error) => {
+				console.error('Ошибка при попытке поделиться:', error);
+			});
+		} else {
+			alert('К сожалению, ваша платформа не поддерживает функцию общего доступа.');
 		}
 	};
 
@@ -313,7 +328,10 @@ export default function News() {
 									</IconButton>
 									<IconButton
 										size="small"
-										onClick={(e) => e.stopPropagation()}
+										onClick={(e) => {
+											e.stopPropagation();
+											handleShare(item.link);
+										}}
 										sx={{
 											color: 'text.secondary',
 											'&:hover': {
