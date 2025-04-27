@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
 	Box,
 	Typography,
@@ -15,7 +15,12 @@ import {
 	CircularProgress,
 	FormControl,
 	FormHelperText,
-	InputAdornment
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	Select,
+	MenuItem,
+	InputLabel
 } from '@mui/material';
 import {
 	ArrowBack,
@@ -28,24 +33,18 @@ import {
 	SupervisorAccount,
 	SupportAgent,
 	AdminPanelSettings,
-	ExitToApp
+	ExitToApp,
+	Close as CloseIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile, signOut } from 'firebase/auth';
 import { auth, db, storage } from '../../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { validatePhone, getPhoneError, validateGroup, getGroupError, normalizeGroupName } from '../../utils/validators';
+import { getPhoneError, getGroupError, normalizeGroupName } from '../../utils/validators';
 
-const Dialog = lazy(() => import('@mui/material/Dialog'));
-const DialogTitle = lazy(() => import('@mui/material/DialogTitle'));
-const DialogContent = lazy(() => import('@mui/material/DialogContent'));
-const Select = lazy(() => import('@mui/material/Select'));
-const MenuItem = lazy(() => import('@mui/material/MenuItem'));
-const InputLabel = lazy(() => import('@mui/material/InputLabel'));
-const CloseIcon = lazy(() => import('@mui/icons-material/Close'));
-
-const accountTypes = [
+// Константы вынесены за пределы компонента для предотвращения повторного создания
+const ACCOUNT_TYPES = [
 	{ value: 'student', label: 'Студент', icon: <School color="primary" /> },
 	{ value: 'teacher', label: 'Преподаватель', icon: <SupervisorAccount color="primary" /> },
 	{ value: 'admin', label: 'Администратор', icon: <AdminPanelSettings color="primary" /> },
@@ -196,13 +195,11 @@ const Profile = () => {
 		}
 	}, [navigate]);
 
-	const getAccountTypeIcon = useCallback((type) =>
-		accountTypes.find(t => t.value === type)?.icon || <Person color="primary" />,
-		[]);
+	const getAccountTypeIcon = (type) =>
+		ACCOUNT_TYPES.find(t => t.value === type)?.icon || <Person color="primary" />;
 
-	const getAccountTypeLabel = useCallback((type) =>
-		accountTypes.find(t => t.value === type)?.label || 'Пользователь',
-		[]);
+	const getAccountTypeLabel = (type) =>
+		ACCOUNT_TYPES.find(t => t.value === type)?.label || 'Пользователь';
 
 	if (loading && !editMode) {
 		return (
@@ -230,6 +227,7 @@ const Profile = () => {
 			flexDirection: 'column',
 			height: '100%'
 		}}>
+			{/* Заголовок и кнопка назад */}
 			<Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
 				<IconButton
 					onClick={() => navigate(-1)}
@@ -257,6 +255,7 @@ const Profile = () => {
 			</Box>
 
 			{editMode ? (
+				// Режим редактирования
 				<>
 					<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
 						<Avatar
@@ -314,25 +313,23 @@ const Profile = () => {
 						helperText={groupError || 'Пример: 230б, 133б-а, 2-11б'}
 					/>
 
-					<Suspense fallback={<CircularProgress />}>
-						<FormControl fullWidth margin="normal">
-							<InputLabel>Тип аккаунта</InputLabel>
-							<Select
-								value={formData.accountType}
-								label="Тип аккаунта"
-								onChange={handleInputChange('accountType')}
-							>
-								{accountTypes.map((type) => (
-									<MenuItem key={type.value} value={type.value}>
-										<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-											{type.icon}
-											{type.label}
-										</Box>
-									</MenuItem>
-								))}
-							</Select>
-						</FormControl>
-					</Suspense>
+					<FormControl fullWidth margin="normal">
+						<InputLabel>Тип аккаунта</InputLabel>
+						<Select
+							value={formData.accountType}
+							label="Тип аккаунта"
+							onChange={handleInputChange('accountType')}
+						>
+							{ACCOUNT_TYPES.map((type) => (
+								<MenuItem key={type.value} value={type.value}>
+									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+										{type.icon}
+										{type.label}
+									</Box>
+								</MenuItem>
+							))}
+						</Select>
+					</FormControl>
 
 					<TextField
 						fullWidth
@@ -354,10 +351,6 @@ const Profile = () => {
 							variant="outlined"
 							onClick={() => setEditMode(false)}
 							disabled={loading}
-							sx={{
-								'&.Mui-selected': { outline: 'none' },
-								'&:focus': { outline: 'none' }
-							}}
 						>
 							Отмена
 						</Button>
@@ -372,6 +365,7 @@ const Profile = () => {
 					</Box>
 				</>
 			) : (
+				// Режим просмотра
 				<>
 					<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
 						<Avatar
@@ -477,56 +471,49 @@ const Profile = () => {
 						color="error"
 						startIcon={<ExitToApp />}
 						onClick={handleLogout}
-						sx={{
-							mt: 'auto',
-							'&.Mui-selected': { outline: 'none' },
-							'&:focus': { outline: 'none' }
-						}}
+						sx={{ mt: 'auto' }}
 					>
 						Выйти из аккаунта
 					</Button>
 				</>
 			)}
 
-			<Suspense fallback={null}>
-				{openAvatarDialog && (
-					<Dialog open={openAvatarDialog} onClose={() => setOpenAvatarDialog(false)}>
-						<DialogTitle>
-							Изменить аватар
-							<IconButton
-								aria-label="close"
-								onClick={() => setOpenAvatarDialog(false)}
-								sx={{
-									position: 'absolute',
-									right: 8,
-									top: 8,
-									color: (theme) => theme.palette.grey[500],
-								}}
-							>
-								<CloseIcon />
-							</IconButton>
-						</DialogTitle>
-						<DialogContent sx={{ p: 3, textAlign: 'center' }}>
-							<input
-								accept="image/*"
-								style={{ display: 'none' }}
-								id="avatar-upload"
-								type="file"
-								onChange={handleFileUpload}
-							/>
-							<label htmlFor="avatar-upload">
-								<Button
-									variant="contained"
-									component="span"
-									disabled={uploading}
-								>
-									{uploading ? 'Загрузка...' : 'Выбрать изображение'}
-								</Button>
-							</label>
-						</DialogContent>
-					</Dialog>
-				)}
-			</Suspense>
+			{/* Диалог изменения аватара */}
+			<Dialog open={openAvatarDialog} onClose={() => setOpenAvatarDialog(false)}>
+				<DialogTitle>
+					Изменить аватар
+					<IconButton
+						aria-label="close"
+						onClick={() => setOpenAvatarDialog(false)}
+						sx={{
+							position: 'absolute',
+							right: 8,
+							top: 8,
+							color: (theme) => theme.palette.grey[500],
+						}}
+					>
+						<CloseIcon />
+					</IconButton>
+				</DialogTitle>
+				<DialogContent sx={{ p: 3, textAlign: 'center' }}>
+					<input
+						accept="image/*"
+						style={{ display: 'none' }}
+						id="avatar-upload"
+						type="file"
+						onChange={handleFileUpload}
+					/>
+					<label htmlFor="avatar-upload">
+						<Button
+							variant="contained"
+							component="span"
+							disabled={uploading}
+						>
+							{uploading ? 'Загрузка...' : 'Выбрать изображение'}
+						</Button>
+					</label>
+				</DialogContent>
+			</Dialog>
 		</Box>
 	);
 };

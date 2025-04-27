@@ -148,7 +148,10 @@ export default function App() {
 	const [themeConfig, setThemeConfig] = useState(() => {
 		const savedColor = localStorage.getItem('primaryColor') || 'green';
 		const savedMode = localStorage.getItem('themeMode') || 'light';
-		const savedBorderRadius = Number(localStorage.getItem('borderRadius')) || 16;
+
+		const borderRadiusItem = localStorage.getItem('borderRadius');
+		const savedBorderRadius = borderRadiusItem !== null ? Number(borderRadiusItem) : 16;
+
 		return {
 			color: savedColor,
 			mode: savedMode,

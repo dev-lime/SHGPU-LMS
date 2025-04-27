@@ -11,5 +11,17 @@ export default defineConfig({
 			"@components": path.resolve(__dirname, "./src/components"),
 			"@context": path.resolve(__dirname, "./src/context")
 		}
+	},
+	build: {
+		rollupOptions: {
+			output: {
+				manualChunks: {
+					mui: ['@mui/material', '@mui/icons-material'],
+					firebase: ['firebase/firestore', 'firebase/auth', 'firebase/storage'],
+					react: ['react', 'react-dom', 'react-router-dom']
+				}
+			}
+		},
+		//chunkSizeWarningLimit: 1000,
 	}
 })
