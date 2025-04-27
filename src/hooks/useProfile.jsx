@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth, db } from '../firebase';
+import { auth, db } from '@src/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import {
@@ -55,7 +55,9 @@ const useProfile = () => {
 
             if (auth.currentUser) {
                 const docRef = doc(db, 'users', auth.currentUser.uid);
+                console.log('Loading profile for:', docRef.path); // Добавьте это
                 const docSnap = await getDoc(docRef);
+                console.log('Document exists:', docSnap.exists()); // И это
 
                 if (docSnap.exists()) {
                     const serverProfile = docSnap.data();
@@ -112,7 +114,9 @@ const useProfile = () => {
 
         // Подписка на изменения аутентификации
         const unsubscribe = auth.onAuthStateChanged((user) => {
+            console.log('Auth state changed:', user); // Добавьте это
             if (user) {
+                console.log('User UID:', user.uid); // И это
                 loadProfile();
             } else {
                 clearProfile();
