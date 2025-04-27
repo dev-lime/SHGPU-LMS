@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { auth, db } from '@src/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
@@ -10,77 +10,80 @@ import {
     Person as DefaultIcon
 } from '@mui/icons-material';
 
-export const ROLE_ICONS = {
-    student: StudentIcon,
-    teacher: TeacherIcon,
-    admin: AdminIcon,
-    support: SupportIcon,
-    default: DefaultIcon
-};
-
-export const ROLE_LABELS = {
-    student: 'Студент',
-    teacher: 'Преподаватель',
-    admin: 'Администратор',
-    support: 'Техподдержка',
-    default: 'Пользователь'
+export const ACCOUNT_TYPES = {
+    student: {
+        value: 'student',
+        label: 'Студент',
+        icon: <StudentIcon color="primary" />
+    },
+    teacher: {
+        value: 'teacher',
+        label: 'Преподаватель',
+        icon: <TeacherIcon color="primary" />
+    },
+    admin: {
+        value: 'admin',
+        label: 'Администратор',
+        icon: <AdminIcon color="primary" />
+    },
+    support: {
+        value: 'support',
+        label: 'Техподдержка',
+        icon: <SupportIcon color="primary" />
+    }
 };
 
 const useProfile = () => {
-    const [profile, setProfile] = useState(null);
+    const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Функция для получения иконки роли
-    const getRoleIcon = (role) => {
-        const IconComponent = ROLE_ICONS[role] || ROLE_ICONS.default;
-        return <IconComponent color="primary" fontSize="small" />;
-    };
-
-    // Функция для получения текста роли
-    const getRoleLabel = (role) => {
-        return ROLE_LABELS[role] || ROLE_LABELS.default;
-    };
-
-    // Загрузка профиля из localStorage или Firebase
-    const loadProfile = async () => {
+    // Получение данных пользователя
+    const fetchUserData = useCallback(async () => {
         try {
             setLoading(true);
-
-            const localProfile = localStorage.getItem('userProfile');
-
-            if (localProfile) {
-                setProfile(JSON.parse(localProfile));
-            }
+            setError(null);
 
             if (auth.currentUser) {
                 const docRef = doc(db, 'users', auth.currentUser.uid);
-                console.log('Loading profile for:', docRef.path); // Добавьте это
                 const docSnap = await getDoc(docRef);
-                console.log('Document exists:', docSnap.exists()); // И это
 
                 if (docSnap.exists()) {
-                    const serverProfile = docSnap.data();
-                    setProfile(serverProfile);
-                    localStorage.setItem('userProfile', JSON.stringify(serverProfile));
+                    const data = docSnap.data();
+                    setUserData({
+                        ...data,
+                        // Добавляем email из auth, если его нет в профиле
+                        email: data.email || auth.currentUser.email,
+                        // Добавляем photoURL из auth, если его нет в профиле
+                        avatarUrl: data.avatarUrl || auth.currentUser.photoURL || ''
+                    });
+                } else {
+                    setError("Профиль не найден");
                 }
             }
         } catch (err) {
-            console.error("Ошибка загрузки профиля:", err);
-            setError("Не удалось загрузить профиль");
+            console.error("Ошибка загрузки данных:", err);
+            setError("Не удалось загрузить данные профиля");
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     // Обновление профиля
-    const updateProfileData = async (updatedData) => {
+    const updateUserData = useCallback(async (updatedData) => {
         try {
             setLoading(true);
+            setError(null);
 
             if (auth.currentUser) {
-                // Обновляем в Firebase
-                await updateDoc(doc(db, 'users', auth.currentUser.uid), updatedData);
+                // Форматируем данные перед сохранением
+                const dataToSave = {
+                    ...updatedData,
+                    updatedAt: new Date()
+                };
+
+                // Обновляем в Firestore
+                await updateDoc(doc(db, 'users', auth.currentUser.uid), dataToSave);
 
                 // Обновляем данные аутентификации, если нужно
                 if (updatedData.fullName || updatedData.avatarUrl) {
@@ -90,50 +93,64 @@ const useProfile = () => {
                     });
                 }
 
-                // Обновляем локальные данные
-                const newProfile = { ...profile, ...updatedData };
-                setProfile(newProfile);
-                localStorage.setItem('userProfile', JSON.stringify(newProfile));
+                // Обновляем локальное состояние
+                setUserData(prev => ({
+                    ...prev,
+                    ...dataToSave,
+                    avatarUrl: updatedData.avatarUrl || prev.avatarUrl
+                }));
             }
         } catch (err) {
-            console.error("Ошибка обновления профиля:", err);
-            setError("Не удалось обновить профиль");
+            console.error("Ошибка сохранения:", err);
+            setError("Не удалось сохранить изменения");
+            throw err; // Пробрасываем ошибку для обработки в компоненте
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    // Очистка профиля при выходе
-    const clearProfile = () => {
-        localStorage.removeItem('userProfile');
-        setProfile(null);
-    };
+    // Выход из системы
+    const handleLogout = useCallback(async () => {
+        try {
+            await auth.signOut();
+            setUserData(null);
+        } catch (err) {
+            console.error("Ошибка выхода:", err);
+            setError("Не удалось выйти из аккаунта");
+        }
+    }, []);
 
+    // Получение иконки для типа аккаунта
+    const getAccountTypeIcon = useCallback((type) => {
+        return ACCOUNT_TYPES[type]?.icon || ACCOUNT_TYPES.default.icon;
+    }, []);
+
+    // Получение названия для типа аккаунта
+    const getAccountTypeLabel = useCallback((type) => {
+        return ACCOUNT_TYPES[type]?.label || ACCOUNT_TYPES.default.label;
+    }, []);
+    // Подписка на изменения аутентификации
     useEffect(() => {
-        loadProfile();
-
-        // Подписка на изменения аутентификации
         const unsubscribe = auth.onAuthStateChanged((user) => {
-            console.log('Auth state changed:', user); // Добавьте это
             if (user) {
-                console.log('User UID:', user.uid); // И это
-                loadProfile();
+                fetchUserData();
             } else {
-                clearProfile();
+                setUserData(null);
             }
         });
 
         return unsubscribe;
-    }, []);
+    }, [fetchUserData]);
 
     return {
-        profile,
+        userData,
         loading,
         error,
-        updateProfileData,
-        clearProfile,
-        getRoleIcon,
-        getRoleLabel
+        updateUserData,
+        handleLogout,
+        getAccountTypeIcon,
+        getAccountTypeLabel,
+        ACCOUNT_TYPES
     };
 };
 

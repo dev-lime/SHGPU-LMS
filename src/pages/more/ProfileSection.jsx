@@ -1,74 +1,63 @@
 import React from 'react';
-import { ListItem, Avatar, Typography, Box } from '@mui/material';
-import {
-    School as StudentIcon,
-    SupervisorAccount as TeacherIcon,
-    AdminPanelSettings as AdminIcon,
-    SupportAgent as SupportIcon,
-    Person as DefaultIcon
-} from '@mui/icons-material';
+import { ListItem, Avatar, Typography, Box, CircularProgress } from '@mui/material';
+import useProfile from '@hooks/useProfile';
 
-const ProfileSection = ({ user, onClick }) => {
-    // Проверяем авторизацию
-    const isAuthenticated = !!user?.uid;
-
-    // Получаем данные из профиля Firestore
-    const userData = user?.userData || {};
+const ProfileSection = ({ onClick }) => {
+    const { userData, loading } = useProfile();
 
     // Получаем первую букву для аватара
     const getAvatarContent = () => {
-        if (userData.avatarUrl) return null; // показываем изображение
-        if (isAuthenticated) {
+        if (userData?.avatarUrl) return null;
+        if (userData) {
             return userData.fullName?.charAt(0)?.toUpperCase() ||
-                user?.email?.charAt(0)?.toUpperCase() || 'П';
+                userData.email?.charAt(0)?.toUpperCase() || 'П';
         }
-        return 'Г'; // для гостя
+        return 'Г';
     };
 
     // Определяем отображаемое имя
     const getDisplayName = () => {
-        if (!isAuthenticated) return 'Гость';
-        return userData.fullName || user?.email?.split('@')[0] || 'Пользователь';
+        if (!userData) return 'Гость';
+        return userData.fullName || userData.email?.split('@')[0] || 'Пользователь';
     };
 
-    // Получаем иконку для роли
-    const getRoleIcon = () => {
-        const iconProps = { fontSize: 'small', sx: { mr: 0.5 } };
-
-        switch (userData.accountType) {
-            case 'student':
-                return <StudentIcon color="primary" {...iconProps} />;
-            case 'teacher':
-                return <TeacherIcon color="primary" {...iconProps} />;
-            case 'admin':
-                return <AdminIcon color="primary" {...iconProps} />;
-            case 'support':
-                return <SupportIcon color="primary" {...iconProps} />;
-            default:
-                return <DefaultIcon color="primary" {...iconProps} />;
-        }
-    };
-
-    // Определяем текст роли и группы
+    // Получаем текст роли и группы
     const getRoleText = () => {
-        if (!isAuthenticated) return 'Гостевой режим';
+        if (!userData) return 'Гостевой режим';
 
-        const roles = {
-            'student': 'Студент',
-            'teacher': 'Преподаватель',
-            'admin': 'Администратор',
-            'support': 'Техподдержка'
-        };
+        let role = 'Пользователь';
+        if (userData.accountType === 'student') role = 'Студент';
+        if (userData.accountType === 'teacher') role = 'Преподаватель';
+        if (userData.accountType === 'admin') role = 'Администратор';
+        if (userData.accountType === 'support') role = 'Техподдержка';
 
-        const role = roles[userData.accountType] || 'Пользователь';
-
-        // Добавляем группу для студентов
         if (userData.accountType === 'student' && userData.studentGroup) {
             return `${role}, ${userData.studentGroup}`;
         }
 
         return role;
     };
+
+    if (loading) {
+        return (
+            <ListItem sx={{
+                py: 2,
+                px: 2,
+                display: 'flex',
+                justifyContent: 'center'
+            }}>
+                <Box sx={{
+                    width: 96,
+                    height: 96,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                }}>
+                    <CircularProgress size={40} />
+                </Box>
+            </ListItem>
+        );
+    }
 
     return (
         <ListItem
@@ -86,12 +75,12 @@ const ProfileSection = ({ user, onClick }) => {
             }}
         >
             <Avatar
-                src={userData.avatarUrl || ''}
+                src={userData?.avatarUrl || ''}
                 sx={{
                     width: 96,
                     height: 96,
                     mb: 2,
-                    bgcolor: isAuthenticated ? 'primary.main' : 'grey.500',
+                    bgcolor: userData ? 'primary.main' : 'grey.500',
                     fontSize: 40,
                     '&:hover': {
                         opacity: 0.8,
@@ -104,12 +93,9 @@ const ProfileSection = ({ user, onClick }) => {
             <Typography variant="h6" align="center" noWrap sx={{ maxWidth: '100%' }}>
                 {getDisplayName()}
             </Typography>
-            <Box component="div" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {getRoleIcon()}
-                <Typography variant="body2" color="text.secondary" component="span">
-                    {getRoleText()}
-                </Typography>
-            </Box>
+            <Typography variant="body2" color="text.secondary">
+                {getRoleText()}
+            </Typography>
         </ListItem>
     );
 };

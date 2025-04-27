@@ -1,60 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-	Box,
-	Typography,
-	Paper,
-	IconButton,
-	Avatar,
-	List,
-	ListItem,
-	ListItemText,
-	ListItemAvatar,
-	Divider,
-	Button,
-	TextField,
-	CircularProgress,
-	FormControl,
-	FormHelperText,
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	Select,
-	MenuItem,
-	InputLabel
-} from '@mui/material';
-import {
-	ArrowBack,
-	Phone,
-	Email,
-	School,
-	Edit,
-	Telegram,
-	Person,
-	SupervisorAccount,
-	SupportAgent,
-	AdminPanelSettings,
-	ExitToApp,
-	Close as CloseIcon
-} from '@mui/icons-material';
+import { Box, Typography, Paper, IconButton, Avatar, List, ListItem, ListItemText, ListItemAvatar, Divider, Button, TextField, CircularProgress, FormControl, FormHelperText, Dialog, DialogTitle, DialogContent, Select, MenuItem, InputLabel } from '@mui/material';
+import { ArrowBack, Phone, Email, School, Edit, Telegram, Person, SupervisorAccount, SupportAgent, AdminPanelSettings, ExitToApp, Close as CloseIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { updateProfile, signOut } from 'firebase/auth';
-import { auth, db, storage } from '../../firebase';
+import { auth, storage } from '@src/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { getPhoneError, getGroupError, normalizeGroupName } from '../../utils/validators';
-
-// Константы вынесены за пределы компонента для предотвращения повторного создания
-const ACCOUNT_TYPES = [
-	{ value: 'student', label: 'Студент', icon: <School color="primary" /> },
-	{ value: 'teacher', label: 'Преподаватель', icon: <SupervisorAccount color="primary" /> },
-	{ value: 'admin', label: 'Администратор', icon: <AdminPanelSettings color="primary" /> },
-	{ value: 'support', label: 'Техподдержка', icon: <SupportAgent color="primary" /> }
-];
+import { getPhoneError, getGroupError, normalizeGroupName } from '@utils/validators';
+import useProfile from '@hooks/useProfile';
 
 const Profile = () => {
 	const navigate = useNavigate();
-	const [userData, setUserData] = useState(null);
-	const [loading, setLoading] = useState(true);
+	const {
+		userData,
+		loading,
+		error,
+		updateUserData,
+		handleLogout,
+		getAccountTypeIcon,
+		getAccountTypeLabel,
+		ACCOUNT_TYPES
+	} = useProfile();
+
 	const [editMode, setEditMode] = useState(false);
 	const [formData, setFormData] = useState({
 		fullName: '',
@@ -69,38 +34,20 @@ const Profile = () => {
 	const [telegramError, setTelegramError] = useState('');
 	const [phoneError, setPhoneError] = useState('');
 	const [groupError, setGroupError] = useState('');
-	const [error, setError] = useState(null);
 
-	const fetchUserData = useCallback(async () => {
-		try {
-			if (auth.currentUser) {
-				const docRef = doc(db, 'users', auth.currentUser.uid);
-				const docSnap = await getDoc(docRef);
-
-				if (docSnap.exists()) {
-					const data = docSnap.data();
-					setUserData(data);
-					setFormData({
-						fullName: data.fullName || '',
-						phone: data.phone || '',
-						studentGroup: data.studentGroup || '',
-						accountType: data.accountType || 'student',
-						telegramUrl: data.telegramUrl || '',
-						avatarUrl: data.avatarUrl || auth.currentUser.photoURL || ''
-					});
-				}
-			}
-		} catch (err) {
-			console.error("Ошибка загрузки данных:", err);
-			setError("Не удалось загрузить данные профиля");
-		} finally {
-			setLoading(false);
-		}
-	}, []);
-
+	// Инициализация formData при загрузке userData
 	useEffect(() => {
-		fetchUserData();
-	}, [fetchUserData]);
+		if (userData) {
+			setFormData({
+				fullName: userData.fullName || '',
+				phone: userData.phone || '',
+				studentGroup: userData.studentGroup || '',
+				accountType: userData.accountType || 'student',
+				telegramUrl: userData.telegramUrl || '',
+				avatarUrl: userData.avatarUrl || ''
+			});
+		}
+	}, [userData]);
 
 	const validateTelegramUrl = useCallback((url) => {
 		if (!url) return true;
@@ -143,7 +90,6 @@ const Profile = () => {
 			setOpenAvatarDialog(false);
 		} catch (err) {
 			console.error("Ошибка загрузки аватара:", err);
-			setError("Не удалось загрузить аватар");
 		} finally {
 			setUploading(false);
 		}
@@ -152,7 +98,6 @@ const Profile = () => {
 	const handleSaveChanges = useCallback(async () => {
 		if (telegramError || phoneError || groupError) return;
 
-		setLoading(true);
 		try {
 			let formattedTelegramUrl = formData.telegramUrl;
 			if (formData.telegramUrl && !formData.telegramUrl.startsWith('https://t.me/')) {
@@ -165,41 +110,24 @@ const Profile = () => {
 				studentGroup: formData.accountType === 'student' ? normalizeGroupName(formData.studentGroup) : '',
 				accountType: formData.accountType,
 				telegramUrl: formattedTelegramUrl,
-				avatarUrl: formData.avatarUrl,
-				updatedAt: new Date()
+				avatarUrl: formData.avatarUrl
 			};
 
-			await updateDoc(doc(db, 'users', auth.currentUser.uid), updatedData);
-			await updateProfile(auth.currentUser, {
-				displayName: formData.fullName,
-				photoURL: formData.avatarUrl
-			});
-
-			setUserData(prev => ({ ...prev, ...updatedData }));
+			await updateUserData(updatedData);
 			setEditMode(false);
 		} catch (err) {
 			console.error("Ошибка сохранения:", err);
-			setError("Не удалось сохранить изменения");
-		} finally {
-			setLoading(false);
 		}
-	}, [formData, telegramError, phoneError, groupError]);
+	}, [formData, telegramError, phoneError, groupError, updateUserData]);
 
-	const handleLogout = useCallback(async () => {
+	const handleLogoutClick = useCallback(async () => {
 		try {
-			await signOut(auth);
+			await handleLogout();
 			navigate('/');
 		} catch (err) {
 			console.error("Ошибка выхода:", err);
-			setError("Не удалось выйти из аккаунта");
 		}
-	}, [navigate]);
-
-	const getAccountTypeIcon = (type) =>
-		ACCOUNT_TYPES.find(t => t.value === type)?.icon || <Person color="primary" />;
-
-	const getAccountTypeLabel = (type) =>
-		ACCOUNT_TYPES.find(t => t.value === type)?.label || 'Пользователь';
+	}, [handleLogout, navigate]);
 
 	if (loading && !editMode) {
 		return (
@@ -215,6 +143,17 @@ const Profile = () => {
 				<Typography color="error">{error}</Typography>
 				<Button onClick={() => window.location.reload()} sx={{ mt: 2 }}>
 					Обновить страницу
+				</Button>
+			</Box>
+		);
+	}
+
+	if (!userData) {
+		return (
+			<Box sx={{ p: 3, textAlign: 'center' }}>
+				<Typography>Пользователь не авторизован</Typography>
+				<Button onClick={() => navigate('/login')} sx={{ mt: 2 }}>
+					Войти
 				</Button>
 			</Box>
 		);
@@ -320,7 +259,7 @@ const Profile = () => {
 							label="Тип аккаунта"
 							onChange={handleInputChange('accountType')}
 						>
-							{ACCOUNT_TYPES.map((type) => (
+							{Object.values(ACCOUNT_TYPES).map((type) => (
 								<MenuItem key={type.value} value={type.value}>
 									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
 										{type.icon}
@@ -369,7 +308,7 @@ const Profile = () => {
 				<>
 					<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
 						<Avatar
-							src={userData?.avatarUrl || auth.currentUser?.photoURL}
+							src={userData.avatarUrl}
 							sx={{
 								width: 120,
 								height: 120,
@@ -378,15 +317,15 @@ const Profile = () => {
 								bgcolor: 'primary.main'
 							}}
 						>
-							{auth.currentUser?.displayName?.charAt(0) || 'U'}
+							{userData.fullName?.charAt(0) || 'U'}
 						</Avatar>
 						<Typography variant="h5" sx={{ fontWeight: 600 }}>
-							{userData?.fullName || auth.currentUser?.displayName || 'Пользователь'}
+							{userData.fullName || 'Пользователь'}
 						</Typography>
 						<Typography variant="subtitle1" color="primary" sx={{ mt: 1 }}>
 							<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-								{getAccountTypeIcon(userData?.accountType)}
-								{getAccountTypeLabel(userData?.accountType)}
+								{getAccountTypeIcon(userData.accountType)}
+								{getAccountTypeLabel(userData.accountType)}
 							</Box>
 						</Typography>
 					</Box>
@@ -406,7 +345,7 @@ const Profile = () => {
 								</ListItemAvatar>
 								<ListItemText
 									primary="Email"
-									secondary={auth.currentUser?.email}
+									secondary={userData.email}
 								/>
 							</ListItem>
 							<Divider variant="inset" component="li" />
@@ -419,12 +358,12 @@ const Profile = () => {
 								</ListItemAvatar>
 								<ListItemText
 									primary="Телефон"
-									secondary={userData?.phone || 'Не указан'}
+									secondary={userData.phone || 'Не указан'}
 								/>
 							</ListItem>
 							<Divider variant="inset" component="li" />
 
-							{userData?.accountType === 'student' && (
+							{userData.accountType === 'student' && (
 								<>
 									<ListItem>
 										<ListItemAvatar>
@@ -434,7 +373,7 @@ const Profile = () => {
 										</ListItemAvatar>
 										<ListItemText
 											primary="Группа"
-											secondary={userData?.studentGroup || 'Не указана'}
+											secondary={userData.studentGroup || 'Не указана'}
 										/>
 									</ListItem>
 									<Divider variant="inset" component="li" />
@@ -450,7 +389,7 @@ const Profile = () => {
 								<ListItemText
 									primary="Telegram"
 									secondary={
-										userData?.telegramUrl ? (
+										userData.telegramUrl ? (
 											<a
 												href={userData.telegramUrl}
 												target="_blank"
@@ -470,7 +409,7 @@ const Profile = () => {
 						variant="contained"
 						color="error"
 						startIcon={<ExitToApp />}
-						onClick={handleLogout}
+						onClick={handleLogoutClick}
 						sx={{ mt: 'auto' }}
 					>
 						Выйти из аккаунта
