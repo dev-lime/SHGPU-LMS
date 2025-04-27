@@ -6,8 +6,7 @@ import {
     School as StudentIcon,
     SupervisorAccount as TeacherIcon,
     AdminPanelSettings as AdminIcon,
-    SupportAgent as SupportIcon,
-    Person as DefaultIcon
+    SupportAgent as SupportIcon
 } from '@mui/icons-material';
 
 export const ACCOUNT_TYPES = {

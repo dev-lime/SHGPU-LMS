@@ -3,7 +3,12 @@ import { ListItem, Avatar, Typography, Box, CircularProgress } from '@mui/materi
 import useProfile from '@hooks/useProfile';
 
 const ProfileSection = ({ onClick }) => {
-    const { userData, loading } = useProfile();
+    const {
+        userData,
+        loading,
+        getAccountTypeIcon,
+        getAccountTypeLabel
+    } = useProfile();
 
     // Получаем первую букву для аватара
     const getAvatarContent = () => {
@@ -21,15 +26,21 @@ const ProfileSection = ({ onClick }) => {
         return userData.fullName || userData.email?.split('@')[0] || 'Пользователь';
     };
 
+    // Получаем иконку для типа аккаунта
+    const renderAccountTypeIcon = () => {
+        if (!userData?.accountType) return null;
+        const Icon = getAccountTypeIcon(userData.accountType);
+        return React.cloneElement(Icon, {
+            fontSize: 'small',
+            sx: { mr: 0.5 }
+        });
+    };
+
     // Получаем текст роли и группы
     const getRoleText = () => {
         if (!userData) return 'Гостевой режим';
 
-        let role = 'Пользователь';
-        if (userData.accountType === 'student') role = 'Студент';
-        if (userData.accountType === 'teacher') role = 'Преподаватель';
-        if (userData.accountType === 'admin') role = 'Администратор';
-        if (userData.accountType === 'support') role = 'Техподдержка';
+        const role = getAccountTypeLabel(userData.accountType);
 
         if (userData.accountType === 'student' && userData.studentGroup) {
             return `${role}, ${userData.studentGroup}`;
@@ -93,9 +104,12 @@ const ProfileSection = ({ onClick }) => {
             <Typography variant="h6" align="center" noWrap sx={{ maxWidth: '100%' }}>
                 {getDisplayName()}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-                {getRoleText()}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                {renderAccountTypeIcon()}
+                <Typography variant="body2" color="text.secondary">
+                    {getRoleText()}
+                </Typography>
+            </Box>
         </ListItem>
     );
 };
