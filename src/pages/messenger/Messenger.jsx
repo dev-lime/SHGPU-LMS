@@ -17,7 +17,7 @@ import {
 	People,
 	Send
 } from '@mui/icons-material';
-import { db, auth } from '../../firebase';
+import { db, auth } from '@src/firebase';
 import {
 	collection,
 	query,
@@ -348,8 +348,7 @@ const ChatList = ({ chats, onChatClick }) => {
 							px: 1,
 							borderRadius: 1,
 							'&:hover': { backgroundColor: 'action.hover' },
-							'&.Mui-selected': { outline: 'none' },
-							'&:focus': { outline: 'none' },
+							'&.Mui-selected, &:focus': { outline: 'none' },
 							backgroundColor: 'transparent'
 						}}
 					>
@@ -425,8 +424,7 @@ const UserList = ({ users, onUserClick, currentUserId }) => {
 							px: 1,
 							borderRadius: 1,
 							'&:hover': { backgroundColor: 'action.hover' },
-							'&.Mui-selected': { outline: 'none' },
-							'&:focus': { outline: 'none' },
+							'&.Mui-selected, &:focus': { outline: 'none' },
 							backgroundColor: 'transparent',
 							width: '100%',
 							display: 'flex',

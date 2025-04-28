@@ -24,7 +24,7 @@ import {
     DialogTitle
 } from '@mui/material';
 import { Send, ArrowBack, MoreVert, ContentCopy, Delete } from '@mui/icons-material';
-import { db, auth } from '../../firebase';
+import { db, auth } from '@src/firebase';
 import {
     doc,
     getDoc,
