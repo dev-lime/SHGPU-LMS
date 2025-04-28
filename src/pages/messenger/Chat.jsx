@@ -75,31 +75,33 @@ const MessageItem = React.memo(({
                     alignItems: 'flex-end',
                     gap: 1
                 }}>
-                    {/* Аватарка или пустой отступ */}
-                    <Box sx={{
-                        width: 32,
-                        height: 32,
-                        flexShrink: 0,
-                        visibility: !isOwnMessage && !showAvatar ? 'hidden' : 'visible'
-                    }}>
-                        {!isOwnMessage && showAvatar && otherUser && (
-                            <IconButton
-                                onClick={() => console.log("Clicked user:", otherUser.fullName || 'Unknown User')}
-                                sx={{ p: 0 }}
-                            >
-                                <Avatar
-                                    src={otherUser?.avatarUrl || ''}
-                                    sx={{
-                                        width: 32,
-                                        height: 32,
-                                        bgcolor: 'primary.main'
-                                    }}
+                    {/* Аватарка или пустой отступ - только для получателя */}
+                    {!isOwnMessage && (
+                        <Box sx={{
+                            width: 32,
+                            height: 32,
+                            flexShrink: 0,
+                            visibility: !showAvatar ? 'hidden' : 'visible'
+                        }}>
+                            {showAvatar && otherUser && (
+                                <IconButton
+                                    onClick={() => console.log("Clicked user:", otherUser.fullName || 'Unknown User')}
+                                    sx={{ p: 0 }}
                                 >
-                                    {otherUser?.fullName?.charAt?.(0) || ''}
-                                </Avatar>
-                            </IconButton>
-                        )}
-                    </Box>
+                                    <Avatar
+                                        src={otherUser?.avatarUrl || ''}
+                                        sx={{
+                                            width: 32,
+                                            height: 32,
+                                            bgcolor: 'primary.main'
+                                        }}
+                                    >
+                                        {otherUser?.fullName?.charAt?.(0) || ''}
+                                    </Avatar>
+                                </IconButton>
+                            )}
+                        </Box>
+                    )}
 
                     <Box sx={{
                         display: 'flex',
