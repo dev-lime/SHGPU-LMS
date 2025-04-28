@@ -74,18 +74,31 @@ const MessageItem = React.memo(({
                     alignItems: 'flex-end',
                     gap: 1
                 }}>
-                    {!isOwnMessage && showAvatar && otherUser && (
-                        <Avatar
-                            src={otherUser?.avatarUrl || ''}
-                            sx={{
-                                width: 32,
-                                height: 32,
-                                bgcolor: 'primary.main'
-                            }}
-                        >
-                            {otherUser?.fullName?.charAt?.(0) || ''}
-                        </Avatar>
-                    )}
+                    {/* Аватарка или пустой отступ */}
+                    <Box sx={{
+                        width: 32,
+                        height: 32,
+                        flexShrink: 0,
+                        visibility: !isOwnMessage && !showAvatar ? 'hidden' : 'visible'
+                    }}>
+                        {!isOwnMessage && showAvatar && otherUser && (
+                            <IconButton
+                                onClick={() => console.log("Clicked user:", otherUser.fullName || 'Unknown User')}
+                                sx={{ p: 0 }}
+                            >
+                                <Avatar
+                                    src={otherUser?.avatarUrl || ''}
+                                    sx={{
+                                        width: 32,
+                                        height: 32,
+                                        bgcolor: 'primary.main'
+                                    }}
+                                >
+                                    {otherUser?.fullName?.charAt?.(0) || ''}
+                                </Avatar>
+                            </IconButton>
+                        )}
+                    </Box>
 
                     <Box sx={{
                         display: 'flex',
@@ -367,6 +380,12 @@ export default function Chat() {
         setError(null);
     }, []);
 
+    const handleUserClick = useCallback(() => {
+        if (otherUser) {
+            console.log("Clicked user:", otherUser.fullName || 'Unknown User');
+        }
+    }, [otherUser]);
+
     if (loading) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', pt: 4 }}>
@@ -406,25 +425,38 @@ export default function Chat() {
                 }}>
                     <IconButton
                         onClick={() => navigate('/messenger')}
-                        sx={{ mr: 1  }}
+                        sx={{ mr: 1 }}
                     >
                         <ArrowBack color="primary" />
                     </IconButton>
 
                     {otherUser && (
                         <>
-                            <Avatar
-                                src={otherUser.avatarUrl || ''}
+                            <IconButton
+                                onClick={handleUserClick}
+                                sx={{ p: 0, mr: 2 }}
+                            >
+                                <Avatar
+                                    src={otherUser.avatarUrl || ''}
+                                    sx={{
+                                        width: 40,
+                                        height: 40,
+                                        bgcolor: 'primary.main'
+                                    }}
+                                >
+                                    {otherUser.fullName?.charAt?.(0) || ''}
+                                </Avatar>
+                            </IconButton>
+                            <Typography
+                                variant="h6"
+                                onClick={handleUserClick}
                                 sx={{
-                                    width: 40,
-                                    height: 40,
-                                    mr: 2,
-                                    bgcolor: 'primary.main'
+                                    cursor: 'pointer',
+                                    '&:hover': {
+                                        textDecoration: 'underline'
+                                    }
                                 }}
                             >
-                                {otherUser.fullName?.charAt?.(0) || ''}
-                            </Avatar>
-                            <Typography variant="h6">
                                 {otherUser.fullName || 'Unknown User'}
                             </Typography>
                         </>
