@@ -106,7 +106,8 @@ const MessageItem = React.memo(({
                         display: 'flex',
                         flexDirection: isOwnMessage ? 'row-reverse' : 'row',
                         alignItems: 'flex-end',
-                        gap: 1
+                        gap: 1,
+                        position: 'relative'
                     }}>
                         {/* Аватарка или пустой отступ - только для получателя */}
                         {!isOwnMessage && (
@@ -136,42 +137,42 @@ const MessageItem = React.memo(({
                             </Box>
                         )}
 
-                        {/* Кнопки действий */}
-                        {showActions && (
-                            <Box sx={{
-                                position: 'absolute',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                ...(isOwnMessage ? { left: -2 } : { right: -2 }),
-                                display: 'flex',
-                                gap: 0.5,
-                                bgcolor: 'background.paper',
-                                borderRadius: 2,
-                                p: 0.5,
-                                boxShadow: 1,
-                                zIndex: 1
-                            }}>
-                                <Tooltip title="Копировать">
-                                    <IconButton size="small" onClick={handleCopy}>
-                                        <ContentCopy fontSize="small" />
-                                    </IconButton>
-                                </Tooltip>
-                                {isOwnMessage && (
-                                    <Tooltip title="Удалить">
-                                        <IconButton size="small" onClick={handleDeleteClick}>
-                                            <Delete fontSize="small" color="error" />
-                                        </IconButton>
-                                    </Tooltip>
-                                )}
-                            </Box>
-                        )}
-
                         <Box sx={{
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: isOwnMessage ? 'flex-end' : 'flex-start',
-                            minWidth: 0
+                            minWidth: 0,
+                            position: 'relative'
                         }}>
+                            {/* Кнопки действий - теперь внутри контейнера сообщения */}
+                            {showActions && (
+                                <Box sx={{
+                                    position: 'absolute',
+                                    top: '0',
+                                    ...(isOwnMessage ? { left: -40 } : { right: -20 }),
+                                    display: 'flex',
+                                    gap: 0.5,
+                                    bgcolor: 'background.paper',
+                                    borderRadius: 2,
+                                    p: 0.5,
+                                    boxShadow: 1,
+                                    zIndex: 1
+                                }}>
+                                    <Tooltip title="Копировать">
+                                        <IconButton size="small" onClick={handleCopy}>
+                                            <ContentCopy fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                    {isOwnMessage && (
+                                        <Tooltip title="Удалить">
+                                            <IconButton size="small" onClick={handleDeleteClick}>
+                                                <Delete fontSize="small" color="error" />
+                                            </IconButton>
+                                        </Tooltip>
+                                    )}
+                                </Box>
+                            )}
+
                             <Box sx={{
                                 p: 1.5,
                                 borderRadius: 2,
@@ -244,14 +245,8 @@ const MessageItem = React.memo(({
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button
-                        sx={{ '&.Mui-selected, &:focus': { outline: 'none' } }}
-                        onClick={handleDeleteCancel}>
-                        Отмена
-                    </Button>
-                    <Button
-                        sx={{ '&.Mui-selected, &:focus': { outline: 'none' } }}
-                        onClick={handleDeleteConfirm} color="error" autoFocus>
+                    <Button onClick={handleDeleteCancel}>Отмена</Button>
+                    <Button onClick={handleDeleteConfirm} color="error" autoFocus>
                         Удалить
                     </Button>
                 </DialogActions>
@@ -277,8 +272,23 @@ export default function Chat() {
 
     // Фильтрация специальных символов
     const cleanMessageText = (text) => {
-        // Удаляем управляющие символы (кроме переноса строки и табуляции)
-        return text.replace(/[\x00-\x09\x0B-\x1F\x7F]/g, '');
+        // 1. Удаляем ASCII управляющие символы (кроме \n и \t)
+        text = text.replace(/[\x00-\x08\x0B-\x1F\x7F]/g, '');
+
+        // 2. Удаляем опасные управляющие Unicode-символы
+        // (RLO, LRO, LRI, RLI, FSI, PDI и другие невидимые)
+        text = text.replace(/[\u202A-\u202E\u2066-\u2069\u200B-\u200F\uFEFF]/g, '');
+
+        // 3. Удаляем избыток комбинирующих символов (если их слишком много подряд)
+        // Комбинирующие символы в диапазонах \u0300-\u036F (основные)
+        text = text.replace(/([\u0300-\u036F]){5,}/g, '');
+
+        // 4. Ограничение на длину сообщения (например, 4096 символов)
+        if (text.length > 4096) {
+            text = text.substring(0, 4096);
+        }
+
+        return text;
     };
 
     const isValidChatId = useCallback((id) => {
