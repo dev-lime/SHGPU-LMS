@@ -16,7 +16,12 @@ import {
     Snackbar,
     Alert,
     Button,
-    Tooltip
+    Tooltip,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle
 } from '@mui/material';
 import { Send, ArrowBack, MoreVert, ContentCopy, Delete } from '@mui/icons-material';
 import { db, auth } from '../../firebase';
@@ -62,156 +67,196 @@ const MessageItem = React.memo(({
     }, [message.timestamp]);
 
     const [showActions, setShowActions] = useState(false);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
     const handleCopy = () => {
         onCopy(message.text);
     };
 
-    const handleDelete = () => {
+    const handleDeleteClick = () => {
+        setDeleteConfirmOpen(true);
+    };
+
+    const handleDeleteConfirm = () => {
         onDelete(message.id);
+        setDeleteConfirmOpen(false);
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteConfirmOpen(false);
     };
 
     return (
-        <Grow in={true} timeout={isNewMessage ? 500 : 0}>
-            <ListItem
-                sx={{
-                    justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
-                    px: 1,
-                    alignItems: 'flex-start',
-                    pt: 0.5,
-                    pb: 0.5,
-                    position: 'relative'
-                }}
-                onMouseEnter={() => setShowActions(true)}
-                onMouseLeave={() => setShowActions(false)}
-            >
-                <Box sx={{
-                    maxWidth: '70%',
-                    display: 'flex',
-                    flexDirection: isOwnMessage ? 'row-reverse' : 'row',
-                    alignItems: 'flex-end',
-                    gap: 1
-                }}>
-                    {/* Аватарка или пустой отступ - только для получателя */}
-                    {!isOwnMessage && (
-                        <Box sx={{
-                            width: 32,
-                            height: 32,
-                            flexShrink: 0,
-                            visibility: !showAvatar ? 'hidden' : 'visible'
-                        }}>
-                            {showAvatar && otherUser && (
-                                <IconButton
-                                    onClick={() => console.log("Clicked user:", otherUser.fullName || 'Unknown User')}
-                                    sx={{ p: 0 }}
-                                >
-                                    <Avatar
-                                        src={otherUser?.avatarUrl || ''}
-                                        sx={{
-                                            width: 32,
-                                            height: 32,
-                                            bgcolor: 'primary.main'
-                                        }}
+        <>
+            <Grow in={true} timeout={isNewMessage ? 500 : 0}>
+                <ListItem
+                    sx={{
+                        justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
+                        px: 1,
+                        alignItems: 'flex-start',
+                        pt: 0.5,
+                        pb: 0.5,
+                        position: 'relative'
+                    }}
+                    onMouseEnter={() => setShowActions(true)}
+                    onMouseLeave={() => setShowActions(false)}
+                >
+                    <Box sx={{
+                        maxWidth: '70%',
+                        display: 'flex',
+                        flexDirection: isOwnMessage ? 'row-reverse' : 'row',
+                        alignItems: 'flex-end',
+                        gap: 1
+                    }}>
+                        {/* Аватарка или пустой отступ - только для получателя */}
+                        {!isOwnMessage && (
+                            <Box sx={{
+                                width: 32,
+                                height: 32,
+                                flexShrink: 0,
+                                visibility: !showAvatar ? 'hidden' : 'visible'
+                            }}>
+                                {showAvatar && otherUser && (
+                                    <IconButton
+                                        onClick={() => console.log("Clicked user:", otherUser.fullName || 'Unknown User')}
+                                        sx={{ p: 0 }}
                                     >
-                                        {otherUser?.fullName?.charAt?.(0) || ''}
-                                    </Avatar>
-                                </IconButton>
-                            )}
-                        </Box>
-                    )}
+                                        <Avatar
+                                            src={otherUser?.avatarUrl || ''}
+                                            sx={{
+                                                width: 32,
+                                                height: 32,
+                                                bgcolor: 'primary.main'
+                                            }}
+                                        >
+                                            {otherUser?.fullName?.charAt?.(0) || ''}
+                                        </Avatar>
+                                    </IconButton>
+                                )}
+                            </Box>
+                        )}
 
-                    {/* Кнопки действий */}
-                    {showActions && (
-                        <Box sx={{
-                            position: 'absolute',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            ...(isOwnMessage ? { left: -2 } : { right: -2 }),
-                            display: 'flex',
-                            gap: 0.5,
-                            bgcolor: 'background.paper',
-                            borderRadius: 2,
-                            p: 0.5,
-                            boxShadow: 1
-                        }}>
-                            <Tooltip title="Копировать">
-                                <IconButton size="small" onClick={handleCopy}>
-                                    <ContentCopy fontSize="small" />
-                                </IconButton>
-                            </Tooltip>
-                            {isOwnMessage && (
-                                <Tooltip title="Удалить">
-                                    <IconButton size="small" onClick={handleDelete}>
-                                        <Delete fontSize="small" color="error" />
+                        {/* Кнопки действий */}
+                        {showActions && (
+                            <Box sx={{
+                                position: 'absolute',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                ...(isOwnMessage ? { left: -2 } : { right: -2 }),
+                                display: 'flex',
+                                gap: 0.5,
+                                bgcolor: 'background.paper',
+                                borderRadius: 2,
+                                p: 0.5,
+                                boxShadow: 1,
+                                zIndex: 1
+                            }}>
+                                <Tooltip title="Копировать">
+                                    <IconButton size="small" onClick={handleCopy}>
+                                        <ContentCopy fontSize="small" />
                                     </IconButton>
                                 </Tooltip>
+                                {isOwnMessage && (
+                                    <Tooltip title="Удалить">
+                                        <IconButton size="small" onClick={handleDeleteClick}>
+                                            <Delete fontSize="small" color="error" />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+                            </Box>
+                        )}
+
+                        <Box sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: isOwnMessage ? 'flex-end' : 'flex-start',
+                            minWidth: 0
+                        }}>
+                            <Box sx={{
+                                p: 1.5,
+                                borderRadius: 2,
+                                bgcolor: isOwnMessage ? 'primary.main' : 'action.hover',
+                                color: isOwnMessage ? 'primary.contrastText' : 'text.primary',
+                                '& p': {
+                                    margin: 0,
+                                    lineHeight: 1.5,
+                                    wordBreak: 'break-word'
+                                },
+                                '& pre': {
+                                    backgroundColor: 'rgba(0,0,0,0.1)',
+                                    borderRadius: '4px',
+                                    padding: '8px',
+                                    overflowX: 'auto',
+                                    margin: '8px 0',
+                                    maxWidth: '100%'
+                                },
+                                '& code': {
+                                    fontFamily: 'monospace',
+                                    whiteSpace: 'pre-wrap'
+                                },
+                                maxWidth: '100%',
+                                overflow: 'hidden'
+                            }}>
+                                <Suspense fallback={<div>Loading...</div>}>
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        rehypePlugins={[rehypeHighlight]}
+                                        components={{
+                                            p: ({ node, ...props }) => <p {...props} />,
+                                            pre: ({ node, ...props }) => <pre {...props} />,
+                                            code: ({ node, ...props }) => <code {...props} />
+                                        }}
+                                    >
+                                        {message?.text || ''}
+                                    </ReactMarkdown>
+                                </Suspense>
+                            </Box>
+                            {showTime && timeString && (
+                                <Fade in={true} timeout={1000}>
+                                    <Typography
+                                        variant="caption"
+                                        sx={{
+                                            color: 'text.secondary',
+                                            px: 1,
+                                            mt: 0.5
+                                        }}
+                                    >
+                                        {timeString}
+                                    </Typography>
+                                </Fade>
                             )}
                         </Box>
-                    )}
-
-                    <Box sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: isOwnMessage ? 'flex-end' : 'flex-start',
-                        minWidth: 0 // Предотвращает выход за пределы контейнера
-                    }}>
-                        <Box sx={{
-                            p: 1.5,
-                            borderRadius: 2,
-                            bgcolor: isOwnMessage ? 'primary.main' : 'action.hover',
-                            color: isOwnMessage ? 'primary.contrastText' : 'text.primary',
-                            '& p': {
-                                margin: 0,
-                                lineHeight: 1.5,
-                                wordBreak: 'break-word' // Перенос длинных слов
-                            },
-                            '& pre': {
-                                backgroundColor: 'rgba(0,0,0,0.1)',
-                                borderRadius: '4px',
-                                padding: '8px',
-                                overflowX: 'auto',
-                                margin: '8px 0',
-                                maxWidth: '100%' // Ограничивает ширину pre
-                            },
-                            '& code': {
-                                fontFamily: 'monospace',
-                                whiteSpace: 'pre-wrap' // Перенос строк в коде
-                            },
-                            maxWidth: '100%',
-                            overflow: 'hidden'
-                        }}>
-                            <Suspense fallback={<div>Loading...</div>}>
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkGfm]}
-                                    rehypePlugins={[rehypeHighlight]}
-                                    components={{
-                                        p: ({ node, ...props }) => <p {...props} />,
-                                        pre: ({ node, ...props }) => <pre {...props} />,
-                                        code: ({ node, ...props }) => <code {...props} />
-                                    }}
-                                >
-                                    {message?.text || ''}
-                                </ReactMarkdown>
-                            </Suspense>
-                        </Box>
-                        {showTime && timeString && (
-                            <Fade in={true} timeout={1000}>
-                                <Typography
-                                    variant="caption"
-                                    sx={{
-                                        color: 'text.secondary',
-                                        px: 1,
-                                        mt: 0.5
-                                    }}
-                                >
-                                    {timeString}
-                                </Typography>
-                            </Fade>
-                        )}
                     </Box>
-                </Box>
-            </ListItem>
-        </Grow>
+                </ListItem>
+            </Grow>
+
+            {/* Диалог подтверждения удаления */}
+            <Dialog
+                open={deleteConfirmOpen}
+                onClose={handleDeleteCancel}
+                aria-labelledby="alert-dialog-title"
+                aria-describedby="alert-dialog-description"
+            >
+                <DialogTitle id="alert-dialog-title">Удалить сообщение?</DialogTitle>
+                <DialogContent>
+                    <DialogContentText id="alert-dialog-description">
+                        Вы уверены, что хотите удалить это сообщение? Это действие нельзя отменить.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        sx={{ '&.Mui-selected, &:focus': { outline: 'none' } }}
+                        onClick={handleDeleteCancel}>
+                        Отмена
+                    </Button>
+                    <Button
+                        sx={{ '&.Mui-selected, &:focus': { outline: 'none' } }}
+                        onClick={handleDeleteConfirm} color="error" autoFocus>
+                        Удалить
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </>
     );
 });
 
@@ -229,6 +274,12 @@ export default function Chat() {
     const messagesContainerRef = useRef(null);
     const [lastMessageId, setLastMessageId] = useState(null);
     const [initialScrollDone, setInitialScrollDone] = useState(false);
+
+    // Фильтрация специальных символов
+    const cleanMessageText = (text) => {
+        // Удаляем управляющие символы (кроме переноса строки и табуляции)
+        return text.replace(/[\x00-\x09\x0B-\x1F\x7F]/g, '');
+    };
 
     const isValidChatId = useCallback((id) => {
         return id && typeof id === 'string' && id.trim().length > 0;
@@ -416,7 +467,15 @@ export default function Chat() {
 
     const handleDeleteMessage = useCallback(async (messageId) => {
         try {
+            // Проверяем, что сообщение принадлежит текущему пользователю
+            const messageToDelete = messages.find(m => m.id === messageId);
+            if (!messageToDelete || messageToDelete.sender !== auth.currentUser?.uid) {
+                setError('Вы можете удалять только свои сообщения');
+                return;
+            }
+
             await deleteDoc(doc(db, 'chats', chatId, 'messages', messageId));
+
             // Обновляем последнее сообщение в чате, если нужно
             if (messages.length > 0 && messages[messages.length - 1].id === messageId) {
                 const newLastMessage = messages.length > 1 ? messages[messages.length - 2] : null;
@@ -430,23 +489,28 @@ export default function Chat() {
             }
         } catch (error) {
             console.error("Error deleting message:", error);
-            setError(error.message || "Error deleting message");
+            if (error.code === 'permission-denied') {
+                setError('Недостаточно прав для удаления сообщения');
+            } else {
+                setError(error.message || "Ошибка при удалении сообщения");
+            }
         }
     }, [chatId, messages]);
 
     // Optimized message sending
     const handleSendMessage = useCallback(async () => {
-        if (!newMessage.trim() || !chatId || !isValidChatId(chatId)) return;
+        const cleanedMessage = cleanMessageText(newMessage.trim());
+        if (!cleanedMessage || !chatId || !isValidChatId(chatId)) return;
 
         try {
             const messageRef = await addDoc(collection(db, 'chats', chatId, 'messages'), {
-                text: newMessage,
+                text: cleanedMessage,
                 sender: auth.currentUser.uid,
                 timestamp: serverTimestamp()
             });
 
             await updateDoc(doc(db, 'chats', chatId), {
-                'lastMessage.text': newMessage,
+                'lastMessage.text': cleanedMessage,
                 'lastMessage.sender': auth.currentUser.uid,
                 'lastMessage.timestamp': serverTimestamp()
             });
@@ -454,7 +518,7 @@ export default function Chat() {
             setNewMessage('');
         } catch (error) {
             console.error("Error sending message:", error);
-            setError(error.message || "Error sending message");
+            setError(error.message || "Ошибка при отправке сообщения");
         }
     }, [newMessage, chatId, isValidChatId]);
 
@@ -489,7 +553,7 @@ export default function Chat() {
             display: 'flex',
             flexDirection: 'column',
             bgcolor: 'background.default',
-            overflow: 'hidden' // Предотвращает горизонтальный скролл
+            overflow: 'hidden'
         }}>
             <Snackbar
                 open={!!error}
