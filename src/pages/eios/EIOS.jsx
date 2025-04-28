@@ -2,7 +2,6 @@ import React from 'react';
 import {
 	Typography,
 	Button,
-	Container,
 	Paper,
 	Box,
 	useTheme,
@@ -21,14 +20,15 @@ export default function Eios() {
 	};
 
 	return (
-		<Container
-			maxWidth="md"
+		<Box
 			sx={{
-				height: '100%',
-				py: 3,
+				minHeight: '100vh',
+				width: '100%',
 				display: 'flex',
 				alignItems: 'center',
-				justifyContent: 'center'
+				justifyContent: 'center',
+				bgcolor: 'background.default',
+				p: isMobile ? 2 : 3
 			}}
 		>
 			<Fade in timeout={500}>
@@ -149,6 +149,6 @@ export default function Eios() {
 					</Typography>
 				</Paper>
 			</Fade>
-		</Container>
+		</Box>
 	);
 }

@@ -30,6 +30,7 @@ import Profile from '@pages/more/Profile';
 import Support from '@pages/more/Support';
 import IDCard from '@pages/more/IDCard';
 import Chat from '@pages/messenger/Chat';
+import User from '@pages/messenger/User';
 import Auth from "@components/Auth";
 import { createAppTheme } from './theme';
 
@@ -61,7 +62,7 @@ const MainLayout = ({
 				height: '100dvh',
 				display: 'flex',
 				flexDirection: 'column',
-				bgcolor: 'background.default',
+				bgcolor: 'background.default'
 			}}
 		>
 			<Paper
@@ -393,6 +394,19 @@ export default function App() {
 							</MainLayout>
 						}
 					/>
+
+					<Route path="/user/:userId"
+						element={
+							<MainLayout
+								activeTab={activeTab}
+								setActiveTab={setActiveTab}
+								tabs={tabs}
+								hideTabLabels={hideTabLabels}
+								keepCurrentTabLabel={keepCurrentTabLabel}
+							>
+								<User />
+							</MainLayout>
+						} />
 				</Routes>
 			</Router>
 		</ThemeProvider>

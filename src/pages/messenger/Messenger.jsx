@@ -210,7 +210,8 @@ export default function Messenger() {
 	return (
 		<Box
 			sx={{
-				height: '100%',
+				height: '100dvh',
+				bgcolor: 'background.default',
 				display: 'flex',
 				flexDirection: 'column',
 				p: 2
@@ -323,6 +324,13 @@ export default function Messenger() {
 
 // Компонент списка чатов
 const ChatList = ({ chats, onChatClick }) => {
+	const navigate = useNavigate();
+
+	const handleAvatarClick = (userId, e) => {
+		e.stopPropagation();
+		navigate(`/user/${userId}`);
+	};
+
 	if (chats.length === 0) {
 		return (
 			<Box sx={{
@@ -339,59 +347,84 @@ const ChatList = ({ chats, onChatClick }) => {
 
 	return (
 		<List sx={{ flex: 1, overflow: 'auto' }}>
-			{chats.map((chat) => (
-				<React.Fragment key={chat.id}>
-					<ListItem
-						component="button"
-						onClick={() => onChatClick(chat.id)}
-						sx={{
-							px: 1,
-							borderRadius: 1,
-							'&:hover': { backgroundColor: 'action.hover' },
-							'&.Mui-selected, &:focus': { outline: 'none' },
-							backgroundColor: 'transparent'
-						}}
-					>
-						<ListItemAvatar>
-							<Avatar src={chat.participantPhoto} sx={{ bgcolor: 'primary.main' }}>
-								{chat.participantName?.charAt(0)}
-							</Avatar>
-						</ListItemAvatar>
-						<Box sx={{ flex: 1, minWidth: 0 }}>
-							<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+			{chats.map((chat) => {
+				const otherParticipantId = chat.participants.find(id => id !== auth.currentUser?.uid);
+				const isCurrentUserSender = chat.lastMessage?.sender === auth.currentUser?.uid;
+
+				return (
+					<React.Fragment key={chat.id}>
+						<ListItem
+							component="button"
+							onClick={() => onChatClick(chat.id)}
+							sx={{
+								px: 1,
+								borderRadius: 1,
+								'&:hover': { backgroundColor: 'action.hover' },
+								'&.Mui-selected, &:focus': { outline: 'none' },
+								backgroundColor: 'transparent'
+							}}
+						>
+							<ListItemAvatar>
+								<Avatar
+									src={chat.participantPhoto}
+									sx={{
+										bgcolor: 'primary.main',
+										cursor: 'pointer',
+										'&:hover': {
+											transform: 'scale(1.1)',
+											transition: 'transform 0.2s'
+										}
+									}}
+									onClick={(e) => handleAvatarClick(otherParticipantId, e)}
+								>
+									{chat.participantName?.charAt(0)}
+								</Avatar>
+							</ListItemAvatar>
+							<Box sx={{ flex: 1, minWidth: 0 }}>
+								<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+									<Typography
+										noWrap
+										fontWeight="medium"
+										sx={{
+											color: 'text.primary'
+										}}
+									>
+										{chat.participantName}
+									</Typography>
+									{chat.lastMessage?.timestamp && (
+										<Typography variant="caption" color="text.secondary">
+											{formatDate(chat.lastMessage.timestamp)}
+										</Typography>
+									)}
+								</Box>
 								<Typography
 									noWrap
-									fontWeight="medium"
+									variant="body2"
+									color='text.secondary'
 									sx={{
-										color: 'text.primary'
+										fontStyle: isCurrentUserSender ? 'italic' : 'normal'
 									}}
 								>
-									{chat.participantName}
+									{isCurrentUserSender ? 'Вы: ' : ''}
+									{chat.lastMessage?.text}
 								</Typography>
-								{chat.lastMessage?.timestamp && (
-									<Typography variant="caption" color="text.secondary">
-										{formatDate(chat.lastMessage.timestamp)}
-									</Typography>
-								)}
 							</Box>
-							<Typography noWrap variant="body2" color="text.secondary">
-								{chat.lastMessage?.text}
-							</Typography>
-						</Box>
-						{chat.unreadCount > 0 && (
-							<Badge badgeContent={chat.unreadCount} color="primary" />
-						)}
-					</ListItem>
-				</React.Fragment>
-			))}
+							{chat.unreadCount > 0 && (
+								<Badge badgeContent={chat.unreadCount} color="primary" />
+							)}
+						</ListItem>
+					</React.Fragment>
+				);
+			})}
 		</List>
 	);
 };
 
-// UserList
 const UserList = ({ users, onUserClick, currentUserId }) => {
-	const handleUserClick = (userNick) => {
-		console.log(userNick); // Выводим ник пользователя в консоль
+	const navigate = useNavigate();
+
+	const handleUserClick = (userId) => {
+		navigate(`/user/${userId}`);
 	};
 
 	const handleChatButtonClick = (userId, e) => {
@@ -419,7 +452,7 @@ const UserList = ({ users, onUserClick, currentUserId }) => {
 				<React.Fragment key={user.id}>
 					<ListItem
 						component="div"
-						onClick={() => handleUserClick(user.fullName)}
+						onClick={() => handleUserClick(user.id)}
 						sx={{
 							px: 1,
 							borderRadius: 1,

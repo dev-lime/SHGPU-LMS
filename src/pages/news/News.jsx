@@ -113,6 +113,7 @@ export default function News() {
 	return (
 		<Box sx={{
 			height: '100%',
+            bgcolor: 'background.default',
 			display: 'flex',
 			flexDirection: 'column',
 			p: 2

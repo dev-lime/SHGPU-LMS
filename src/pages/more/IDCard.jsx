@@ -22,7 +22,8 @@ export default function IDCard() {
             padding: { xs: 2, sm: 3 },
             display: 'flex',
             flexDirection: 'column',
-            height: '100%'
+            height: '100%',
+            bgcolor: 'background.default'
         }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <IconButton

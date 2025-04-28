@@ -52,7 +52,8 @@ export default function More() {
 			padding: { xs: 2, sm: 3 },
 			display: 'flex',
 			flexDirection: 'column',
-			height: '100%'
+			height: '100dvh',
+            bgcolor: 'background.default'
 		}}>
 			{/* Секция профиля */}
 			<Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>

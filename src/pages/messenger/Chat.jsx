@@ -67,6 +67,8 @@ const MessageItem = React.memo(({
         }
     }, [message.timestamp]);
 
+    const navigate = useNavigate();
+
     const [showActions, setShowActions] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
@@ -119,7 +121,7 @@ const MessageItem = React.memo(({
                             }}>
                                 {showAvatar && otherUser && (
                                     <IconButton
-                                        onClick={() => console.log("Clicked user:", otherUser.fullName || 'Unknown User')}
+                                        onClick={() => navigate(`/user/${otherUser.id}`)}
                                         sx={{ p: 0 }}
                                     >
                                         <Avatar
@@ -545,9 +547,9 @@ export default function Chat() {
 
     const handleUserClick = useCallback(() => {
         if (otherUser) {
-            console.log("Clicked user:", otherUser.fullName || 'Unknown User');
+            navigate(`/user/${otherUser.id}`);
         }
-    }, [otherUser]);
+    }, [otherUser, navigate]);
 
     const handleMenuOpen = (event) => {
         setMenuAnchorEl(event.currentTarget);

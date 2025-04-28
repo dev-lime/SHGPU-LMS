@@ -194,7 +194,8 @@ const Profile = () => {
 			padding: { xs: 2, sm: 3 },
 			display: 'flex',
 			flexDirection: 'column',
-			height: '100%'
+			height: '100%',
+            bgcolor: 'background.default'
 		}}>
 			{/* Заголовок и кнопка назад */}
 			<Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>

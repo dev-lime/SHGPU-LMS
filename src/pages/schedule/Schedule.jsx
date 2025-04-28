@@ -203,7 +203,8 @@ const Schedule = () => {
 			pb: 16,
 			maxWidth: 450,
 			margin: '0 auto',
-			width: '100%'
+			width: '100%',
+            bgcolor: 'background.default'
 		}}>
 			<Typography variant="h5" sx={{ mb: 2 }}>
 				Расписание {studentGroup && `для ${studentGroup}`}
@@ -243,7 +244,7 @@ const Schedule = () => {
 											}}
 										>
 											<TableCell colSpan={3} sx={{ textAlign: 'center', py: 2 }}>
-												<Typography variant="body2" color="text.secondary">
+												<Typography variant="body2" color="theme.palette.tones[1].contrastText">
 													Нет занятий
 												</Typography>
 											</TableCell>
@@ -256,7 +257,7 @@ const Schedule = () => {
 												sx={{
 													bgcolor: isToday && cls.number === currentPair ? 'primary.main' :
 														isToday ? theme.palette.tones[1] : 'inherit',
-													color: isToday && cls.number === currentPair ? 'primary.contrastText' : 'inherit',
+													color: isToday && cls.number === currentPair ? 'theme.palette.tones[1].contrastText' : 'inherit',
 													'&:last-child td': { borderBottom: isToday ? 'none' : 'inherit' }
 												}}
 											>
@@ -275,7 +276,7 @@ const Schedule = () => {
 													</Typography>
 													<Typography
 														variant="body2"
-														color={isToday && cls.number === currentPair ? 'primary.contrastText' : 'text.secondary'}
+														color={isToday && cls.number === currentPair ? 'theme.palette.tones[1].contrastText' : 'text.secondary'}
 														onClick={(e) => handleTeacherClick(cls.teachers, e)}
 														sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
 													>
