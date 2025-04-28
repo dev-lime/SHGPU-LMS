@@ -24,15 +24,14 @@ import {
 	where,
 	getDocs,
 	doc,
-	setDoc,
 	orderBy,
 	limit,
-	getDoc,
-	serverTimestamp
+	getDoc
 } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { useSwipeable } from 'react-swipeable';
 import SearchBar from '@components/SearchBar';
+import { createOrGetChat } from '@services/chatService';
 
 export default function Messenger() {
 	const [searchQuery, setSearchQuery] = useState('');
@@ -163,47 +162,11 @@ export default function Messenger() {
 	// Создание чата
 	const createChat = async (userId) => {
 		try {
-			// Проверка существующего чата
-			const chatsRef = collection(db, 'chats');
-			const q = query(
-				chatsRef,
-				where('participants', 'array-contains', userId)
-			);
-
-			const querySnapshot = await getDocs(q);
-			const existingChat = querySnapshot.docs.find(doc =>
-				doc.data().participants.includes(auth.currentUser?.uid)
-			);
-
-			if (existingChat) {
-				// Если чат существует - переходим к нему
-				navigate(`/chat/${existingChat.id}`);
-				return;
-			}
-
-			// Получаем данные пользователя
-			const userDocRef = doc(db, 'users', userId);
-			const userDoc = await getDoc(userDocRef);
-			const userData = userDoc.exists() ? userDoc.data() : {};
-			const userName = userData.fullName || userData.email || 'Unknown';
-
-			// Создаем новый чат
-			const newChatRef = doc(chatsRef);
-			await setDoc(newChatRef, {
-				participants: [auth.currentUser?.uid, userId],
-				participantNames: userName,
-				createdAt: serverTimestamp(),
-				lastMessage: {
-					text: 'Чат создан',
-					sender: auth.currentUser?.uid,
-					timestamp: serverTimestamp()
-				}
-			});
-
-			// Переходим к новому чату
-			navigate(`/chat/${newChatRef.id}`);
+			const chatId = await createOrGetChat(userId);
+			navigate(`/chat/${chatId}`);
 		} catch (error) {
 			console.error("Error creating chat:", error);
+			alert(error.message || 'Failed to start chat');
 		}
 	};
 

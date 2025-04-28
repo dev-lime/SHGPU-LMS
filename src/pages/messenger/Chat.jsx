@@ -267,8 +267,20 @@ const DeleteConfirmationDialog = ({
                 </DialogContentText>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>{cancelText}</Button>
-                <Button onClick={onConfirm} color="error" autoFocus>
+                <Button
+                    onClick={onClose}
+                    sx={{
+                        '&.Mui-selected, &:focus': { outline: 'none' },
+                    }}>
+                    {cancelText}
+                </Button>
+                <Button
+                    onClick={onConfirm}
+                    color="error"
+                    autoFocus
+                    sx={{
+                        '&.Mui-selected, &:focus': { outline: 'none' },
+                    }}>
                     {confirmText}
                 </Button>
             </DialogActions>

@@ -30,8 +30,12 @@ import {
     SupportAgent as SupportIcon
 } from '@mui/icons-material';
 import { db, auth } from '@src/firebase';
-import { doc, getDoc, collection, query, where, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
+import {
+    doc,
+    getDoc
+} from 'firebase/firestore';
 import { useNavigate, useParams } from 'react-router-dom';
+import { createOrGetChat } from '@services/chatService';
 
 // Конфигурация ролей
 const ROLES = {
@@ -105,45 +109,19 @@ export default function User() {
         navigate(-1);
     };
 
-    const createChat = async () => {
+    const startChat = async () => {
         try {
-            // Проверка существующего чата
-            const chatsRef = collection(db, 'chats');
-            const q = query(
-                chatsRef,
-                where('participants', 'array-contains', userId)
-            );
-
-            const querySnapshot = await getDocs(q);
-            const existingChat = querySnapshot.docs.find(doc =>
-                doc.data().participants.includes(auth.currentUser?.uid)
-            );
-
-            if (existingChat) {
-                navigate(`/chat/${existingChat.id}`);
+            if (!auth.currentUser) {
+                console.log('Пользователь не авторизован, перенаправляем на /login');
+                navigate('/login');
                 return;
             }
-
-            // Создаем новый чат
-            const newChatRef = doc(chatsRef);
-            await setDoc(newChatRef, {
-                participants: [auth.currentUser?.uid, userId],
-                participantNames: {
-                    [auth.currentUser?.uid]: auth.currentUser?.displayName || 'Вы',
-                    [userId]: profile.fullName || profile.email || 'Пользователь'
-                },
-                createdAt: serverTimestamp(),
-                lastMessage: {
-                    text: 'Чат создан',
-                    sender: auth.currentUser?.uid,
-                    timestamp: serverTimestamp()
-                }
-            });
-
-            navigate(`/chat/${newChatRef.id}`);
+            const chatId = await createOrGetChat(userId);
+            const chatPath = `/chat/${chatId}`;
+            navigate(chatPath);
         } catch (error) {
-            console.error("Error creating chat:", error);
-            setError('Не удалось создать чат');
+            setError(error.message || 'Не удалось начать чат');
+            alert(`Ошибка: ${error.message}`);
         }
     };
 
@@ -317,7 +295,7 @@ export default function User() {
                     <Button
                         variant="contained"
                         startIcon={<Send />}
-                        onClick={createChat}
+                        onClick={startChat}
                         sx={{
                             borderRadius: '12px',
                             px: 3,
