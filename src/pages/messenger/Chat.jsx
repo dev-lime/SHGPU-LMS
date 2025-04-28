@@ -15,9 +15,10 @@ import {
     Slide,
     Snackbar,
     Alert,
-    Button
+    Button,
+    Tooltip
 } from '@mui/material';
-import { Send, ArrowBack, MoreVert } from '@mui/icons-material';
+import { Send, ArrowBack, MoreVert, ContentCopy, Delete } from '@mui/icons-material';
 import { db, auth } from '../../firebase';
 import {
     doc,
@@ -28,7 +29,8 @@ import {
     onSnapshot,
     addDoc,
     serverTimestamp,
-    updateDoc
+    updateDoc,
+    deleteDoc
 } from 'firebase/firestore';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
@@ -44,7 +46,9 @@ const MessageItem = React.memo(({
     showAvatar,
     showTime,
     otherUser,
-    isNewMessage
+    isNewMessage,
+    onCopy,
+    onDelete
 }) => {
     const timeString = useMemo(() => {
         try {
@@ -57,6 +61,16 @@ const MessageItem = React.memo(({
         }
     }, [message.timestamp]);
 
+    const [showActions, setShowActions] = useState(false);
+
+    const handleCopy = () => {
+        onCopy(message.text);
+    };
+
+    const handleDelete = () => {
+        onDelete(message.id);
+    };
+
     return (
         <Grow in={true} timeout={isNewMessage ? 500 : 0}>
             <ListItem
@@ -65,8 +79,11 @@ const MessageItem = React.memo(({
                     px: 1,
                     alignItems: 'flex-start',
                     pt: 0.5,
-                    pb: 0.5
+                    pb: 0.5,
+                    position: 'relative'
                 }}
+                onMouseEnter={() => setShowActions(true)}
+                onMouseLeave={() => setShowActions(false)}
             >
                 <Box sx={{
                     maxWidth: '70%',
@@ -103,25 +120,65 @@ const MessageItem = React.memo(({
                         </Box>
                     )}
 
+                    {/* Кнопки действий */}
+                    {showActions && (
+                        <Box sx={{
+                            position: 'absolute',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            ...(isOwnMessage ? { left: -2 } : { right: -2 }),
+                            display: 'flex',
+                            gap: 0.5,
+                            bgcolor: 'background.paper',
+                            borderRadius: 2,
+                            p: 0.5,
+                            boxShadow: 1
+                        }}>
+                            <Tooltip title="Копировать">
+                                <IconButton size="small" onClick={handleCopy}>
+                                    <ContentCopy fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                            {isOwnMessage && (
+                                <Tooltip title="Удалить">
+                                    <IconButton size="small" onClick={handleDelete}>
+                                        <Delete fontSize="small" color="error" />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+                        </Box>
+                    )}
+
                     <Box sx={{
                         display: 'flex',
                         flexDirection: 'column',
-                        alignItems: isOwnMessage ? 'flex-end' : 'flex-start'
+                        alignItems: isOwnMessage ? 'flex-end' : 'flex-start',
+                        minWidth: 0 // Предотвращает выход за пределы контейнера
                     }}>
                         <Box sx={{
                             p: 1.5,
                             borderRadius: 2,
                             bgcolor: isOwnMessage ? 'primary.main' : 'action.hover',
                             color: isOwnMessage ? 'primary.contrastText' : 'text.primary',
-                            '& p': { margin: 0, lineHeight: 1.5 },
+                            '& p': {
+                                margin: 0,
+                                lineHeight: 1.5,
+                                wordBreak: 'break-word' // Перенос длинных слов
+                            },
                             '& pre': {
                                 backgroundColor: 'rgba(0,0,0,0.1)',
                                 borderRadius: '4px',
                                 padding: '8px',
                                 overflowX: 'auto',
-                                margin: '8px 0'
+                                margin: '8px 0',
+                                maxWidth: '100%' // Ограничивает ширину pre
                             },
-                            '& code': { fontFamily: 'monospace' }
+                            '& code': {
+                                fontFamily: 'monospace',
+                                whiteSpace: 'pre-wrap' // Перенос строк в коде
+                            },
+                            maxWidth: '100%',
+                            overflow: 'hidden'
                         }}>
                             <Suspense fallback={<div>Loading...</div>}>
                                 <ReactMarkdown
@@ -348,6 +405,35 @@ export default function Chat() {
         }
     }, []);
 
+    const handleCopyMessage = useCallback((text) => {
+        navigator.clipboard.writeText(text).then(() => {
+            setError('Сообщение скопировано');
+            setTimeout(() => setError(null), 2000);
+        }).catch(err => {
+            setError('Не удалось скопировать сообщение');
+        });
+    }, []);
+
+    const handleDeleteMessage = useCallback(async (messageId) => {
+        try {
+            await deleteDoc(doc(db, 'chats', chatId, 'messages', messageId));
+            // Обновляем последнее сообщение в чате, если нужно
+            if (messages.length > 0 && messages[messages.length - 1].id === messageId) {
+                const newLastMessage = messages.length > 1 ? messages[messages.length - 2] : null;
+                await updateDoc(doc(db, 'chats', chatId), {
+                    'lastMessage': newLastMessage ? {
+                        text: newLastMessage.text,
+                        sender: newLastMessage.sender,
+                        timestamp: newLastMessage.timestamp
+                    } : null
+                });
+            }
+        } catch (error) {
+            console.error("Error deleting message:", error);
+            setError(error.message || "Error deleting message");
+        }
+    }, [chatId, messages]);
+
     // Optimized message sending
     const handleSendMessage = useCallback(async () => {
         if (!newMessage.trim() || !chatId || !isValidChatId(chatId)) return;
@@ -402,7 +488,8 @@ export default function Chat() {
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            bgcolor: 'background.default'
+            bgcolor: 'background.default',
+            overflow: 'hidden' // Предотвращает горизонтальный скролл
         }}>
             <Snackbar
                 open={!!error}
@@ -410,7 +497,7 @@ export default function Chat() {
                 onClose={handleCloseError}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             >
-                <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
+                <Alert onClose={handleCloseError} severity={error === 'Сообщение скопировано' ? 'success' : 'error'} sx={{ width: '100%' }}>
                     {error}
                 </Alert>
             </Snackbar>
@@ -482,7 +569,8 @@ export default function Chat() {
                     p: 1,
                     bgcolor: 'background.default',
                     display: 'flex',
-                    flexDirection: 'column'
+                    flexDirection: 'column',
+                    overflowX: 'hidden'
                 }}
             >
                 <List sx={{ width: '100%' }}>
@@ -524,6 +612,8 @@ export default function Chat() {
                                     showTime={shouldShowTime(index)}
                                     otherUser={otherUser}
                                     isNewMessage={isNewMessage}
+                                    onCopy={handleCopyMessage}
+                                    onDelete={handleDeleteMessage}
                                 />
                             </React.Fragment>
                         );
