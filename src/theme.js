@@ -1,4 +1,5 @@
 import { createTheme } from '@mui/material/styles';
+import { CssBaseline } from '@mui/material';
 
 const materialYouColors = {
 	green: '#4CAF50',
@@ -90,13 +91,37 @@ export const createAppTheme = (colorNameOrHex = 'green', mode = 'light', borderR
 			borderRadius: borderRadius,
 		},
 		components: {
+			MuiCssBaseline: {
+				styleOverrides: {
+					body: {
+						scrollbarColor: '${ tones[60]} ${ tones[90]}',
+						scrollbarWidth: 'thin',
+						'&::-webkit-scrollbar': {
+							width: 8,
+							height: 8,
+						},
+						'&::-webkit-scrollbar-track': {
+							backgroundColor: tones[90],
+							borderRadius: 999,
+						},
+						'&::-webkit-scrollbar-thumb': {
+							backgroundColor: tones[60],
+							borderRadius: 999,
+							border: '2px solid ${ tones[90]}',
+						},
+						'&::-webkit-scrollbar-thumb:hover': {
+							backgroundColor: tones[50],
+						},
+					},
+				},
+			},
 			MuiIconButton: {
-                styleOverrides: {
-                    root: {
-                        '&.Mui-selected, &:focus': { outline: 'none' },
-                    },
-                },
-            },
+				styleOverrides: {
+					root: {
+						'&.Mui-selected, &:focus': { outline: 'none' },
+					},
+				},
+			},
 			MuiListItem: {
 				styleOverrides: {
 					root: {

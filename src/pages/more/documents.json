@@ -1,0 +1,32 @@
+[
+    {
+        "name": "Справка об обучении",
+        "description": "Подтверждает факт обучения в университете",
+        "downloadUrl": "/documents/certificate.pdf"
+    },
+    {
+        "name": "Академическая ведомость",
+        "description": "Содержит информацию об успеваемости и пройденных дисциплинах",
+        "downloadUrl": "/documents/transcript.pdf"
+    },
+    {
+        "name": "Справка о стипендии",
+        "description": "Подтверждает получение стипендии и её размер",
+        "downloadUrl": "/documents/scholarship.pdf"
+    },
+    {
+        "name": "Заявление на материальную помощь",
+        "description": "Необходима подпись в деканате",
+        "downloadUrl": "/documents/financial-assistance-application.pdf"
+    },
+    {
+        "name": "Справка для военкомата",
+        "description": "Документ для предоставления в военный комиссариат",
+        "downloadUrl": "/documents/military-certificate.pdf"
+    },
+    {
+        "name": "Ещё какая-то справка",
+        "description": "Очень важный документ",
+        "downloadUrl": "/documents/busy-doc.pdf"
+    }
+]
