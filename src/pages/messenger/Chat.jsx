@@ -21,7 +21,9 @@ import {
     DialogActions,
     DialogContent,
     DialogContentText,
-    DialogTitle
+    DialogTitle,
+    Menu,
+    MenuItem
 } from '@mui/material';
 import { Send, ArrowBack, MoreVert, ContentCopy, Delete } from '@mui/icons-material';
 import { db, auth } from '@src/firebase';
@@ -39,7 +41,6 @@ import {
 } from 'firebase/firestore';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
-// Lazy load ReactMarkdown but not plugins (they need to be imported normally)
 const ReactMarkdown = lazy(() => import('react-markdown'));
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -67,23 +68,23 @@ const MessageItem = React.memo(({
     }, [message.timestamp]);
 
     const [showActions, setShowActions] = useState(false);
-    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     const handleCopy = () => {
         onCopy(message.text);
     };
 
     const handleDeleteClick = () => {
-        setDeleteConfirmOpen(true);
+        setIsDeleteDialogOpen(true);
     };
 
     const handleDeleteConfirm = () => {
         onDelete(message.id);
-        setDeleteConfirmOpen(false);
+        setIsDeleteDialogOpen(false);
     };
 
     const handleDeleteCancel = () => {
-        setDeleteConfirmOpen(false);
+        setIsDeleteDialogOpen(false);
     };
 
     return (
@@ -109,7 +110,6 @@ const MessageItem = React.memo(({
                         gap: 1,
                         position: 'relative'
                     }}>
-                        {/* Аватарка или пустой отступ - только для получателя */}
                         {!isOwnMessage && (
                             <Box sx={{
                                 width: 32,
@@ -144,7 +144,6 @@ const MessageItem = React.memo(({
                             minWidth: 0,
                             position: 'relative'
                         }}>
-                            {/* Кнопки действий - теперь внутри контейнера сообщения */}
                             {showActions && (
                                 <Box sx={{
                                     position: 'absolute',
@@ -231,29 +230,49 @@ const MessageItem = React.memo(({
                 </ListItem>
             </Grow>
 
-            {/* Диалог подтверждения удаления */}
-            <Dialog
-                open={deleteConfirmOpen}
+            <DeleteConfirmationDialog
+                open={isDeleteDialogOpen}
                 onClose={handleDeleteCancel}
-                aria-labelledby="alert-dialog-title"
-                aria-describedby="alert-dialog-description"
-            >
-                <DialogTitle id="alert-dialog-title">Удалить сообщение?</DialogTitle>
-                <DialogContent>
-                    <DialogContentText id="alert-dialog-description">
-                        Вы уверены, что хотите удалить это сообщение? Это действие нельзя отменить.
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleDeleteCancel}>Отмена</Button>
-                    <Button onClick={handleDeleteConfirm} color="error" autoFocus>
-                        Удалить
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                onConfirm={handleDeleteConfirm}
+                title="Удалить сообщение?"
+                content="Вы уверены, что хотите удалить это сообщение? Это действие нельзя отменить."
+                confirmText="Удалить"
+            />
         </>
     );
 });
+
+const DeleteConfirmationDialog = ({
+    open,
+    onClose,
+    onConfirm,
+    title,
+    content,
+    confirmText = "Удалить",
+    cancelText = "Отмена"
+}) => {
+    return (
+        <Dialog
+            open={open}
+            onClose={onClose}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
+        >
+            <DialogTitle id="alert-dialog-title">{title}</DialogTitle>
+            <DialogContent>
+                <DialogContentText id="alert-dialog-description">
+                    {content}
+                </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={onClose}>{cancelText}</Button>
+                <Button onClick={onConfirm} color="error" autoFocus>
+                    {confirmText}
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
+};
 
 export default function Chat() {
     const { chatId } = useParams();
@@ -269,25 +288,16 @@ export default function Chat() {
     const messagesContainerRef = useRef(null);
     const [lastMessageId, setLastMessageId] = useState(null);
     const [initialScrollDone, setInitialScrollDone] = useState(false);
+    const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+    const [isChatDeleteDialogOpen, setIsChatDeleteDialogOpen] = useState(false);
 
-    // Фильтрация специальных символов
     const cleanMessageText = (text) => {
-        // 1. Удаляем ASCII управляющие символы (кроме \n и \t)
         text = text.replace(/[\x00-\x08\x0B-\x1F\x7F]/g, '');
-
-        // 2. Удаляем опасные управляющие Unicode-символы
-        // (RLO, LRO, LRI, RLI, FSI, PDI и другие невидимые)
         text = text.replace(/[\u202A-\u202E\u2066-\u2069\u200B-\u200F\uFEFF]/g, '');
-
-        // 3. Удаляем избыток комбинирующих символов (если их слишком много подряд)
-        // Комбинирующие символы в диапазонах \u0300-\u036F (основные)
         text = text.replace(/([\u0300-\u036F]){5,}/g, '');
-
-        // 4. Ограничение на длину сообщения (например, 4096 символов)
         if (text.length > 4096) {
             text = text.substring(0, 4096);
         }
-
         return text;
     };
 
@@ -295,7 +305,6 @@ export default function Chat() {
         return id && typeof id === 'string' && id.trim().length > 0;
     }, []);
 
-    // Scroll to bottom function
     const scrollToBottom = useCallback((behavior = 'auto') => {
         const scrollContainer = messagesContainerRef.current;
         if (scrollContainer) {
@@ -306,7 +315,6 @@ export default function Chat() {
         }
     }, []);
 
-    // Memoized chat data loading
     const loadChatData = useCallback(async () => {
         if (!isValidChatId(chatId)) return;
 
@@ -352,7 +360,6 @@ export default function Chat() {
         }
     }, [chatId, isValidChatId]);
 
-    // Load messages with memoized callback
     const loadMessages = useCallback((messagesQuery) => {
         return onSnapshot(messagesQuery,
             (snapshot) => {
@@ -375,7 +382,6 @@ export default function Chat() {
         );
     }, []);
 
-    // Combined data loading effect
     useEffect(() => {
         let unsubscribe = () => { };
         let isMounted = true;
@@ -403,7 +409,6 @@ export default function Chat() {
         };
     }, [chatId, loadChatData, loadMessages, location.pathname, isValidChatId]);
 
-    // Initial scroll to bottom when messages first load
     useEffect(() => {
         if (messages.length > 0 && !initialScrollDone) {
             scrollToBottom();
@@ -411,14 +416,12 @@ export default function Chat() {
         }
     }, [messages, initialScrollDone, scrollToBottom]);
 
-    // Scroll to bottom when new messages arrive
     useEffect(() => {
         if (messages.length > 0) {
             scrollToBottom('smooth');
         }
     }, [messages.length, scrollToBottom]);
 
-    // Memoized message display logic
     const shouldShowAvatar = useCallback((index) => {
         if (!messages[index] || messages[index].sender === auth.currentUser?.uid) return false;
         if (index === messages.length - 1) return true;
@@ -477,7 +480,6 @@ export default function Chat() {
 
     const handleDeleteMessage = useCallback(async (messageId) => {
         try {
-            // Проверяем, что сообщение принадлежит текущему пользователю
             const messageToDelete = messages.find(m => m.id === messageId);
             if (!messageToDelete || messageToDelete.sender !== auth.currentUser?.uid) {
                 setError('Вы можете удалять только свои сообщения');
@@ -486,7 +488,6 @@ export default function Chat() {
 
             await deleteDoc(doc(db, 'chats', chatId, 'messages', messageId));
 
-            // Обновляем последнее сообщение в чате, если нужно
             if (messages.length > 0 && messages[messages.length - 1].id === messageId) {
                 const newLastMessage = messages.length > 1 ? messages[messages.length - 2] : null;
                 await updateDoc(doc(db, 'chats', chatId), {
@@ -507,7 +508,6 @@ export default function Chat() {
         }
     }, [chatId, messages]);
 
-    // Optimized message sending
     const handleSendMessage = useCallback(async () => {
         const cleanedMessage = cleanMessageText(newMessage.trim());
         if (!cleanedMessage || !chatId || !isValidChatId(chatId)) return;
@@ -549,6 +549,24 @@ export default function Chat() {
         }
     }, [otherUser]);
 
+    const handleMenuOpen = (event) => {
+        setMenuAnchorEl(event.currentTarget);
+    };
+
+    const handleMenuClose = () => {
+        setMenuAnchorEl(null);
+    };
+
+    const handleDeleteChat = async () => {
+        try {
+            await deleteDoc(doc(db, 'chats', chatId));
+            navigate('/messenger');
+        } catch (error) {
+            console.error("Error deleting chat:", error);
+            setError(error.message || "Ошибка при удалении чата");
+        }
+    };
+
     if (loading) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', pt: 4 }}>
@@ -576,7 +594,6 @@ export default function Chat() {
                 </Alert>
             </Snackbar>
 
-            {/* Chat header */}
             <Slide direction="down" in={true} mountOnEnter unmountOnExit>
                 <Box sx={{
                     display: 'flex',
@@ -624,17 +641,41 @@ export default function Chat() {
                         )}
                     </Box>
 
-                    {/* Кнопка с тремя точками */}
                     <IconButton
                         aria-label="more options"
+                        aria-controls={Boolean(menuAnchorEl) ? 'chat-menu' : undefined}
+                        aria-haspopup="true"
+                        onClick={handleMenuOpen}
                         sx={{ color: 'text.primary', mr: 1 }}
                     >
                         <MoreVert />
                     </IconButton>
+
+                    <Menu
+                        id="chat-menu"
+                        anchorEl={menuAnchorEl}
+                        open={Boolean(menuAnchorEl)}
+                        onClose={handleMenuClose}
+                    >
+                        <MenuItem onClick={() => {
+                            handleMenuClose();
+                            setIsChatDeleteDialogOpen(true);
+                        }}>
+                            Удалить чат
+                        </MenuItem>
+                    </Menu>
+
+                    <DeleteConfirmationDialog
+                        open={isChatDeleteDialogOpen}
+                        onClose={() => setIsChatDeleteDialogOpen(false)}
+                        onConfirm={handleDeleteChat}
+                        title="Удалить чат?"
+                        content="Вы уверены, что хотите удалить этот чат? Это действие нельзя отменить."
+                        confirmText="Удалить"
+                    />
                 </Box>
             </Slide>
 
-            {/* Messages list */}
             <Box
                 ref={messagesContainerRef}
                 sx={{
@@ -696,7 +737,6 @@ export default function Chat() {
                 </List>
             </Box>
 
-            {/* Message input */}
             <Slide direction="up" in={true} mountOnEnter unmountOnExit>
                 <Box sx={{
                     borderTop: '1px solid',
