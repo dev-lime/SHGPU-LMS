@@ -14,9 +14,10 @@ import {
     Fade,
     Slide,
     Snackbar,
-    Alert
+    Alert,
+    Button
 } from '@mui/material';
-import { Send, ArrowBack } from '@mui/icons-material';
+import { Send, ArrowBack, MoreVert } from '@mui/icons-material';
 import { db, auth } from '../../firebase';
 import {
     doc,
@@ -417,50 +418,56 @@ export default function Chat() {
                 <Box sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    p: 1,
+                    justifyContent: 'space-between',
                     borderBottom: '1px solid',
                     borderColor: 'divider',
                     bgcolor: 'background.paper',
                     flexShrink: 0
                 }}>
-                    <IconButton
-                        onClick={() => navigate('/messenger')}
-                        sx={{ mr: 1 }}
-                    >
-                        <ArrowBack color="primary" />
-                    </IconButton>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <IconButton
+                            onClick={() => navigate('/messenger')}
+                            sx={{ ml: 1, mr: 1 }}
+                        >
+                            <ArrowBack color="primary" />
+                        </IconButton>
 
-                    {otherUser && (
-                        <>
-                            <IconButton
+                        {otherUser && (
+                            <Button
                                 onClick={handleUserClick}
-                                sx={{ p: 0, mr: 2 }}
-                            >
-                                <Avatar
-                                    src={otherUser.avatarUrl || ''}
-                                    sx={{
-                                        width: 40,
-                                        height: 40,
-                                        bgcolor: 'primary.main'
-                                    }}
-                                >
-                                    {otherUser.fullName?.charAt?.(0) || ''}
-                                </Avatar>
-                            </IconButton>
-                            <Typography
-                                variant="h6"
-                                onClick={handleUserClick}
+                                startIcon={
+                                    <Avatar
+                                        src={otherUser.avatarUrl || ''}
+                                        sx={{
+                                            width: 40,
+                                            height: 40,
+                                            bgcolor: 'primary.main'
+                                        }}
+                                    >
+                                        {otherUser.fullName?.charAt?.(0) || ''}
+                                    </Avatar>
+                                }
                                 sx={{
-                                    cursor: 'pointer',
-                                    '&:hover': {
-                                        textDecoration: 'underline'
-                                    }
+                                    textTransform: 'none',
+                                    color: 'text.primary',
+                                    '&:hover': { backgroundColor: 'action.hover' },
+                                    '&.Mui-selected, &:focus': { outline: 'none' }
                                 }}
                             >
-                                {otherUser.fullName || 'Unknown User'}
-                            </Typography>
-                        </>
-                    )}
+                                <Typography variant="h6">
+                                    {otherUser.fullName || 'Unknown User'}
+                                </Typography>
+                            </Button>
+                        )}
+                    </Box>
+
+                    {/* Кнопка с тремя точками */}
+                    <IconButton
+                        aria-label="more options"
+                        sx={{ color: 'text.primary', mr: 1 }}
+                    >
+                        <MoreVert />
+                    </IconButton>
                 </Box>
             </Slide>
 
