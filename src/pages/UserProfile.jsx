@@ -24,6 +24,7 @@ import {
     InputLabel,
     Tabs,
     Tab,
+    Menu,
     useTheme
 } from '@mui/material';
 import {
@@ -38,9 +39,11 @@ import {
     Send,
     Edit,
     ExitToApp,
+    Delete,
     Close as CloseIcon,
     Link as LinkIcon,
-    CloudUpload
+    CloudUpload,
+    MoreVert
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -51,7 +54,9 @@ import {
     getTelegramError,
     getPhoneError,
     getGroupError,
-    normalizeGroupName
+    normalizeGroupName,
+    getImageUrlError,
+    getUserNameError
 } from '@utils/validators';
 
 const UserProfile = () => {
@@ -82,12 +87,24 @@ const UserProfile = () => {
     });
     const [uploading, setUploading] = useState(false);
     const [openAvatarDialog, setOpenAvatarDialog] = useState(false);
-    const [avatarTab, setAvatarTab] = useState(0); // 0 - загрузка файлом, 1 - по ссылке
+    const [avatarTab, setAvatarTab] = useState(0);
     const [avatarUrlInput, setAvatarUrlInput] = useState('');
     const [avatarUrlError, setAvatarUrlError] = useState('');
     const [telegramError, setTelegramError] = useState('');
     const [phoneError, setPhoneError] = useState('');
     const [groupError, setGroupError] = useState('');
+    const [nameError, setNameError] = useState(''); // Добавлено состояние для ошибки имени
+    const [anchorEl, setAnchorEl] = useState(null); // Для меню действий
+
+    const openMenu = Boolean(anchorEl);
+
+    const handleMenuClick = (event) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleMenuClose = () => {
+        setAnchorEl(null);
+    };
 
     // Инициализация formData при загрузке профиля
     useEffect(() => {
@@ -122,7 +139,6 @@ const UserProfile = () => {
 
     const formatTimestamp = (timestamp) => {
         if (!timestamp) return 'Не указана';
-        // Проверяем, является ли timestamp объектом Timestamp из Firestore
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
         return date.toLocaleDateString('ru-RU', {
             day: 'numeric',
@@ -155,19 +171,16 @@ const UserProfile = () => {
         setFormData(prev => ({ ...prev, [field]: e.target.value }));
     }, []);
 
-    const validateImageUrl = (url) => {
-        if (!url) return false;
-        try {
-            new URL(url);
-            return /\.(jpeg|jpg|gif|png|webp)$/i.test(url);
-        } catch {
-            return false;
-        }
-    };
+    const handleNameChange = useCallback((e) => {
+        const value = e.target.value;
+        setFormData(prev => ({ ...prev, fullName: value }));
+        setNameError(getUserNameError(value));
+    }, []);
 
     const handleAvatarUrlSubmit = () => {
-        if (!validateImageUrl(avatarUrlInput)) {
-            setAvatarUrlError('Введите корректную ссылку на изображение (JPEG, JPG, PNG, GIF, WEBP)');
+        const error = getImageUrlError(avatarUrlInput);
+        if (error) {
+            setAvatarUrlError(error);
             return;
         }
 
@@ -180,7 +193,6 @@ const UserProfile = () => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Проверяем размер файла (максимум 5MB)
         if (file.size > 5 * 1024 * 1024) {
             alert('Максимальный размер файла - 5MB');
             return;
@@ -202,7 +214,7 @@ const UserProfile = () => {
     }, []);
 
     const handleSaveChanges = useCallback(async () => {
-        if (telegramError || phoneError || groupError) return;
+        if (telegramError || phoneError || groupError || nameError) return;
 
         try {
             let formattedTelegramUrl = formData.telegramUrl;
@@ -216,7 +228,7 @@ const UserProfile = () => {
                 studentGroup: formData.accountType === 'student' ? normalizeGroupName(formData.studentGroup) : '',
                 accountType: formData.accountType,
                 telegramUrl: formattedTelegramUrl,
-                avatarUrl: formData.avatarUrl
+                avatarUrl: formData.avatarUrl || null
             };
 
             await updateUserData(updatedData);
@@ -224,7 +236,7 @@ const UserProfile = () => {
         } catch (err) {
             console.error("Ошибка сохранения:", err);
         }
-    }, [formData, telegramError, phoneError, groupError, updateUserData]);
+    }, [formData, telegramError, phoneError, groupError, nameError, updateUserData]);
 
     if (loading) {
         return (
@@ -312,20 +324,49 @@ const UserProfile = () => {
                     fontWeight: 600,
                     color: 'text.primary'
                 }}>
-                    {isOwnProfile ? (editMode ? 'Редактирование профиля' : 'Профиль') : 'Публичный профиль'}
+                    {editMode ? 'Редактирование профиля' : 'Профиль'}
                 </Typography>
 
                 {isOwnProfile && !editMode && (
-                    <Button
-                        startIcon={<Edit color="primary" />}
-                        sx={{
-                            color: 'primary.main',
-                            '&.Mui-selected, &:focus': { outline: 'none' }
-                        }}
-                        onClick={() => setEditMode(true)}
-                    >
-                        Редактировать
-                    </Button>
+                    <>
+                        <IconButton
+                            aria-label="more"
+                            aria-controls="profile-menu"
+                            aria-haspopup="true"
+                            onClick={handleMenuClick}
+                            color="inherit"
+                        >
+                            <MoreVert />
+                        </IconButton>
+                        <Menu
+                            id="profile-menu"
+                            anchorEl={anchorEl}
+                            open={openMenu}
+                            onClose={handleMenuClose}
+                            MenuListProps={{
+                                'aria-labelledby': 'profile-menu',
+                            }}
+                        >
+                            <MenuItem onClick={() => {
+                                setEditMode(true);
+                                handleMenuClose();
+                            }}>
+                                <ListItemIcon>
+                                    <Edit fontSize="small" />
+                                </ListItemIcon>
+                                <ListItemText>Редактировать</ListItemText>
+                            </MenuItem>
+                            <MenuItem onClick={() => {
+                                handleLogout();
+                                handleMenuClose();
+                            }}>
+                                <ListItemIcon>
+                                    <ExitToApp fontSize="small" />
+                                </ListItemIcon>
+                                <ListItemText>Выйти</ListItemText>
+                            </MenuItem>
+                        </Menu>
+                    </>
                 )}
             </Paper>
 
@@ -359,7 +400,18 @@ const UserProfile = () => {
                             >
                                 {formData.fullName.charAt(0) || 'U'}
                             </Avatar>
-                            <Typography variant="body2" color="text.secondary">
+                            {formData.avatarUrl && (
+                                <Button
+                                    variant="outlined"
+                                    color="error"
+                                    size="small"
+                                    startIcon={<Delete />}
+                                    onClick={() => setFormData(prev => ({ ...prev, avatarUrl: '' }))}
+                                >
+                                    Удалить аватар
+                                </Button>
+                            )}
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                                 Нажмите на аватар для изменения
                             </Typography>
                         </Box>
@@ -369,7 +421,9 @@ const UserProfile = () => {
                             label="ФИО"
                             margin="normal"
                             value={formData.fullName}
-                            onChange={handleInputChange('fullName')}
+                            onChange={handleNameChange}
+                            error={!!nameError}
+                            helperText={nameError}
                             required
                         />
 
@@ -644,22 +698,6 @@ const UserProfile = () => {
                                 </ListItem>
                             </List>
                         </Paper>
-
-                        {/* Кнопка выхода (только для своего профиля) */}
-                        {isOwnProfile && (
-                            <Button
-                                variant="contained"
-                                color="error"
-                                startIcon={<ExitToApp />}
-                                onClick={handleLogout}
-                                sx={{
-                                    mt: 'auto',
-                                    '&.Mui-selected, &:focus': { outline: 'none' }
-                                }}
-                            >
-                                Выйти из аккаунта
-                            </Button>
-                        )}
                     </>
                 )}
             </Box>
@@ -714,11 +752,12 @@ const UserProfile = () => {
                                     component="span"
                                     disabled={uploading}
                                     startIcon={<CloudUpload />}
+                                    sx={{ mb: 2 }}
                                 >
                                     {uploading ? 'Загрузка...' : 'Выбрать изображение'}
                                 </Button>
                             </label>
-                            <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                            <Typography variant="caption" display="block" sx={{ mb: 2 }}>
                                 Максимальный размер файла: 5MB
                             </Typography>
                         </Box>
