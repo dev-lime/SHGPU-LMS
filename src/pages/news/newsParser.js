@@ -169,7 +169,7 @@ async function main() {
 
     // Сохраняем результаты в JSON файл
     const jsonData = JSON.stringify(allNews, null, 2);
-    writeFileSync('news.json', jsonData, 'utf8');
+    writeFileSync('news-data.json', jsonData, 'utf8');
 
     console.log(`Парсинг завершен. Сохранено ${allNews.length} уникальных новостей.`);
 }

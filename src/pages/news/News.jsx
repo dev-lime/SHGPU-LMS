@@ -7,19 +7,15 @@ import {
 	Typography,
 	IconButton,
 	Divider,
-	CardActionArea,
-	TextField,
-	InputAdornment,
-	useTheme,
-	styled
+	CardActionArea
 } from '@mui/material';
 import {
 	BookmarkBorder,
 	Bookmark,
-	Share,
-	Search
+	Share
 } from '@mui/icons-material';
 import SearchBar from '@components/SearchBar';
+import { styled } from '@mui/system';
 
 const EllipsisTypography = styled(Typography)({
 	display: '-webkit-box',
@@ -36,7 +32,6 @@ export default function News() {
 	const [newsItems, setNewsItems] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-	const theme = useTheme();
 
 	useEffect(() => {
 		try {
@@ -49,6 +44,12 @@ export default function News() {
 				content: item.content || '',
 				category: item.category || 'Без категории'
 			}));
+
+			processedData.sort((a, b) => {
+				const dateA = new Date(a.date.split('.').reverse().join('-'));
+				const dateB = new Date(b.date.split('.').reverse().join('-'));
+				return dateB - dateA;
+			});
 
 			setNewsItems(processedData);
 			setLoading(false);
@@ -144,15 +145,6 @@ export default function News() {
 						sx={{
 							mb: 3,
 							borderRadius: 3,
-							border: theme.palette.mode === 'light' ? '1px solid #e0e0e0' : 'none',
-							boxShadow: theme.palette.mode === 'light' ? '0px 2px 8px rgba(0, 0, 0, 0.1)' : 'none',
-							backgroundColor: 'surface.main',
-							transition: 'background-color 0.2s, box-shadow 0.2s',
-							'&:hover': {
-								backgroundColor: 'surface.hover',
-								boxShadow: theme.palette.mode === 'light' ? '0px 4px 12px rgba(0, 0, 0, 0.15)' : 'none'
-							},
-							overflow: 'hidden',
 						}}
 					>
 						<CardContent sx={{ p: 3 }}>
@@ -161,13 +153,7 @@ export default function News() {
 								onClick={() => handleOpenNews(item.link)}
 								sx={{
 									mb: 1.5,
-									'&.Mui-selected': {
-										outline: 'none'
-									},
-									'&:focus': {
-										outline: 'none'
-									},
-									borderRadius: 0
+									'&.Mui-selected, &:focus': { outline: 'none' }
 								}}
 							>
 								<EllipsisTypography
@@ -190,13 +176,7 @@ export default function News() {
 									onClick={() => handleOpenNews(item.link)}
 									sx={{
 										mb: 2,
-										'&.Mui-selected': {
-											outline: 'none'
-										},
-										'&:focus': {
-											outline: 'none'
-										},
-										borderRadius: 0
+										'&.Mui-selected, &:focus': { outline: 'none' }
 									}}
 								>
 									<img
@@ -220,13 +200,7 @@ export default function News() {
 									onClick={() => handleOpenNews(item.link)}
 									sx={{
 										mb: 2,
-										'&.Mui-selected': {
-											outline: 'none'
-										},
-										'&:focus': {
-											outline: 'none'
-										},
-										borderRadius: 0
+										'&.Mui-selected, &:focus': { outline: 'none' }
 									}}
 								>
 									<EllipsisTypography
@@ -245,7 +219,6 @@ export default function News() {
 
 							<Divider sx={{
 								my: 1.5,
-								backgroundColor: 'divider'
 							}} />
 
 							<Box sx={{
@@ -287,11 +260,6 @@ export default function News() {
 										}}
 										sx={{
 											color: bookmarked.includes(item.id) ? 'primary.main' : 'text.secondary',
-											'&:hover': {
-												backgroundColor: 'transparent',
-												color: 'primary.main'
-											},
-											borderRadius: 0
 										}}
 									>
 										{bookmarked.includes(item.id) ? <Bookmark /> : <BookmarkBorder />}
@@ -304,11 +272,6 @@ export default function News() {
 										}}
 										sx={{
 											color: 'text.secondary',
-											'&:hover': {
-												backgroundColor: 'transparent',
-												color: 'primary.main'
-											},
-											borderRadius: 0
 										}}
 									>
 										<Share />

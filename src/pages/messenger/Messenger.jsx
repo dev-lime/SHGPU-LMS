@@ -33,6 +33,22 @@ import { useSwipeable } from 'react-swipeable';
 import SearchBar from '@components/SearchBar';
 import { createOrGetChat } from '@services/chatService';
 
+const ACCOUNT_TYPES = {
+	student: {
+		label: 'Студент',
+		getDescription: (user) => user.studentGroup ? `Студент, ${user.studentGroup}` : 'Студент'
+	},
+	teacher: {
+		label: 'Преподаватель'
+	},
+	admin: {
+		label: 'Администратор'
+	},
+	support: {
+		label: 'Поддержка'
+	}
+};
+
 export default function Messenger() {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [activeTab, setActiveTab] = useState(0);
@@ -390,8 +406,18 @@ const UserList = ({ users, onUserClick, currentUserId }) => {
 	};
 
 	const handleChatButtonClick = (userId, e) => {
-		e.stopPropagation(); // Останавливаем всплытие события
-		onUserClick(userId); // Создаем/открываем чат
+		e.stopPropagation();
+		onUserClick(userId);
+	};
+
+	const getRoleDescription = (user) => {
+		const accountType = user.accountType || 'student';
+		const typeConfig = ACCOUNT_TYPES[accountType] || { label: accountType };
+
+		if (typeof typeConfig.getDescription === 'function') {
+			return typeConfig.getDescription(user);
+		}
+		return typeConfig.label;
 	};
 
 	if (users.length === 0) {
@@ -439,7 +465,7 @@ const UserList = ({ users, onUserClick, currentUserId }) => {
 									{user.fullName}
 								</Typography>
 								<Typography noWrap variant="body2" color="text.secondary">
-									{user.email}
+									{getRoleDescription(user)}
 								</Typography>
 							</Box>
 						</Box>
