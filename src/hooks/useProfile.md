@@ -1,73 +1,90 @@
 # Документация по хуку `useProfile`
 
 ## Назначение
-Хук `useProfile` предоставляет удобный интерфейс для работы с профилем пользователя, включая загрузку данных, обновление информации и управление состоянием аутентификации.
+Хук `useProfile` предоставляет интерфейс для работы с профилями пользователей, включая:
+- Загрузку данных профиля (собственного и других пользователей)
+- Обновление информации профиля
+- Управление состоянием аутентификации
+- Валидацию и нормализацию данных
 
 ## Импорт
 ```js
 import useProfile from '@hooks/useProfile';
 ```
 
+## Параметры
+Хук принимает необязательный параметр:
+
+| Параметр | Тип    | По умолчанию | Описание                          |
+|----------|--------|--------------|-----------------------------------|
+| `userId` | String | null         | ID пользователя для загрузки профиля. Если не указан, загружается профиль текущего пользователя |
+
 ## Возвращаемые значения
 Хук возвращает объект со следующими свойствами:
 
-| Свойство               | Тип       | Описание                                                                |
-|------------------------|-----------|-------------------------------------------------------------------------|
-| `userData`             | Object    | Данные профиля пользователя (null если не авторизован)                  |
-| `loading`              | Boolean   | Флаг загрузки данных                                                    |
-| `error`                | String    | Текст ошибки (null если нет ошибок)                                     |
-| `updateUserData`       | Function  | Функция для обновления данных профиля                                   |
-| `handleLogout`         | Function  | Функция для выхода из системы                                           |
-| `getAccountTypeIcon`   | Function  | Возвращает иконку для типа аккаунта                                     |
-| `getAccountTypeLabel`  | Function  | Возвращает текстовое описание типа аккаунта                             |
-| `ACCOUNT_TYPES`        | Object    | Константы с доступными типами аккаунтов                                 |
+| Свойство               | Тип       | Описание                                                                 |
+|------------------------|-----------|--------------------------------------------------------------------------|
+| `userData`             | Object    | Данные профиля пользователя (null если не найдены)                       |
+| `loading`              | Boolean   | Флаг загрузки данных                                                     |
+| `error`                | String    | Текст ошибки (null если нет ошибок)                                      |
+| `updateUserData`       | Function  | Функция для обновления данных профиля (только для текущего пользователя) |
+| `handleLogout`         | Function  | Функция для выхода из системы                                            |
+| `getAccountTypeIcon`   | Function  | Возвращает иконку для типа аккаунта                                      |
+| `getAccountTypeLabel`  | Function  | Возвращает текстовое описание типа аккаунта                              |
+| `ACCOUNT_TYPES`        | Object    | Константы с доступными типами аккаунтов                                  |
+| `isOwnProfile`         | Boolean   | Флаг, указывающий принадлежит ли профиль текущему пользователю          |
 
 ## Использование
 
-### Базовый пример
+### Базовый пример (собственный профиль)
 ```jsx
-import useProfile from '@hooks/useProfile';
-
-function UserProfile() {
+function MyProfile() {
   const {
     userData,
     loading,
     error,
-    updateUserData,
-    getAccountTypeIcon,
-    getAccountTypeLabel
+    isOwnProfile
   } = useProfile();
 
-  if (loading) return <div>Загрузка...</div>;
-  if (error) return <div>Ошибка: {error}</div>;
-  if (!userData) return <div>Пользователь не авторизован</div>;
+  if (loading) return <Loader />;
+  if (error) return <Error message={error} />;
 
   return (
     <div>
       <h2>{userData.fullName}</h2>
-      <p>Email: {userData.email}</p>
-      <p>
-        {getAccountTypeIcon(userData.accountType)}
-        {getAccountTypeLabel(userData.accountType)}
-      </p>
+      <p>Тип аккаунта: {userData.accountType} {isOwnProfile ? '(Вы)' : ''}</p>
     </div>
   );
 }
 ```
 
+### Пример с чужим профилем
+```jsx
+function UserProfilePage() {
+  const { userId } = useParams();
+  const {
+    userData,
+    loading,
+    error,
+    isOwnProfile
+  } = useProfile(userId);
+
+  // ... рендеринг профиля
+}
+```
+
 ### Обновление профиля
 ```jsx
-const { updateUserData } = useProfile();
+const { updateUserData, isOwnProfile } = useProfile();
 
-const handleUpdate = async () => {
+const handleSave = async (data) => {
+  if (!isOwnProfile) return;
+  
   try {
-    await updateUserData({
-      fullName: 'Новое имя',
-      avatarUrl: 'https://example.com/avatar.jpg'
-    });
-    alert('Профиль успешно обновлен!');
+    await updateUserData(data);
+    // Данные автоматически обновятся в userData
   } catch (err) {
-    console.error('Ошибка обновления:', err);
+    console.error('Update failed:', err);
   }
 };
 ```
@@ -76,7 +93,9 @@ const handleUpdate = async () => {
 ```jsx
 const { handleLogout } = useProfile();
 
-<button onClick={handleLogout}>Выйти</button>
+<button onClick={handleLogout} disabled={!isOwnProfile}>
+  Выйти
+</button>
 ```
 
 ## Константы типов аккаунтов (`ACCOUNT_TYPES`)
@@ -87,22 +106,71 @@ const { handleLogout } = useProfile();
 - `admin` - Администратор
 - `support` - Техподдержка
 
-Каждый тип содержит:
-- `value` - идентификатор
-- `label` - текстовое описание
-- `icon` - иконка (React-компонент)
+Структура каждого типа:
+```js
+{
+  value: String,    // идентификатор
+  label: String,    // текстовое описание
+  icon: Component,  // иконка (React-компонент)
+}
+```
 
-## Обработка ошибок
-Все функции хука выбрасывают исключения при ошибках, которые можно обработать в компоненте:
+## Методы
+
+### `updateUserData(data)`
+Обновляет данные профиля текущего пользователя.
+
+**Параметры:**
+- `data` - Объект с обновляемыми полями:
+  ```js
+  {
+    fullName: String,
+    phone: String,
+    studentGroup: String,  // только для студентов
+    accountType: String,   // из ACCOUNT_TYPES
+    telegramUrl: String,
+    avatarUrl: String
+  }
+  ```
+
+**Особенности:**
+- Автоматически добавляет метку времени `updatedAt`
+- Синхронизирует данные с Firebase Auth (displayName и photoURL)
+- Доступен только для собственного профиля (`isOwnProfile === true`)
+
+### `handleLogout()`
+Выполняет выход из системы и очищает данные профиля.
+
+### Вспомогательные методы
+- `getAccountTypeIcon(type)` - возвращает иконку для типа аккаунта
+- `getAccountTypeLabel(type)` - возвращает локализованное название типа
+
+## Обработка состояний
+
+### Сценарии загрузки
+```jsx
+const { userData, loading, error } = useProfile(userId);
+
+if (loading) return <CircularProgress />;
+if (error) return <Alert severity="error">{error}</Alert>;
+if (!userData) return <div>Профиль не найден</div>;
+
+// Рендерим данные профиля
+```
+
+### Обработка ошибок
+Все методы хука выбрасывают исключения:
 ```js
 try {
   await updateUserData({ fullName: 'Новое имя' });
 } catch (err) {
-  // Обработка ошибки
+  // err.message содержит описание ошибки
 }
 ```
 
-## Особенности
-- Хук автоматически подписывается на изменения состояния аутентификации
-- При обновлении профиля синхронизируются данные в Firestore и Firebase Auth
-- Поддерживается кеширование данных между сеансами
+## Особенности реализации
+1. **Автоматическая подписка** на изменения аутентификации
+2. **Кеширование данных** - повторные запросы для того же userId выполняются быстрее
+3. **Синхронизация** между Firestore и Firebase Auth
+4. **Оптимизированные рендеры** - минимизация повторных вычислений
+5. **Валидация данных** перед сохранением

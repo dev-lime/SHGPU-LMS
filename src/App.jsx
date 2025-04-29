@@ -26,11 +26,10 @@ import Schedule from "@pages/schedule/Schedule";
 import More from "@pages/more/More";
 import Settings from '@pages/more/Settings';
 import Documents from '@pages/more/Documents';
-import Profile from '@pages/more/Profile';
 import Support from '@pages/more/Support';
 import IDCard from '@pages/more/IDCard';
 import Chat from '@pages/messenger/Chat';
-import User from '@pages/messenger/User';
+import UserProfile from '@pages/UserProfile';
 import Auth from "@components/Auth";
 import { createAppTheme } from './theme';
 
@@ -337,7 +336,7 @@ export default function App() {
 					/>
 
 					<Route
-						path="/profile"
+						path="/user/:userId"
 						element={
 							<MainLayout
 								activeTab={activeTab}
@@ -346,7 +345,7 @@ export default function App() {
 								hideTabLabels={hideTabLabels}
 								keepCurrentTabLabel={keepCurrentTabLabel}
 							>
-								<Profile user={user} />
+								<UserProfile />
 							</MainLayout>
 						}
 					/>
@@ -395,19 +394,6 @@ export default function App() {
 							</MainLayout>
 						}
 					/>
-
-					<Route path="/user/:userId"
-						element={
-							<MainLayout
-								activeTab={activeTab}
-								setActiveTab={setActiveTab}
-								tabs={tabs}
-								hideTabLabels={hideTabLabels}
-								keepCurrentTabLabel={keepCurrentTabLabel}
-							>
-								<User />
-							</MainLayout>
-						} />
 				</Routes>
 			</Router>
 		</ThemeProvider>

@@ -8,6 +8,17 @@ export const getPhoneError = (phoneNumber) => {
     return validatePhone(phoneNumber) ? '' : 'Телефон должен начинаться с +7 или 8 и содержать 11 цифр';
 };
 
+export const validateTelegramUrl = (url) => {
+    if (!url) return true;
+    const telegramRegex = /^(https?:\/\/)?(t\.me\/|@)[a-zA-Z0-9_]{5,32}$/;
+    return telegramRegex.test(url);
+};
+
+export const getTelegramError = (url) => {
+    if (!url) return '';
+    return validateTelegramUrl(url) ? '' : 'Введите корректную ссылку Telegram (например: @username или t.me/username)';
+};
+
 export const validateEmail = (email) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
@@ -29,13 +40,13 @@ export const getPasswordStrength = (password) => {
     let strength = 0;
 
     // Базовый уровень за длину
-    strength += Math.min(Math.floor(password.length / 3), 3); // Макс 3 балла за длину
+    strength += Math.min(Math.floor(password.length / 3), 3);
 
     // Дополнительные баллы за сложность
-    if (/\d/.test(password)) strength += 1;          // +1 за цифры
-    if (/[A-Z]/.test(password)) strength += 1;      // +1 за заглавные
-    if (/[a-z]/.test(password)) strength += 1;      // +1 за строчные
-    if (/[^A-Za-z0-9]/.test(password)) strength += 2; // +2 за спецсимволы
+    if (/\d/.test(password)) strength += 1;             // +1 за цифры
+    if (/[A-Z]/.test(password)) strength += 1;          // +1 за заглавные
+    if (/[a-z]/.test(password)) strength += 1;          // +1 за строчные
+    if (/[^A-Za-z0-9]/.test(password)) strength += 2;   // +2 за спецсимволы
 
     // Нормализуем до шкалы 0-4
     return Math.min(Math.floor(strength / 2), 4);
@@ -55,15 +66,13 @@ export const getPasswordStrengthText = (strength) => {
 export const validateGroup = (groupName) => {
     if (!groupName) return false;
 
-    // Приводим к верхнему регистру для проверки, но сохраняем оригинальный ввод
     const normalizedGroup = groupName.toUpperCase();
-
     const patterns = [
-        /^\d{3}[БМС]$/,           // Очное: 230б, 130м, 150с
-        /^\d{3}[БМС]-[А-Г]$/,     // Подгруппы: 133б-а, 232б-б
-        /^\d-\d{2}[БМС]$/,        // Заочное: 2-11б, 3-25м
-        /^\d-\d{2}[БМС]-[А-Г]$/,  // Заочные подгруппы: 3-15б-а
-        /^\d-\d{2}[БМС]\/\d$/,    // Заочные с разделением: 1-55б/1
+        /^\d{3}[БМС]$/,             // Очное: 230б, 130м, 150с
+        /^\d{3}[БМС]-[А-Г]$/,       // Подгруппы: 133б-а, 232б-б
+        /^\d-\d{2}[БМС]$/,          // Заочное: 2-11б, 3-25м
+        /^\d-\d{2}[БМС]-[А-Г]$/,    // Заочные подгруппы: 3-15б-а
+        /^\d-\d{2}[БМС]\/\d$/,      // Заочные с разделением: 1-55б/1
         /^\d-\d{2}[БМС]-[А-Г]\/\d$/ // Комбинированные: 1-14б-а/1
     ];
 

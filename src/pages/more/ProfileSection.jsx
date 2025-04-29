@@ -1,14 +1,23 @@
 import React from 'react';
 import { ListItem, Avatar, Typography, Box, CircularProgress } from '@mui/material';
 import useProfile from '@hooks/useProfile';
+import { useNavigate } from 'react-router-dom';
 
-const ProfileSection = ({ onClick }) => {
+const ProfileSection = () => {
     const {
         userData,
         loading,
         getAccountTypeIcon,
         getAccountTypeLabel
     } = useProfile();
+
+    const navigate = useNavigate();
+
+    const handleProfileClick = () => {
+        if (userData?.id) {
+            navigate(`/user/${userData.id}`);
+        }
+    };
 
     // Получаем первую букву для аватара
     const getAvatarContent = () => {
@@ -72,7 +81,7 @@ const ProfileSection = ({ onClick }) => {
 
     return (
         <ListItem
-            onClick={onClick}
+            onClick={handleProfileClick}
             sx={{
                 py: 2,
                 px: 2,

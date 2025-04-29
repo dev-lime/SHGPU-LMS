@@ -67,7 +67,7 @@ export default function More() {
 				mb: 3
 			}}>
 				<List disablePadding>
-					<ProfileSection onClick={() => navigate('/profile')} />
+					<ProfileSection />
 				</List>
 			</Paper>
 

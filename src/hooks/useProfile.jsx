@@ -32,33 +32,31 @@ export const ACCOUNT_TYPES = {
     }
 };
 
-const useProfile = () => {
+const useProfile = (userId = null) => {
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     // Получение данных пользователя
-    const fetchUserData = useCallback(async () => {
+    const fetchUserData = useCallback(async (uid) => {
         try {
             setLoading(true);
             setError(null);
 
-            if (auth.currentUser) {
-                const docRef = doc(db, 'users', auth.currentUser.uid);
-                const docSnap = await getDoc(docRef);
+            const docRef = doc(db, 'users', uid);
+            const docSnap = await getDoc(docRef);
 
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    setUserData({
-                        ...data,
-                        // Добавляем email из auth, если его нет в профиле
-                        email: data.email || auth.currentUser.email,
-                        // Добавляем photoURL из auth, если его нет в профиле
-                        avatarUrl: data.avatarUrl || auth.currentUser.photoURL || ''
-                    });
-                } else {
-                    setError("Профиль не найден");
-                }
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                const userProfile = {
+                    id: docSnap.id,
+                    ...data,
+                    email: data.email || (uid === auth.currentUser?.uid ? auth.currentUser.email : ''),
+                    avatarUrl: data.avatarUrl || (uid === auth.currentUser?.uid ? auth.currentUser.photoURL : '')
+                };
+                setUserData(userProfile);
+            } else {
+                setError("Профиль не найден");
             }
         } catch (err) {
             console.error("Ошибка загрузки данных:", err);
@@ -68,41 +66,43 @@ const useProfile = () => {
         }
     }, []);
 
-    // Обновление профиля
+    // Обновление профиля (только для текущего пользователя)
     const updateUserData = useCallback(async (updatedData) => {
         try {
+            if (!auth.currentUser) {
+                throw new Error("Пользователь не авторизован");
+            }
+
             setLoading(true);
             setError(null);
 
-            if (auth.currentUser) {
-                // Форматируем данные перед сохранением
-                const dataToSave = {
-                    ...updatedData,
-                    updatedAt: new Date()
-                };
+            // Форматируем данные перед сохранением
+            const dataToSave = {
+                ...updatedData,
+                updatedAt: new Date()
+            };
 
-                // Обновляем в Firestore
-                await updateDoc(doc(db, 'users', auth.currentUser.uid), dataToSave);
+            // Обновляем в Firestore
+            await updateDoc(doc(db, 'users', auth.currentUser.uid), dataToSave);
 
-                // Обновляем данные аутентификации, если нужно
-                if (updatedData.fullName || updatedData.avatarUrl) {
-                    await updateProfile(auth.currentUser, {
-                        displayName: updatedData.fullName,
-                        photoURL: updatedData.avatarUrl
-                    });
-                }
-
-                // Обновляем локальное состояние
-                setUserData(prev => ({
-                    ...prev,
-                    ...dataToSave,
-                    avatarUrl: updatedData.avatarUrl || prev.avatarUrl
-                }));
+            // Обновляем данные аутентификации, если нужно
+            if (updatedData.fullName || updatedData.avatarUrl) {
+                await updateProfile(auth.currentUser, {
+                    displayName: updatedData.fullName,
+                    photoURL: updatedData.avatarUrl
+                });
             }
+
+            // Обновляем локальное состояние
+            setUserData(prev => ({
+                ...prev,
+                ...dataToSave,
+                avatarUrl: updatedData.avatarUrl || prev.avatarUrl
+            }));
         } catch (err) {
             console.error("Ошибка сохранения:", err);
             setError("Не удалось сохранить изменения");
-            throw err; // Пробрасываем ошибку для обработки в компоненте
+            throw err;
         } finally {
             setLoading(false);
         }
@@ -121,25 +121,32 @@ const useProfile = () => {
 
     // Получение иконки для типа аккаунта
     const getAccountTypeIcon = useCallback((type) => {
-        return ACCOUNT_TYPES[type]?.icon || ACCOUNT_TYPES.default.icon;
+        return ACCOUNT_TYPES[type]?.icon || <Person color="primary" />;
     }, []);
 
     // Получение названия для типа аккаунта
     const getAccountTypeLabel = useCallback((type) => {
-        return ACCOUNT_TYPES[type]?.label || ACCOUNT_TYPES.default.label;
+        return ACCOUNT_TYPES[type]?.label || type;
     }, []);
-    // Подписка на изменения аутентификации
+
+    // Загрузка данных при изменении userId или аутентификации
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((user) => {
-            if (user) {
-                fetchUserData();
+        const loadData = async () => {
+            const targetUserId = userId || auth.currentUser?.uid;
+            if (targetUserId) {
+                await fetchUserData(targetUserId);
             } else {
                 setUserData(null);
+                setLoading(false);
             }
+        };
+
+        const unsubscribe = auth.onAuthStateChanged(() => {
+            loadData();
         });
 
         return unsubscribe;
-    }, [fetchUserData]);
+    }, [userId, fetchUserData]);
 
     return {
         userData,
@@ -149,7 +156,8 @@ const useProfile = () => {
         handleLogout,
         getAccountTypeIcon,
         getAccountTypeLabel,
-        ACCOUNT_TYPES
+        ACCOUNT_TYPES,
+        isOwnProfile: userId ? userId === auth.currentUser?.uid : true
     };
 };
 
