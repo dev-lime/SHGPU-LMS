@@ -23,7 +23,9 @@ import {
     DialogContentText,
     DialogTitle,
     Menu,
-    MenuItem
+    MenuItem,
+    ListItemIcon,
+    ListItemText
 } from '@mui/material';
 import { Send, ArrowBack, MoreVert, ContentCopy, Delete } from '@mui/icons-material';
 import { db, auth } from '@src/firebase';
@@ -674,7 +676,10 @@ export default function Chat() {
                             handleMenuClose();
                             setIsChatDeleteDialogOpen(true);
                         }}>
-                            Удалить чат
+                            <ListItemIcon>
+                                <Delete fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText>Удалить чат</ListItemText>
                         </MenuItem>
                     </Menu>
 

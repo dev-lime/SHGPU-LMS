@@ -18,7 +18,6 @@ import {
     Dialog,
     DialogTitle,
     DialogContent,
-    DialogActions,
     Select,
     MenuItem,
     InputLabel,
@@ -47,7 +46,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '@src/firebase';
+import { auth, storage } from '@src/firebase';
 import useProfile from '@hooks/useProfile';
 import { createOrGetChat } from '@services/chatService';
 import {
@@ -130,9 +129,16 @@ const UserProfile = () => {
                 navigate('/login');
                 return;
             }
+
+            if (!userId || userId === auth.currentUser.uid) {
+                alert('Невозможно начать чат с самим собой');
+                return;
+            }
+
             const chatId = await createOrGetChat(userId);
             navigate(`/chat/${chatId}`);
         } catch (error) {
+            console.error("Ошибка при создании чата:", error);
             alert(`Ошибка: ${error.message}`);
         }
     };

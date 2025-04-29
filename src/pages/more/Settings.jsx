@@ -397,10 +397,10 @@ export default function Settings({
                             <Box component="span" sx={{ fontWeight: 600 }}>SHGPU-LMS</Box>
                         </Typography>
                         <Typography variant="body2" component="div" color="text.secondary">
-                            Учебная платформа Шадринского государственного педагогического университета
+                            Неофициальный клиент Шадринского государственного педагогического университета
                         </Typography>
                         <Typography variant="caption" display="block" color="text.secondary">
-                            Версия 0.2 Demo
+                            Версия 0.3.1 Demo
                         </Typography>
                     </Box>
                 </DialogContent>
