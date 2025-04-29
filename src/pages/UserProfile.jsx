@@ -18,9 +18,12 @@ import {
     Dialog,
     DialogTitle,
     DialogContent,
+    DialogActions,
     Select,
     MenuItem,
     InputLabel,
+    Tabs,
+    Tab,
     useTheme
 } from '@mui/material';
 import {
@@ -35,7 +38,9 @@ import {
     Send,
     Edit,
     ExitToApp,
-    Close as CloseIcon
+    Close as CloseIcon,
+    Link as LinkIcon,
+    CloudUpload
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -77,6 +82,9 @@ const UserProfile = () => {
     });
     const [uploading, setUploading] = useState(false);
     const [openAvatarDialog, setOpenAvatarDialog] = useState(false);
+    const [avatarTab, setAvatarTab] = useState(0); // 0 - загрузка файлом, 1 - по ссылке
+    const [avatarUrlInput, setAvatarUrlInput] = useState('');
+    const [avatarUrlError, setAvatarUrlError] = useState('');
     const [telegramError, setTelegramError] = useState('');
     const [phoneError, setPhoneError] = useState('');
     const [groupError, setGroupError] = useState('');
@@ -114,7 +122,8 @@ const UserProfile = () => {
 
     const formatTimestamp = (timestamp) => {
         if (!timestamp) return 'Не указана';
-        const date = timestamp.toDate();
+        // Проверяем, является ли timestamp объектом Timestamp из Firestore
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
         return date.toLocaleDateString('ru-RU', {
             day: 'numeric',
             month: 'long',
@@ -146,9 +155,36 @@ const UserProfile = () => {
         setFormData(prev => ({ ...prev, [field]: e.target.value }));
     }, []);
 
+    const validateImageUrl = (url) => {
+        if (!url) return false;
+        try {
+            new URL(url);
+            return /\.(jpeg|jpg|gif|png|webp)$/i.test(url);
+        } catch {
+            return false;
+        }
+    };
+
+    const handleAvatarUrlSubmit = () => {
+        if (!validateImageUrl(avatarUrlInput)) {
+            setAvatarUrlError('Введите корректную ссылку на изображение (JPEG, JPG, PNG, GIF, WEBP)');
+            return;
+        }
+
+        setFormData(prev => ({ ...prev, avatarUrl: avatarUrlInput }));
+        setAvatarUrlError('');
+        setOpenAvatarDialog(false);
+    };
+
     const handleFileUpload = useCallback(async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+
+        // Проверяем размер файла (максимум 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Максимальный размер файла - 5MB');
+            return;
+        }
 
         setUploading(true);
         try {
@@ -159,6 +195,7 @@ const UserProfile = () => {
             setOpenAvatarDialog(false);
         } catch (err) {
             console.error("Ошибка загрузки аватара:", err);
+            alert('Не удалось загрузить изображение');
         } finally {
             setUploading(false);
         }
@@ -315,7 +352,10 @@ const UserProfile = () => {
                                     color: 'primary.contrastText',
                                     boxShadow: theme.shadows[2]
                                 }}
-                                onClick={() => setOpenAvatarDialog(true)}
+                                onClick={() => {
+                                    setAvatarUrlInput(formData.avatarUrl || '');
+                                    setOpenAvatarDialog(true);
+                                }}
                             >
                                 {formData.fullName.charAt(0) || 'U'}
                             </Avatar>
@@ -625,7 +665,7 @@ const UserProfile = () => {
             </Box>
 
             {/* Диалог изменения аватара */}
-            <Dialog open={openAvatarDialog} onClose={() => setOpenAvatarDialog(false)}>
+            <Dialog open={openAvatarDialog} onClose={() => setOpenAvatarDialog(false)} fullWidth maxWidth="sm">
                 <DialogTitle>
                     Изменить аватар
                     <IconButton
@@ -641,23 +681,69 @@ const UserProfile = () => {
                         <CloseIcon />
                     </IconButton>
                 </DialogTitle>
-                <DialogContent sx={{ p: 3, textAlign: 'center' }}>
-                    <input
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        id="avatar-upload"
-                        type="file"
-                        onChange={handleFileUpload}
-                    />
-                    <label htmlFor="avatar-upload">
-                        <Button
-                            variant="contained"
-                            component="span"
-                            disabled={uploading}
-                        >
-                            {uploading ? 'Загрузка...' : 'Выбрать изображение'}
-                        </Button>
-                    </label>
+                <DialogContent>
+                    <Tabs value={avatarTab} onChange={(e, newValue) => setAvatarTab(newValue)} sx={{ mb: 2 }}>
+                        <Tab
+                            icon={<CloudUpload />}
+                            label="Загрузить файл"
+                            sx={{
+                                '&.Mui-selected': { outline: 'none' },
+                                '&:focus': { outline: 'none' }
+                            }} />
+                        <Tab
+                            icon={<LinkIcon />}
+                            label="Указать ссылку"
+                            sx={{
+                                '&.Mui-selected': { outline: 'none' },
+                                '&:focus': { outline: 'none' }
+                            }} />
+                    </Tabs>
+
+                    {avatarTab === 0 ? (
+                        <Box sx={{ textAlign: 'center', py: 3 }}>
+                            <input
+                                accept="image/*"
+                                style={{ display: 'none' }}
+                                id="avatar-upload"
+                                type="file"
+                                onChange={handleFileUpload}
+                            />
+                            <label htmlFor="avatar-upload">
+                                <Button
+                                    variant="contained"
+                                    component="span"
+                                    disabled={uploading}
+                                    startIcon={<CloudUpload />}
+                                >
+                                    {uploading ? 'Загрузка...' : 'Выбрать изображение'}
+                                </Button>
+                            </label>
+                            <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                                Максимальный размер файла: 5MB
+                            </Typography>
+                        </Box>
+                    ) : (
+                        <Box sx={{ py: 2 }}>
+                            <TextField
+                                fullWidth
+                                label="Ссылка на изображение"
+                                value={avatarUrlInput}
+                                onChange={(e) => setAvatarUrlInput(e.target.value)}
+                                placeholder="https://example.com/avatar.jpg"
+                                error={!!avatarUrlError}
+                                helperText={avatarUrlError || 'Поддерживаются форматы: JPEG, JPG, PNG, GIF, WEBP'}
+                            />
+                            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                                <Button
+                                    variant="contained"
+                                    onClick={handleAvatarUrlSubmit}
+                                    disabled={!avatarUrlInput}
+                                >
+                                    Применить
+                                </Button>
+                            </Box>
+                        </Box>
+                    )}
                 </DialogContent>
             </Dialog>
         </Box>
