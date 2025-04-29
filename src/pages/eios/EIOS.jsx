@@ -22,12 +22,10 @@ export default function Eios() {
 	return (
 		<Box
 			sx={{
-				minHeight: '100vh',
 				width: '100%',
 				display: 'flex',
 				alignItems: 'center',
 				justifyContent: 'center',
-				bgcolor: 'background.default',
 				p: isMobile ? 2 : 3
 			}}
 		>

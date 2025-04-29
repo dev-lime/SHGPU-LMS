@@ -159,8 +159,7 @@ export default function User() {
             <Box sx={{
                 p: 3,
                 textAlign: 'center',
-                bgcolor: 'background.default',
-                height: '100dvh',
+                height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center'
@@ -202,7 +201,6 @@ export default function User() {
     return (
         <Box sx={{
             height: '100%',
-            bgcolor: 'background.default',
             display: 'flex',
             flexDirection: 'column'
         }}>

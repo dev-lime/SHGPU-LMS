@@ -71,7 +71,8 @@ const MainLayout = ({
 					flex: 1,
 					overflow: 'auto',
 					borderRadius: 0,
-					position: 'relative'
+					position: 'relative',
+					bgcolor: 'background.default'
 				}}
 			>
 				<AnimatePresence mode="wait">

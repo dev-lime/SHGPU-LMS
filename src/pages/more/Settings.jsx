@@ -260,8 +260,7 @@ export default function Settings({
             padding: { xs: 2, sm: 3 },
             display: 'flex',
             flexDirection: 'column',
-            height: '100%',
-            bgcolor: 'background.default'
+            height: '100%'
         }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <IconButton

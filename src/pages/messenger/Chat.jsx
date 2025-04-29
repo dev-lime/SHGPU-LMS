@@ -594,7 +594,6 @@ export default function Chat() {
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            bgcolor: 'background.default',
             overflow: 'hidden'
         }}>
             <Snackbar
@@ -696,7 +695,6 @@ export default function Chat() {
                     flex: 1,
                     overflowY: 'auto',
                     p: 1,
-                    bgcolor: 'background.default',
                     display: 'flex',
                     flexDirection: 'column',
                     overflowX: 'hidden'

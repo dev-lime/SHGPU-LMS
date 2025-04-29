@@ -122,8 +122,7 @@ export default function Auth() {
 			justifyContent: 'center',
 			alignItems: 'center',
 			minHeight: '100vh',
-			p: 2,
-			bgcolor: 'background.default'
+			p: 2
 		}}>
 			<Paper elevation={3} sx={{
 				width: '100%',

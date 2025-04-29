@@ -203,8 +203,7 @@ const Schedule = () => {
 			pb: 16,
 			maxWidth: 450,
 			margin: '0 auto',
-			width: '100%',
-            bgcolor: 'background.default'
+			width: '100%'
 		}}>
 			<Typography variant="h5" sx={{ mb: 2 }}>
 				Расписание {studentGroup && `для ${studentGroup}`}
@@ -257,7 +256,7 @@ const Schedule = () => {
 												sx={{
 													bgcolor: isToday && cls.number === currentPair ? 'primary.main' :
 														isToday ? theme.palette.tones[1] : 'inherit',
-													color: isToday && cls.number === currentPair ? 'theme.palette.tones[1].contrastText' : 'inherit',
+													color: isToday && cls.number === currentPair ? 'primary.contrastText' : 'inherit',
 													'&:last-child td': { borderBottom: isToday ? 'none' : 'inherit' }
 												}}
 											>

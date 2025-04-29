@@ -55,8 +55,7 @@ export default function Documents() {
 
     return (
         <Box sx={{
-            height: '100dvh',
-            bgcolor: 'background.default',
+            height: '100%',
             display: 'flex',
             flexDirection: 'column',
             p: 2

@@ -1,5 +1,4 @@
 import { createTheme } from '@mui/material/styles';
-import { CssBaseline } from '@mui/material';
 
 const materialYouColors = {
 	green: '#4CAF50',
@@ -92,6 +91,13 @@ export const createAppTheme = (colorNameOrHex = 'green', mode = 'light', borderR
 		},
 		components: {
 			MuiIconButton: {
+				styleOverrides: {
+					root: {
+						'&.Mui-selected, &:focus': { outline: 'none' },
+					},
+				},
+			},
+			MuiButton: {
 				styleOverrides: {
 					root: {
 						'&.Mui-selected, &:focus': { outline: 'none' },

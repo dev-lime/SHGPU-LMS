@@ -52,8 +52,7 @@ export default function More() {
 			padding: { xs: 2, sm: 3 },
 			display: 'flex',
 			flexDirection: 'column',
-			height: '100dvh',
-            bgcolor: 'background.default'
+			height: '100%'
 		}}>
 			{/* Секция профиля */}
 			<Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -64,7 +63,6 @@ export default function More() {
 			<Paper elevation={0} sx={{
 				borderRadius: 3,
 				border: '1px solid',
-				overflow: 'hidden',
 				borderColor: 'divider',
 				mb: 3
 			}}>
@@ -82,7 +80,6 @@ export default function More() {
 			<Paper elevation={0} sx={{
 				borderRadius: 3,
 				border: '1px solid',
-				overflow: 'hidden',
 				borderColor: 'divider'
 			}}>
 				<List disablePadding>
