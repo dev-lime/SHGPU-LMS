@@ -1,17 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
 	createUserWithEmailAndPassword,
 	signInWithEmailAndPassword,
 	updateProfile
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { auth, db } from '@src/firebase';
 import {
 	validatePhone,
 	getPhoneError,
 	validateGroup,
-	getGroupError
-} from '../utils/validators';
+	getGroupError,
+	validateEmail,
+	getPasswordError,
+	validateUserName,
+	getUserNameError,
+	getPasswordStrength,
+	getPasswordStrengthText
+} from '@utils/validators';
 import {
 	Box,
 	TextField,
@@ -22,7 +28,8 @@ import {
 	Tab,
 	Alert,
 	Divider,
-	FormHelperText
+	FormHelperText,
+	LinearProgress
 } from '@mui/material';
 import {
 	Email,
@@ -45,6 +52,22 @@ export default function Auth() {
 	const [loading, setLoading] = useState(false);
 	const [phoneError, setPhoneError] = useState('');
 	const [groupError, setGroupError] = useState('');
+	const [nameError, setNameError] = useState('');
+	const [emailError, setEmailError] = useState('');
+	const [passwordError, setPasswordError] = useState('');
+	const [passwordStrength, setPasswordStrength] = useState(0);
+	const [strengthText, setStrengthText] = useState('');
+
+	useEffect(() => {
+		if (password) {
+			const strength = getPasswordStrength(password);
+			setPasswordStrength(strength);
+			setStrengthText(getPasswordStrengthText(strength));
+		} else {
+			setPasswordStrength(0);
+			setStrengthText('');
+		}
+	}, [password]);
 
 	const handlePhoneChange = (e) => {
 		const value = e.target.value;
@@ -56,6 +79,34 @@ export default function Auth() {
 		const value = e.target.value;
 		setStudentGroup(value);
 		setGroupError(getGroupError(value));
+	};
+
+	const handleNameChange = (e) => {
+		const value = e.target.value;
+		setFullName(value);
+		setNameError(getUserNameError(value));
+	};
+
+	const handleEmailChange = (e) => {
+		const value = e.target.value;
+		setEmail(value);
+		setEmailError(validateEmail(value) ? '' : 'Введите корректный email');
+	};
+
+	const handlePasswordChange = (e) => {
+		const value = e.target.value;
+		setPassword(value);
+		setPasswordError(getPasswordError(value));
+	};
+
+	const validateForm = () => {
+		if (activeTab === 0) {
+			return !emailError && !passwordError && email && password;
+		} else {
+			const basicValid = !nameError && !emailError && !passwordError && fullName && email && password;
+			const optionalValid = (!phone || !phoneError) && (!studentGroup || !groupError);
+			return basicValid && optionalValid;
+		}
 	};
 
 	const handleSubmit = async (e) => {
@@ -83,7 +134,7 @@ export default function Auth() {
 					fullName,
 					email,
 					phone,
-					studentGroup: studentGroup ? normalizeGroupName(studentGroup) : '',
+					studentGroup: studentGroup ? studentGroup.toUpperCase() : '',
 					createdAt: new Date(),
 					updatedAt: new Date()
 				});
@@ -166,7 +217,9 @@ export default function Auth() {
 								label="ФИО"
 								margin="normal"
 								value={fullName}
-								onChange={(e) => setFullName(e.target.value)}
+								onChange={handleNameChange}
+								error={!!nameError}
+								helperText={nameError}
 								InputProps={{ startAdornment: <Person sx={{ color: 'action.active', mr: 1 }} /> }}
 								required
 							/>
@@ -202,7 +255,9 @@ export default function Auth() {
 						type="email"
 						margin="normal"
 						value={email}
-						onChange={(e) => setEmail(e.target.value)}
+						onChange={handleEmailChange}
+						error={!!emailError}
+						helperText={emailError}
 						InputProps={{ startAdornment: <Email sx={{ color: 'action.active', mr: 1 }} /> }}
 						required
 					/>
@@ -213,10 +268,32 @@ export default function Auth() {
 						type="password"
 						margin="normal"
 						value={password}
-						onChange={(e) => setPassword(e.target.value)}
+						onChange={handlePasswordChange}
+						error={!!passwordError}
+						helperText={passwordError}
 						InputProps={{ startAdornment: <Lock sx={{ color: 'action.active', mr: 1 }} /> }}
 						required
 					/>
+
+					{activeTab === 1 && password && (
+						<Box sx={{ mt: 1, mb: 2 }}>
+							<LinearProgress
+								variant="determinate"
+								value={(passwordStrength / 4) * 100}
+								sx={{
+									height: 6,
+									borderRadius: 3,
+									backgroundColor: '#e0e0e0',
+									'& .MuiLinearProgress-bar': {
+										backgroundColor: strengthText.color
+									}
+								}}
+							/>
+							<Typography variant="caption" sx={{ color: strengthText.color }}>
+								{strengthText.text}
+							</Typography>
+						</Box>
+					)}
 
 					<Button
 						fullWidth
@@ -232,7 +309,7 @@ export default function Auth() {
 								outline: 'none'
 							}
 						}}
-						disabled={loading || (activeTab === 1 && (phoneError || groupError))}
+						disabled={loading || !validateForm()}
 						startIcon={loading ? null : (activeTab === 0 ? <Login /> : <PersonAdd />)}
 					>
 						{loading ? 'Загрузка...' : activeTab === 0 ? 'Войти' : 'Зарегистрироваться'}
