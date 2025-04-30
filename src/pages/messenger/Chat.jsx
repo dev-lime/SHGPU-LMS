@@ -27,7 +27,7 @@ import {
     ListItemIcon,
     ListItemText
 } from '@mui/material';
-import { Send, ArrowBack, MoreVert, ContentCopy, Delete } from '@mui/icons-material';
+import { Send, ArrowBack, MoreVert, ContentCopy, Delete, Phone } from '@mui/icons-material';
 import { db, auth } from '@src/firebase';
 import {
     doc,
@@ -398,6 +398,23 @@ export default function Chat() {
         );
     }, []);
 
+    const getUserRoleText = (user) => {
+        if (!user?.accountType) return '';
+        if (user.accountType === 'student') {
+            return user.studentGroup ? `Студент, ${user.studentGroup}` : 'Студент';
+        }
+        return {
+            teacher: 'Преподаватель',
+            admin: 'Администратор',
+            support: 'Техподдержка'
+        }[user.accountType] || '';
+    };
+
+    const handleCallClick = () => {
+        console.log('Call to user ID:', otherUser?.id);
+        // Здесь будет логика инициализации звонка
+    };
+
     useEffect(() => {
         let unsubscribe = () => { };
         let isMounted = true;
@@ -645,26 +662,46 @@ export default function Chat() {
                                 sx={{
                                     textTransform: 'none',
                                     color: 'text.primary',
-                                    '&:hover': { backgroundColor: 'action.hover' },
-                                    '&.Mui-selected, &:focus': { outline: 'none' }
+                                    '&:hover': { backgroundColor: 'action.hover' }
                                 }}
                             >
-                                <Typography variant="h6">
-                                    {otherUser.fullName || 'Unknown User'}
-                                </Typography>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                    <Typography variant="h6">
+                                        {otherUser.fullName || 'Пользователь'}
+                                    </Typography>
+                                    {otherUser?.accountType && (
+                                        <Typography
+                                            variant="caption"
+                                            color="text.secondary"
+                                            sx={{ fontSize: '0.75rem', lineHeight: 0.7 }}
+                                        >
+                                            {getUserRoleText(otherUser)}
+                                        </Typography>
+                                    )}
+                                </Box>
                             </Button>
                         )}
                     </Box>
 
-                    <IconButton
-                        aria-label="more options"
-                        aria-controls={Boolean(menuAnchorEl) ? 'chat-menu' : undefined}
-                        aria-haspopup="true"
-                        onClick={handleMenuOpen}
-                        sx={{ color: 'text.primary', mr: 1 }}
-                    >
-                        <MoreVert />
-                    </IconButton>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <IconButton
+                            aria-label="call"
+                            onClick={handleCallClick}
+                            sx={{ color: 'text.primary', mr: 1 }}
+                        >
+                            <Phone />
+                        </IconButton>
+
+                        <IconButton
+                            aria-label="more options"
+                            aria-controls={Boolean(menuAnchorEl) ? 'chat-menu' : undefined}
+                            aria-haspopup="true"
+                            onClick={handleMenuOpen}
+                            sx={{ color: 'text.primary', mr: 1 }}
+                        >
+                            <MoreVert />
+                        </IconButton>
+                    </Box>
 
                     <Menu
                         id="chat-menu"
