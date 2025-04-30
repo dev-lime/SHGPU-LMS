@@ -1,7 +1,7 @@
 {
-  "name": "university-cabinet",
+  "name": "shgpu-lms",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.3.2",
   "type": "module",
   "scripts": {
     "predeploy": "npm run build",

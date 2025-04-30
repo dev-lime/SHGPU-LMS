@@ -36,6 +36,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { HexColorPicker } from 'react-colorful';
+import pkg from '../../../package.json'
 
 export default function Settings({
     themeConfig,
@@ -400,7 +401,7 @@ export default function Settings({
                             Неофициальный клиент Шадринского государственного педагогического университета
                         </Typography>
                         <Typography variant="caption" display="block" color="text.secondary">
-                            Версия 0.3.1 Demo
+                            Версия {pkg.version}
                         </Typography>
                     </Box>
                 </DialogContent>
