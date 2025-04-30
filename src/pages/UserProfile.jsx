@@ -24,7 +24,8 @@ import {
     Tabs,
     Tab,
     Menu,
-    useTheme
+    useTheme,
+    LinearProgress
 } from '@mui/material';
 import {
     ArrowBack,
@@ -42,7 +43,8 @@ import {
     Close as CloseIcon,
     Link as LinkIcon,
     CloudUpload,
-    MoreVert
+    MoreVert,
+    Lock
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -55,8 +57,13 @@ import {
     getGroupError,
     normalizeGroupName,
     getImageUrlError,
-    getUserNameError
+    getUserNameError,
+    validateEmail,
+    getPasswordError,
+    getPasswordStrength,
+    getPasswordStrengthText
 } from '@utils/validators';
+import { reauthenticateWithCredential, EmailAuthProvider, updateEmail, updatePassword } from 'firebase/auth';
 
 const UserProfile = () => {
     const { userId } = useParams();
@@ -82,7 +89,12 @@ const UserProfile = () => {
         studentGroup: '',
         accountType: 'student',
         telegramUrl: '',
-        avatarUrl: ''
+        avatarUrl: '',
+        email: '',
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+        newEmail: ''
     });
     const [uploading, setUploading] = useState(false);
     const [openAvatarDialog, setOpenAvatarDialog] = useState(false);
@@ -92,18 +104,17 @@ const UserProfile = () => {
     const [telegramError, setTelegramError] = useState('');
     const [phoneError, setPhoneError] = useState('');
     const [groupError, setGroupError] = useState('');
-    const [nameError, setNameError] = useState(''); // Добавлено состояние для ошибки имени
-    const [anchorEl, setAnchorEl] = useState(null); // Для меню действий
+    const [nameError, setNameError] = useState('');
+    const [emailError, setEmailError] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [confirmPasswordError, setConfirmPasswordError] = useState('');
+    const [anchorEl, setAnchorEl] = useState(null);
+    const [passwordStrength, setPasswordStrength] = useState(0);
+    const [strengthText, setStrengthText] = useState('');
+    const [openSecurityDialog, setOpenSecurityDialog] = useState(false);
+    const [securityTab, setSecurityTab] = useState(0);
 
     const openMenu = Boolean(anchorEl);
-
-    const handleMenuClick = (event) => {
-        setAnchorEl(event.currentTarget);
-    };
-
-    const handleMenuClose = () => {
-        setAnchorEl(null);
-    };
 
     // Инициализация formData при загрузке профиля
     useEffect(() => {
@@ -114,10 +125,34 @@ const UserProfile = () => {
                 studentGroup: profile.studentGroup || '',
                 accountType: profile.accountType || 'student',
                 telegramUrl: profile.telegramUrl || '',
-                avatarUrl: profile.avatarUrl || ''
+                avatarUrl: profile.avatarUrl || '',
+                email: profile.email || '',
+                currentPassword: '',
+                newPassword: '',
+                confirmPassword: '',
+                newEmail: profile.email || ''
             });
         }
     }, [profile, isOwnProfile]);
+
+    useEffect(() => {
+        if (formData.newPassword) {
+            const strength = getPasswordStrength(formData.newPassword);
+            setPasswordStrength(strength);
+            setStrengthText(getPasswordStrengthText(strength));
+        } else {
+            setPasswordStrength(0);
+            setStrengthText('');
+        }
+    }, [formData.newPassword]);
+
+    const handleMenuClick = (event) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleMenuClose = () => {
+        setAnchorEl(null);
+    };
 
     const handleBackClick = () => {
         navigate(-1);
@@ -183,6 +218,25 @@ const UserProfile = () => {
         setNameError(getUserNameError(value));
     }, []);
 
+    const handleEmailChange = useCallback((e) => {
+        const value = e.target.value;
+        setFormData(prev => ({ ...prev, newEmail: value }));
+        setEmailError(validateEmail(value) ? '' : 'Введите корректный email');
+    }, []);
+
+    const handlePasswordChange = useCallback((field) => (e) => {
+        const value = e.target.value;
+        setFormData(prev => ({ ...prev, [field]: value }));
+
+        if (field === 'newPassword') {
+            setPasswordError(getPasswordError(value));
+        } else if (field === 'confirmPassword') {
+            setConfirmPasswordError(
+                value !== formData.newPassword ? 'Пароли не совпадают' : ''
+            );
+        }
+    }, [formData.newPassword]);
+
     const handleAvatarUrlSubmit = () => {
         const error = getImageUrlError(avatarUrlInput);
         if (error) {
@@ -218,6 +272,62 @@ const UserProfile = () => {
             setUploading(false);
         }
     }, []);
+
+    const updateEmailHandler = async () => {
+        if (!formData.currentPassword) {
+            alert('Введите текущий пароль для подтверждения изменений');
+            return;
+        }
+
+        if (formData.newEmail === formData.email) {
+            alert('Новый email совпадает с текущим');
+            return;
+        }
+
+        try {
+            const user = auth.currentUser;
+            const credential = EmailAuthProvider.credential(user.email, formData.currentPassword);
+
+            // Реаутентификация пользователя
+            await reauthenticateWithCredential(user, credential);
+
+            // Обновление email
+            await updateEmail(user, formData.newEmail);
+
+            // Обновление email в профиле
+            await updateUserData({ email: formData.newEmail });
+
+            alert('Email успешно изменен');
+            setFormData(prev => ({ ...prev, email: formData.newEmail, currentPassword: '' }));
+        } catch (error) {
+            console.error('Ошибка обновления email:', error);
+            alert(`Ошибка: ${error.message}`);
+        }
+    };
+
+    const updatePasswordHandler = async () => {
+        if (!formData.currentPassword) {
+            alert('Введите текущий пароль для подтверждения изменений');
+            return;
+        }
+
+        try {
+            const user = auth.currentUser;
+            const credential = EmailAuthProvider.credential(user.email, formData.currentPassword);
+
+            // Реаутентификация пользователя
+            await reauthenticateWithCredential(user, credential);
+
+            // Обновление пароля
+            await updatePassword(user, formData.newPassword);
+
+            alert('Пароль успешно изменен');
+            setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
+        } catch (error) {
+            console.error('Ошибка обновления пароля:', error);
+            alert(`Ошибка: ${error.message}`);
+        }
+    };
 
     const handleSaveChanges = useCallback(async () => {
         if (telegramError || phoneError || groupError || nameError) return;
@@ -360,7 +470,27 @@ const UserProfile = () => {
                                 <ListItemIcon>
                                     <Edit fontSize="small" />
                                 </ListItemIcon>
-                                <ListItemText>Редактировать</ListItemText>
+                                <ListItemText>Редактировать профиль</ListItemText>
+                            </MenuItem>
+                            <MenuItem onClick={() => {
+                                setOpenSecurityDialog(true);
+                                setSecurityTab(0);
+                                handleMenuClose();
+                            }}>
+                                <ListItemIcon>
+                                    <Email fontSize="small" />
+                                </ListItemIcon>
+                                <ListItemText>Изменить email</ListItemText>
+                            </MenuItem>
+                            <MenuItem onClick={() => {
+                                setOpenSecurityDialog(true);
+                                setSecurityTab(1);
+                                handleMenuClose();
+                            }}>
+                                <ListItemIcon>
+                                    <Lock fontSize="small" />
+                                </ListItemIcon>
+                                <ListItemText>Изменить пароль</ListItemText>
                             </MenuItem>
                             <MenuItem onClick={() => {
                                 handleLogout();
@@ -505,7 +635,7 @@ const UserProfile = () => {
                                 fullWidth
                                 variant="contained"
                                 onClick={handleSaveChanges}
-                                disabled={loading || !!telegramError || !!phoneError || !!groupError}
+                                disabled={loading || !!telegramError || !!phoneError || !!groupError || !!nameError}
                             >
                                 {loading ? <CircularProgress size={24} /> : 'Сохранить'}
                             </Button>
@@ -785,6 +915,188 @@ const UserProfile = () => {
                                     disabled={!avatarUrlInput}
                                 >
                                     Применить
+                                </Button>
+                            </Box>
+                        </Box>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Диалог изменения email и пароля */}
+            <Dialog open={openSecurityDialog} onClose={() => setOpenSecurityDialog(false)} fullWidth maxWidth="sm">
+                <DialogTitle>
+                    Изменить данные безопасности
+                    <IconButton
+                        aria-label="close"
+                        onClick={() => setOpenSecurityDialog(false)}
+                        sx={{
+                            position: 'absolute',
+                            right: 8,
+                            top: 8,
+                            color: (theme) => theme.palette.grey[500],
+                        }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent>
+                    <Tabs
+                        value={securityTab}
+                        onChange={(e, newValue) => setSecurityTab(newValue)}
+                        variant="fullWidth"
+                        sx={{ mb: 2 }}
+                    >
+                        <Tab
+                            label="Изменить email"
+                            icon={<Email />}
+                            sx={{
+                                '&.Mui-selected': { outline: 'none' },
+                                '&:focus': { outline: 'none' }
+                            }}
+                        />
+                        <Tab
+                            label="Изменить пароль"
+                            icon={<Lock />}
+                            sx={{
+                                '&.Mui-selected': { outline: 'none' },
+                                '&:focus': { outline: 'none' }
+                            }}
+                        />
+                    </Tabs>
+
+                    {securityTab === 0 ? (
+                        // Вкладка изменения email
+                        <Box sx={{ py: 2 }}>
+                            <TextField
+                                fullWidth
+                                label="Текущий пароль"
+                                type="password"
+                                margin="normal"
+                                value={formData.currentPassword}
+                                onChange={handlePasswordChange('currentPassword')}
+                                InputProps={{
+                                    startAdornment: <Lock color="primary" />
+                                }}
+                                required
+                            />
+
+                            <TextField
+                                fullWidth
+                                label="Новый email"
+                                margin="normal"
+                                value={formData.newEmail}
+                                onChange={handleEmailChange}
+                                error={!!emailError}
+                                helperText={emailError}
+                                InputProps={{
+                                    startAdornment: <Email color="primary" />
+                                }}
+                            />
+
+                            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                                <Button
+                                    variant="outlined"
+                                    onClick={() => setOpenSecurityDialog(false)}
+                                >
+                                    Отмена
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    onClick={updateEmailHandler}
+                                    disabled={
+                                        !formData.currentPassword ||
+                                        !formData.newEmail ||
+                                        !!emailError ||
+                                        formData.newEmail === formData.email
+                                    }
+                                >
+                                    Сохранить
+                                </Button>
+                            </Box>
+                        </Box>
+                    ) : (
+                        // Вкладка изменения пароля
+                        <Box sx={{ py: 2 }}>
+                            <TextField
+                                fullWidth
+                                label="Текущий пароль"
+                                type="password"
+                                margin="normal"
+                                value={formData.currentPassword}
+                                onChange={handlePasswordChange('currentPassword')}
+                                InputProps={{
+                                    startAdornment: <Lock color="primary" />
+                                }}
+                                required
+                            />
+
+                            <TextField
+                                fullWidth
+                                label="Новый пароль"
+                                type="password"
+                                margin="normal"
+                                value={formData.newPassword}
+                                onChange={handlePasswordChange('newPassword')}
+                                error={!!passwordError}
+                                helperText={passwordError}
+                                InputProps={{
+                                    startAdornment: <Lock color="primary" />
+                                }}
+                            />
+
+                            {formData.newPassword && (
+                                <Box sx={{ mt: 1, mb: 2 }}>
+                                    <LinearProgress
+                                        variant="determinate"
+                                        value={(passwordStrength / 4) * 100}
+                                        sx={{
+                                            height: 6,
+                                            borderRadius: 3,
+                                            backgroundColor: '#e0e0e0',
+                                            '& .MuiLinearProgress-bar': {
+                                                backgroundColor: strengthText.color
+                                            }
+                                        }}
+                                    />
+                                    <Typography variant="caption" sx={{ color: strengthText.color }}>
+                                        {strengthText.text}
+                                    </Typography>
+                                </Box>
+                            )}
+
+                            <TextField
+                                fullWidth
+                                label="Подтвердите новый пароль"
+                                type="password"
+                                margin="normal"
+                                value={formData.confirmPassword}
+                                onChange={handlePasswordChange('confirmPassword')}
+                                error={!!confirmPasswordError}
+                                helperText={confirmPasswordError}
+                                InputProps={{
+                                    startAdornment: <Lock color="primary" />
+                                }}
+                            />
+
+                            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                                <Button
+                                    variant="outlined"
+                                    onClick={() => setOpenSecurityDialog(false)}
+                                >
+                                    Отмена
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    onClick={updatePasswordHandler}
+                                    disabled={
+                                        !formData.currentPassword ||
+                                        !formData.newPassword ||
+                                        !!passwordError ||
+                                        !!confirmPasswordError ||
+                                        formData.newPassword !== formData.confirmPassword
+                                    }
+                                >
+                                    Сохранить
                                 </Button>
                             </Box>
                         </Box>
