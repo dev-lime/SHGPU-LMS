@@ -21,7 +21,8 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import News from "@pages/news/News";
 import Eios from "@pages/eios/EIOS";
-import Messenger from "@pages/messenger/Messenger";
+import ChatsPage from '@pages/messenger/ChatsPage';
+import UsersPage from '@pages/messenger/UsersPage';
 import Schedule from "@pages/schedule/Schedule";
 import More from "@pages/more/More";
 import Settings from '@pages/more/Settings';
@@ -174,6 +175,26 @@ export default function App() {
 		return unsubscribe;
 	}, []);
 
+	useEffect(() => {
+		const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+		const handleSystemThemeChange = (e) => {
+			if (themeConfig.mode === 'system') {
+				const newTheme = e.matches ? 'dark' : 'light';
+				// Обновляем тему только если выбран режим "Как в системе"
+				const theme = createAppTheme(themeConfig.color, 'system', themeConfig.borderRadius);
+				// Здесь можно принудительно обновить тему, если нужно
+			}
+		};
+
+		// Устанавливаем начальный слушатель
+		darkModeMediaQuery.addListener(handleSystemThemeChange);
+
+		return () => {
+			darkModeMediaQuery.removeListener(handleSystemThemeChange);
+		};
+	}, [themeConfig.mode]);
+
 	const handleThemeChange = (newConfig) => {
 		setThemeConfig(newConfig);
 		localStorage.setItem('primaryColor', newConfig.color);
@@ -211,7 +232,7 @@ export default function App() {
 	const tabs = [
 		{ label: "Новости", icon: <Article />, path: "/news", component: <News /> },
 		{ label: "ЭИОС", icon: <School />, path: "/eios", component: <Eios /> },
-		{ label: "Мессенджер", icon: <ChatIcon />, path: "/messenger", component: <Messenger /> },
+		{ label: "Мессенджер", icon: <ChatIcon />, path: "/messenger", component: <ChatsPage /> },
 		{ label: "Расписание", icon: <CalendarMonth />, path: "/schedule", component: <Schedule /> },
 		{ label: "Ещё", icon: <Pending />, path: "/more", component: <More user={user} onLogout={handleLogout} /> }
 	];
@@ -331,6 +352,21 @@ export default function App() {
 										});
 									}}
 								/>
+							</MainLayout>
+						}
+					/>
+
+					<Route
+						path="/users"
+						element={
+							<MainLayout
+								activeTab={activeTab}
+								setActiveTab={setActiveTab}
+								tabs={tabs}
+								hideTabLabels={hideTabLabels}
+								keepCurrentTabLabel={keepCurrentTabLabel}
+							>
+								<UsersPage />
 							</MainLayout>
 						}
 					/>

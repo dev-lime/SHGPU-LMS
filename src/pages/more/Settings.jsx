@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -22,13 +22,16 @@ import {
     TextField,
     Popover,
     InputAdornment,
-    Slider
+    Slider,
+    MenuItem,
+    Select
 } from '@mui/material';
 import {
     ArrowBack,
     Palette,
     Brightness4,
     Brightness7,
+    Computer,
     Info,
     TextFields,
     Colorize,
@@ -54,6 +57,7 @@ export default function Settings({
     const [expandedGroups, setExpendedGroups] = useState({});
     const [colorPickerAnchor, setColorPickerAnchor] = useState(null);
     const [selectedColor, setSelectedColor] = useState('');
+    const [systemTheme, setSystemTheme] = useState(null);
 
     const currentColor = themeConfig?.color || 'green';
     const isCustomColor = /^#([0-9A-F]{3}){1,2}$/i.test(currentColor);
@@ -64,6 +68,24 @@ export default function Settings({
         blue: '#2196F3',
         red: '#F44336'
     };
+
+    useEffect(() => {
+        // Определяем системную тему
+        const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleSystemThemeChange = (e) => {
+            setSystemTheme(e.matches ? 'dark' : 'light');
+        };
+
+        // Устанавливаем начальное значение
+        setSystemTheme(darkModeMediaQuery.matches ? 'dark' : 'light');
+
+        // Добавляем слушатель изменений
+        darkModeMediaQuery.addListener(handleSystemThemeChange);
+
+        return () => {
+            darkModeMediaQuery.removeListener(handleSystemThemeChange);
+        };
+    }, []);
 
     const handleBorderRadiusChange = (event, newValue) => {
         onBorderRadiusChange(newValue);
@@ -111,10 +133,25 @@ export default function Settings({
         onThemeChange({ ...themeConfig, color });
     };
 
-    const handleThemeChange = (event) => {
-        const mode = event.target.checked ? 'dark' : 'light';
-        setDarkMode(event.target.checked);
+    const handleThemeModeChange = (event) => {
+        const mode = event.target.value;
+        setDarkMode(mode === 'dark' || (mode === 'system' && systemTheme === 'dark'));
         onThemeChange({ ...themeConfig, mode });
+    };
+
+    const getThemeIcon = () => {
+        const currentMode = themeConfig?.mode || 'light';
+        if (currentMode === 'system') {
+            return systemTheme === 'dark' ? <Brightness4 color="primary" /> : <Brightness7 color="primary" />;
+        }
+        return currentMode === 'dark' ? <Brightness4 color="primary" /> : <Brightness7 color="primary" />;
+    };
+
+    const getDisplayedTheme = () => {
+        if (themeConfig?.mode === 'system') {
+            return `Как в системе`;
+        }
+        return themeConfig?.mode === 'dark' ? 'Тёмная' : 'Светлая';
     };
 
     const handleTabLabelsChange = (event) => {
@@ -128,6 +165,10 @@ export default function Settings({
 
     const handleAboutOpen = () => setAboutOpen(true);
     const handleAboutClose = () => setAboutOpen(false);
+
+    const handleRepoClick = () => {
+        window.open('https://github.com/dev-lime/SHGPU-LMS', '_blank');
+    };
 
     const settingsItems = [
         {
@@ -189,14 +230,20 @@ export default function Settings({
             ]
         },
         {
-            name: "Тёмная тема",
-            icon: darkMode ? <Brightness4 color="primary" /> : <Brightness7 color="primary" />,
+            name: "Тема",
+            icon: getThemeIcon(),
             action: (
-                <Switch
-                    checked={darkMode}
-                    onChange={handleThemeChange}
-                    color="primary"
-                />
+                <Select
+                    value={themeConfig?.mode || 'light'}
+                    onChange={handleThemeModeChange}
+                    size="small"
+                    sx={{ width: 180 }}
+                    renderValue={(value) => getDisplayedTheme()}
+                >
+                    <MenuItem value="light">Светлая</MenuItem>
+                    <MenuItem value="dark">Тёмная</MenuItem>
+                    <MenuItem value="system">Как в системе</MenuItem>
+                </Select>
             )
         },
         {
@@ -395,10 +442,25 @@ export default function Settings({
                 <DialogContent sx={{ px: 3, py: 1 }}>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <Typography variant="body1" component="div" color="text.primary">
-                            <Box component="span" sx={{ fontWeight: 600 }}>SHGPU-LMS</Box>
+                            <Box component="span" sx={{ fontWeight: 600 }}>{pkg.name}</Box>
                         </Typography>
                         <Typography variant="body2" component="div" color="text.secondary">
                             Неофициальный клиент Шадринского государственного педагогического университета
+                            <br />
+                            <Box
+                                component="span"
+                                onClick={handleRepoClick}
+                                sx={{
+                                    color: 'primary.main',
+                                    textDecoration: 'underline',
+                                    cursor: 'pointer',
+                                    '&:hover': {
+                                        color: 'primary.dark'
+                                    }
+                                }}
+                            >
+                                https://github.com/dev-lime/SHGPU-LMS
+                            </Box>
                         </Typography>
                         <Typography variant="caption" display="block" color="text.secondary">
                             Версия {pkg.version}

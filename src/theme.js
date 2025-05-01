@@ -9,6 +9,13 @@ const materialYouColors = {
 // Список тонов
 const tonalSteps = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100];
 
+const getEffectiveThemeMode = (mode) => {
+	if (mode === 'system') {
+		return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+	}
+	return mode;
+};
+
 // Преобразование hex в HSL
 const hexToHSL = (hex) => {
 	let r = 0, g = 0, b = 0;
@@ -64,6 +71,8 @@ const generateTonalPalette = (hex) => {
 };
 
 export const createAppTheme = (colorNameOrHex = 'green', mode = 'light', borderRadius = 16) => {
+	const effectiveMode = getEffectiveThemeMode(mode);
+
 	const isHex = /^#([0-9A-F]{3}){1,2}$/i.test(colorNameOrHex);
 	const primaryColor = isHex
 		? colorNameOrHex
@@ -73,7 +82,7 @@ export const createAppTheme = (colorNameOrHex = 'green', mode = 'light', borderR
 
 	return createTheme({
 		palette: {
-			mode,
+			mode: effectiveMode,
 			primary: {
 				main: primaryColor,
 			},
@@ -98,6 +107,13 @@ export const createAppTheme = (colorNameOrHex = 'green', mode = 'light', borderR
 				},
 			},
 			MuiButton: {
+				styleOverrides: {
+					root: {
+						'&.Mui-selected, &:focus': { outline: 'none' },
+					},
+				},
+			},
+			MuiFab: {
 				styleOverrides: {
 					root: {
 						'&.Mui-selected, &:focus': { outline: 'none' },

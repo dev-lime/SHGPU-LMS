@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
     TextField,
     InputAdornment,
@@ -12,8 +12,17 @@ const SearchBar = ({
     value,
     onChange,
     width = '100%',
-    sx = {}
+    sx = {},
+    autoFocus = false // Новый необязательный параметр
 }) => {
+    const inputRef = useRef(null);
+
+    useEffect(() => {
+        if (autoFocus && inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [autoFocus]);
+
     const handleClear = () => {
         onChange('');
     };
@@ -27,6 +36,7 @@ const SearchBar = ({
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 fullWidth
+                inputRef={inputRef}
                 sx={{
                     '& .MuiOutlinedInput-root': {
                         borderRadius: '28px',
