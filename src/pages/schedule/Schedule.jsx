@@ -10,10 +10,10 @@ import {
 	TableContainer,
 	Fab,
 	useTheme,
-	Fade,
 	Stack
 } from "@mui/material";
 import { ChevronLeft, ChevronRight, Schedule as ScheduleIcon } from "@mui/icons-material";
+import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { transformScheduleData } from './scheduleTransformer';
 import scheduleData from './schedule-data.json';
 import useProfile from '@hooks/useProfile';
@@ -25,23 +25,23 @@ const Schedule = () => {
 	const theme = useTheme();
 	const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
 	const [currentPair, setCurrentPair] = useState(0);
-	const [fadeIn, setFadeIn] = useState(true);
 	const [initialLoad, setInitialLoad] = useState(true);
 	const tableRef = useRef(null);
 	const currentPairRef = useRef(null);
 	const todayRowRef = useRef(null);
 	const { userData } = useProfile();
 	const studentGroup = userData?.accountType === 'student' ? userData.studentGroup : null;
+	const controls = useAnimation();
 
 	const transformedData = useMemo(() => transformScheduleData(scheduleData), []);
 
 	const pairTimes = [
-		[7, 50, 9, 30],    // 1 пара
-		[9, 30, 11, 10],   // 2 пара
-		[11, 10, 12, 50],  // 3 пара
-		[12, 50, 14, 50],  // 4 пара
-		[14, 50, 16, 30],  // 5 пара
-		[16, 30, 18, 10]   // 6 пара
+		[8, 0, 9, 30],    // 1 пара
+		[9, 40, 11, 10],   // 2 пара
+		[11, 20, 12, 50],  // 3 пара
+		[13, 20, 14, 50],  // 4 пара
+		[15, 0, 16, 30],   // 5 пара
+		[16, 40, 18, 10]   // 6 пара
 	];
 
 	// Обработчик клика по преподавателю
@@ -180,20 +180,155 @@ const Schedule = () => {
 		}
 	};
 
-	const handleWeekChange = (direction) => {
-		setFadeIn(false);
-		setTimeout(() => {
-			setCurrentWeekOffset(prev =>
-				direction === 'left' ? Math.min(prev + 1, 1) : Math.max(prev - 1, -1)
-			);
-			setFadeIn(true);
-		}, 150);
+	const handleWeekChange = async (direction) => {
+		const newOffset = direction === 'left'
+			? Math.min(currentWeekOffset + 1, 1)
+			: Math.max(currentWeekOffset - 1, -1);
+
+		if (newOffset === currentWeekOffset) return;
+
+		// Анимация смахивания
+		await controls.start({
+			x: direction === 'left' ? -100 : 100,
+			opacity: 0,
+			transition: { duration: 0.2 }
+		});
+
+		setCurrentWeekOffset(newOffset);
+
+		controls.set({
+			x: direction === 'left' ? 100 : -100,
+			opacity: 0
+		});
+
+		controls.start({
+			x: 0,
+			opacity: 1,
+			transition: { duration: 0.3 }
+		});
+	};
+
+	const handleDragEnd = async (event, info) => {
+		const offset = info.offset.x;
+		const velocity = info.velocity.x;
+
+		if (offset > 100 || velocity > 800) {
+			// Свайп вправо - предыдущая неделя
+			await handleWeekChange('right');
+		} else if (offset < -100 || velocity < -800) {
+			// Свайп влево - следующая неделя
+			await handleWeekChange('left');
+		}
 	};
 
 	const getWeekLabel = () => {
 		if (currentWeekOffset === 0) return 'Текущая неделя';
 		return currentWeekOffset > 0 ? 'Следующая неделя' : 'Прошлая неделя';
 	};
+
+	const renderWeekSchedule = () => (
+		<motion.div
+			key={currentWeekOffset}
+			initial={{ x: 0, opacity: 1 }}
+			animate={controls}
+			drag="x"
+			dragConstraints={{ left: 0, right: 0 }}
+			onDragEnd={handleDragEnd}
+			style={{ width: '100%' }}
+		>
+			<TableContainer component={Paper} ref={tableRef}>
+				<Table>
+					<TableBody>
+						{scheduleDataForWeek.map(({ day, dateString, classes, isToday, isEmpty }) => (
+							<React.Fragment key={day + dateString}>
+								<TableRow
+									className={isToday ? 'today-row' : ''}
+									ref={isToday ? todayRowRef : null}
+									sx={{
+										bgcolor: isToday ? theme.palette.tones[2] : 'action.hover',
+										'& .MuiTableCell-root': { borderBottom: 'none' }
+									}}
+								>
+									<TableCell colSpan={3}>
+										<Typography fontWeight="bold">
+											{day}, {dateString}
+											{isToday && (
+												<Typography component="span" variant="body2" color="primary" sx={{ ml: 1 }}>
+													(сегодня)
+												</Typography>
+											)}
+										</Typography>
+									</TableCell>
+								</TableRow>
+
+								{isEmpty ? (
+									<TableRow
+										sx={{
+											bgcolor: isToday ? theme.palette.tones[1] : 'inherit',
+											'&:last-child td': { borderBottom: isToday ? 'none' : 'inherit' }
+										}}
+									>
+										<TableCell colSpan={3} sx={{ textAlign: 'center', py: 2 }}>
+											<Typography variant="body2" color="theme.palette.tones[1].contrastText">
+												Нет занятий
+											</Typography>
+										</TableCell>
+									</TableRow>
+								) : (
+									classes.map((cls) => (
+										<TableRow
+											key={cls.number}
+											ref={isToday && cls.number === currentPair ? currentPairRef : null}
+											sx={{
+												bgcolor: isToday && cls.number === currentPair ? 'primary.main' :
+													isToday ? theme.palette.tones[1] : 'inherit',
+												color: isToday && cls.number === currentPair ? 'primary.contrastText' : 'inherit',
+												'&:last-child td': { borderBottom: isToday ? 'none' : 'inherit' }
+											}}
+										>
+											<TableCell
+												align="center"
+												sx={{
+													width: '40px',
+													padding: '0px 10px',
+													textAlign: 'right'
+												}}>
+												{cls.number}
+											</TableCell>
+											<TableCell>
+												<Typography fontWeight="medium">
+													{cls.subject}
+												</Typography>
+												<Typography
+													variant="body2"
+													color={isToday && cls.number === currentPair ? 'theme.palette.tones[1].contrastText' : 'text.secondary'}
+													onClick={(e) => handleTeacherClick(cls.teachers, e)}
+													sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+												>
+													{cls.teachers}
+												</Typography>
+											</TableCell>
+											<TableCell width={120}>
+												<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+													<Typography>{cls.type}</Typography>
+													<Typography
+														onClick={(e) => handleRoomClick(cls.room, e)}
+														sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+													>
+														{cls.room}
+													</Typography>
+												</Box>
+											</TableCell>
+										</TableRow>
+									))
+								)}
+							</React.Fragment>
+						))}
+					</TableBody>
+				</Table>
+			</TableContainer>
+		</motion.div>
+	);
 
 	return (
 		<Box sx={{
@@ -209,99 +344,9 @@ const Schedule = () => {
 				Расписание {studentGroup && `для ${studentGroup}`}
 			</Typography>
 
-			<Fade in={fadeIn} key={currentWeekOffset}>
-				<TableContainer component={Paper} ref={tableRef}>
-					<Table>
-						<TableBody>
-							{scheduleDataForWeek.map(({ day, dateString, classes, isToday, isEmpty }) => (
-								<React.Fragment key={day + dateString}>
-									<TableRow
-										className={isToday ? 'today-row' : ''}
-										ref={isToday ? todayRowRef : null}
-										sx={{
-											bgcolor: isToday ? theme.palette.tones[2] : 'action.hover',
-											'& .MuiTableCell-root': { borderBottom: 'none' }
-										}}
-									>
-										<TableCell colSpan={3}>
-											<Typography fontWeight="bold">
-												{day}, {dateString}
-												{isToday && (
-													<Typography component="span" variant="body2" color="primary" sx={{ ml: 1 }}>
-														(сегодня)
-													</Typography>
-												)}
-											</Typography>
-										</TableCell>
-									</TableRow>
-
-									{isEmpty ? (
-										<TableRow
-											sx={{
-												bgcolor: isToday ? theme.palette.tones[1] : 'inherit',
-												'&:last-child td': { borderBottom: isToday ? 'none' : 'inherit' }
-											}}
-										>
-											<TableCell colSpan={3} sx={{ textAlign: 'center', py: 2 }}>
-												<Typography variant="body2" color="theme.palette.tones[1].contrastText">
-													Нет занятий
-												</Typography>
-											</TableCell>
-										</TableRow>
-									) : (
-										classes.map((cls) => (
-											<TableRow
-												key={cls.number}
-												ref={isToday && cls.number === currentPair ? currentPairRef : null}
-												sx={{
-													bgcolor: isToday && cls.number === currentPair ? 'primary.main' :
-														isToday ? theme.palette.tones[1] : 'inherit',
-													color: isToday && cls.number === currentPair ? 'primary.contrastText' : 'inherit',
-													'&:last-child td': { borderBottom: isToday ? 'none' : 'inherit' }
-												}}
-											>
-												<TableCell
-													align="center"
-													sx={{
-														width: '40px',
-														padding: '0px 10px',
-														textAlign: 'right'
-													}}>
-													{cls.number}
-												</TableCell>
-												<TableCell>
-													<Typography fontWeight="medium">
-														{cls.subject}
-													</Typography>
-													<Typography
-														variant="body2"
-														color={isToday && cls.number === currentPair ? 'theme.palette.tones[1].contrastText' : 'text.secondary'}
-														onClick={(e) => handleTeacherClick(cls.teachers, e)}
-														sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
-													>
-														{cls.teachers}
-													</Typography>
-												</TableCell>
-												<TableCell width={120}>
-													<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-														<Typography>{cls.type}</Typography>
-														<Typography
-															onClick={(e) => handleRoomClick(cls.room, e)}
-															sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
-														>
-															{cls.room}
-														</Typography>
-													</Box>
-												</TableCell>
-											</TableRow>
-										))
-									)}
-								</React.Fragment>
-							))}
-						</TableBody>
-					</Table>
-				</TableContainer>
-			</Fade>
+			<AnimatePresence mode="wait">
+				{renderWeekSchedule()}
+			</AnimatePresence>
 
 			<Stack
 				direction="row"
