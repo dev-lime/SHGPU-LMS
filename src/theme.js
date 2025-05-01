@@ -117,6 +117,13 @@ export const createAppTheme = (colorNameOrHex = 'green', mode = 'light', borderR
 					},
 				},
 			},
+			MuiTab: {
+				styleOverrides: {
+					root: {
+						'&.Mui-selected, &:focus': { outline: 'none' },
+					},
+				},
+			},
 			MuiListItem: {
 				styleOverrides: {
 					root: {

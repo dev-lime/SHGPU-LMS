@@ -857,20 +857,8 @@ const UserProfile = () => {
                 </DialogTitle>
                 <DialogContent>
                     <Tabs value={avatarTab} onChange={(e, newValue) => setAvatarTab(newValue)} sx={{ mb: 2 }}>
-                        <Tab
-                            icon={<CloudUpload />}
-                            label="Загрузить файл"
-                            sx={{
-                                '&.Mui-selected': { outline: 'none' },
-                                '&:focus': { outline: 'none' }
-                            }} />
-                        <Tab
-                            icon={<LinkIcon />}
-                            label="Указать ссылку"
-                            sx={{
-                                '&.Mui-selected': { outline: 'none' },
-                                '&:focus': { outline: 'none' }
-                            }} />
+                        <Tab icon={<CloudUpload />} label="Загрузить файл"/>
+                        <Tab icon={<LinkIcon />} label="Указать ссылку" />
                     </Tabs>
 
                     {avatarTab === 0 ? (
@@ -946,22 +934,8 @@ const UserProfile = () => {
                         variant="fullWidth"
                         sx={{ mb: 2 }}
                     >
-                        <Tab
-                            label="Изменить email"
-                            icon={<Email />}
-                            sx={{
-                                '&.Mui-selected': { outline: 'none' },
-                                '&:focus': { outline: 'none' }
-                            }}
-                        />
-                        <Tab
-                            label="Изменить пароль"
-                            icon={<Lock />}
-                            sx={{
-                                '&.Mui-selected': { outline: 'none' },
-                                '&:focus': { outline: 'none' }
-                            }}
-                        />
+                        <Tab label="Изменить email" icon={<Email />} />
+                        <Tab label="Изменить пароль" icon={<Lock />} />
                     </Tabs>
 
                     {securityTab === 0 ? (

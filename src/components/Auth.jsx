@@ -187,24 +187,8 @@ export default function Auth() {
 					variant="fullWidth"
 					sx={{ mb: 3 }}
 				>
-					<Tab label="Вход" icon={<Login />} iconPosition="start"
-						sx={{
-							'&.Mui-selected': {
-								outline: 'none'
-							},
-							'&:focus': {
-								outline: 'none'
-							}
-						}} />
-					<Tab label="Регистрация" icon={<PersonAdd />} iconPosition="start"
-						sx={{
-							'&.Mui-selected': {
-								outline: 'none'
-							},
-							'&:focus': {
-								outline: 'none'
-							}
-						}} />
+					<Tab label="Вход" icon={<Login />} iconPosition="start"/>
+					<Tab label="Регистрация" icon={<PersonAdd />} iconPosition="start"/>
 				</Tabs>
 
 				{error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}

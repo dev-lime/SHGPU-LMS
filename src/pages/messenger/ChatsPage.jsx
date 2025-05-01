@@ -126,7 +126,7 @@ export default function ChatsPage() {
                 aria-label="Написать"
                 sx={{
                     position: 'fixed',
-                    bottom: 72, // Учитываем высоту bottom navigation
+                    bottom: 80,
                     right: 16,
                     zIndex: 1
                 }}

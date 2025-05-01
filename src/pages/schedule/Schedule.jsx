@@ -407,10 +407,6 @@ const Schedule = () => {
 					size="small"
 					onClick={() => handleWeekChange('right')}
 					disabled={currentWeekOffset === -1}
-					sx={{
-						'&.Mui-disabled': { opacity: 0.5 },
-						'&:focus': { outline: 'none' }
-					}}
 				>
 					<ChevronLeft />
 				</Fab>
@@ -432,10 +428,6 @@ const Schedule = () => {
 					size="small"
 					onClick={() => handleWeekChange('left')}
 					disabled={currentWeekOffset === 1}
-					sx={{
-						'&.Mui-disabled': { opacity: 0.5 },
-						'&:focus': { outline: 'none' }
-					}}
 				>
 					<ChevronRight />
 				</Fab>
@@ -448,8 +440,7 @@ const Schedule = () => {
 					position: 'fixed',
 					bottom: 80,
 					right: 16,
-					zIndex: 1000,
-					'&:focus': { outline: 'none' }
+					zIndex: 1000
 				}}
 				onClick={scrollToCurrentPair}
 			>
