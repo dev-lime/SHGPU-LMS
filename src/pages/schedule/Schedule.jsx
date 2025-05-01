@@ -104,18 +104,21 @@ const Schedule = () => {
 
 	const scheduleDataForWeek = useMemo(() => {
 		const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
-		const currentDateStr = formatDate(getCurrentDate());
 
 		return weekDates.map((date, index) => {
 			const dateStr = formatDate(date);
+			const currentDateStr = formatDate(getCurrentDate());
 			const isToday = currentDateStr === dateStr;
 			const classes = getDaySchedule(date);
 
+			const dayData = transformedData.find(item => item.date === dateStr);
+			const jsonDate = dayData ? new Date(dayData.date) : date;
+
 			return {
 				day: days[index],
-				date,
-				dateString: date.toLocaleDateString('ru-RU', {
-					timeZone: 'Asia/Yekaterinburg',
+				date: jsonDate,
+				dateString: jsonDate.toLocaleDateString('ru-RU', {
+					timeZone: 'UTC',
 					day: 'numeric',
 					month: 'long'
 				}),
