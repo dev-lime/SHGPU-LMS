@@ -32,6 +32,7 @@ const Schedule = () => {
 	const { userData } = useProfile();
 	const studentGroup = userData?.accountType === 'student' ? userData.studentGroup : null;
 	const controls = useAnimation();
+	const [isDragging, setIsDragging] = useState(false);
 
 	const transformedData = useMemo(() => transformScheduleData(scheduleData), []);
 
@@ -211,16 +212,32 @@ const Schedule = () => {
 		});
 	};
 
+	const handleDragStart = () => {
+		setIsDragging(true);
+	};
+
 	const handleDragEnd = async (event, info) => {
+		setIsDragging(false);
 		const offset = info.offset.x;
 		const velocity = info.velocity.x;
 
-		if (offset > 100 || velocity > 800) {
+		// Определяем порог срабатывания свайпа
+		const swipeThreshold = window.innerWidth * 0.2; // 20% ширины экрана
+		const velocityThreshold = 500;
+
+		if (offset > swipeThreshold || velocity > velocityThreshold) {
 			// Свайп вправо - предыдущая неделя
 			await handleWeekChange('right');
-		} else if (offset < -100 || velocity < -800) {
+		} else if (offset < -swipeThreshold || velocity < -velocityThreshold) {
 			// Свайп влево - следующая неделя
 			await handleWeekChange('left');
+		}
+	};
+
+	const handleTap = (e) => {
+		if (isDragging) {
+			e.preventDefault();
+			e.stopPropagation();
 		}
 	};
 
@@ -236,10 +253,26 @@ const Schedule = () => {
 			animate={controls}
 			drag="x"
 			dragConstraints={{ left: 0, right: 0 }}
+			dragElastic={0.2}
+			onDragStart={handleDragStart}
 			onDragEnd={handleDragEnd}
-			style={{ width: '100%' }}
+			onTap={handleTap}
+			style={{
+				width: '100%',
+				touchAction: 'pan-y',
+				userSelect: 'none',
+				WebkitUserSelect: 'none'
+			}}
 		>
-			<TableContainer component={Paper} ref={tableRef}>
+			<TableContainer
+				component={Paper}
+				ref={tableRef}
+				sx={{
+					touchAction: 'pan-y',
+					userSelect: 'none',
+					WebkitUserSelect: 'none'
+				}}
+			>
 				<Table>
 					<TableBody>
 						{scheduleDataForWeek.map(({ day, dateString, classes, isToday, isEmpty }) => (
@@ -334,15 +367,18 @@ const Schedule = () => {
 	);
 
 	return (
-		<Box sx={{
-			p: 2,
-			overflowX: 'hidden',
-			position: 'relative',
-			pb: 16,
-			maxWidth: 450,
-			margin: '0 auto',
-			width: '100%'
-		}}>
+		<Box
+			sx={{
+				p: 2,
+				overflowX: 'hidden',
+				position: 'relative',
+				pb: 16,
+				maxWidth: 450,
+				margin: '0 auto',
+				width: '100%',
+				touchAction: 'pan-y'
+			}}
+		>
 			<Typography variant="h5" sx={{ mb: 2 }}>
 				Расписание {studentGroup && `для ${studentGroup}`}
 			</Typography>
