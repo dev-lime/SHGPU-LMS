@@ -32,7 +32,7 @@ import IDCard from '@pages/more/IDCard';
 import Chat from '@pages/messenger/Chat';
 import UserProfile from '@pages/UserProfile';
 import Auth from "@components/Auth";
-import { createAppTheme } from './theme';
+import { createAppTheme, getSystemTheme } from './theme';
 
 const MainLayout = ({
 	children,
@@ -166,6 +166,7 @@ export default function App() {
 	const [keepCurrentTabLabel, setKeepCurrentTabLabel] = useState(
 		localStorage.getItem('keepCurrentTabLabel') === 'true'
 	);
+	const [systemTheme, setSystemTheme] = useState(() => getSystemTheme());
 
 	useEffect(() => {
 		const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -179,19 +180,22 @@ export default function App() {
 		const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
 		const handleSystemThemeChange = (e) => {
+			const newSystemTheme = e.matches ? 'dark' : 'light';
+			setSystemTheme(newSystemTheme);
+
 			if (themeConfig.mode === 'system') {
-				const newTheme = e.matches ? 'dark' : 'light';
-				// Обновляем тему только если выбран режим "Как в системе"
+				// Принудительно обновляем тему
 				const theme = createAppTheme(themeConfig.color, 'system', themeConfig.borderRadius);
-				// Здесь можно принудительно обновить тему, если нужно
+				// Можно добавить дополнительную логику обновления UI
 			}
 		};
 
-		// Устанавливаем начальный слушатель
-		darkModeMediaQuery.addListener(handleSystemThemeChange);
+		// Инициализация
+		setSystemTheme(getSystemTheme());
+		darkModeMediaQuery.addEventListener('change', handleSystemThemeChange);
 
 		return () => {
-			darkModeMediaQuery.removeListener(handleSystemThemeChange);
+			darkModeMediaQuery.removeEventListener('change', handleSystemThemeChange);
 		};
 	}, [themeConfig.mode]);
 

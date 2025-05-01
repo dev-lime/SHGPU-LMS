@@ -9,11 +9,8 @@ const materialYouColors = {
 // Список тонов
 const tonalSteps = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100];
 
-const getEffectiveThemeMode = (mode) => {
-	if (mode === 'system') {
-		return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-	}
-	return mode;
+export const getSystemTheme = () => {
+	return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 };
 
 // Преобразование hex в HSL
@@ -71,7 +68,7 @@ const generateTonalPalette = (hex) => {
 };
 
 export const createAppTheme = (colorNameOrHex = 'green', mode = 'light', borderRadius = 16) => {
-	const effectiveMode = getEffectiveThemeMode(mode);
+	const effectiveMode = mode === 'system' ? getSystemTheme() : mode;
 
 	const isHex = /^#([0-9A-F]{3}){1,2}$/i.test(colorNameOrHex);
 	const primaryColor = isHex
@@ -87,11 +84,11 @@ export const createAppTheme = (colorNameOrHex = 'green', mode = 'light', borderR
 				main: primaryColor,
 			},
 			secondary: {
-				main: mode === 'light' ? '#8BC34A' : '#A5D6A7',
+				main: effectiveMode === 'light' ? '#8BC34A' : '#A5D6A7',
 			},
 			background: {
-				default: mode === 'light' ? '#FFFBFE' : '#1C1B1F',
-				paper: mode === 'light' ? '#FFFFFF' : '#313033',
+				default: effectiveMode === 'light' ? '#FFFBFE' : '#1C1B1F',
+				paper: effectiveMode === 'light' ? '#FFFFFF' : '#313033',
 			},
 			tones
 		},

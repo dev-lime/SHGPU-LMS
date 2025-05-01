@@ -135,7 +135,8 @@ export default function Settings({
 
     const handleThemeModeChange = (event) => {
         const mode = event.target.value;
-        setDarkMode(mode === 'dark' || (mode === 'system' && systemTheme === 'dark'));
+        const isDark = mode === 'dark' || (mode === 'system' && systemTheme === 'dark');
+        setDarkMode(isDark);
         onThemeChange({ ...themeConfig, mode });
     };
 
@@ -445,8 +446,9 @@ export default function Settings({
                             <Box component="span" sx={{ fontWeight: 600 }}>{pkg.name}</Box>
                         </Typography>
                         <Typography variant="body2" component="div" color="text.secondary">
-                            Неофициальный клиент Шадринского государственного педагогического университета
+                            Неофициальный клиент Шадринского государственного педагогического университета.
                             <br />
+                            Исходный код:
                             <Box
                                 component="span"
                                 onClick={handleRepoClick}
