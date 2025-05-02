@@ -118,7 +118,18 @@ export default function News() {
 			flexDirection: 'column',
 			p: 2
 		}}>
-			<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+			<Box sx={{
+				display: 'flex',
+				justifyContent: 'space-between',
+				alignItems: 'center',
+				mb: 3,
+				position: 'sticky',
+				top: 0,
+				backgroundColor: 'background.default',
+				zIndex: 1,
+				pt: 1,
+				pb: 2
+			}}>
 				<Typography
 					variant="h5"
 					sx={{
@@ -138,154 +149,165 @@ export default function News() {
 				/>
 			</Box>
 
-			{filteredNews.length > 0 ? (
-				filteredNews.map((item) => (
-					<Card
-						key={item.id}
-						sx={{
-							mb: 3,
-							borderRadius: 3,
-						}}
-					>
-						<CardContent sx={{ p: 3 }}>
-							{/* Заголовок */}
-							<CardActionArea
-								onClick={() => handleOpenNews(item.link)}
-								sx={{
-									mb: 1.5,
-									'&.Mui-selected, &:focus': { outline: 'none' }
-								}}
-							>
-								<EllipsisTypography
-									variant="h6"
-									sx={{
-										fontWeight: 600,
-										color: 'text.primary',
-										minHeight: '3em',
-										lineHeight: '1.5em',
-										WebkitLineClamp: 2
-									}}
-								>
-									{item.title}
-								</EllipsisTypography>
-							</CardActionArea>
-
-							{/* Изображение */}
-							{item.image && (
+			<Box sx={{ flex: 1 }}> {/* Контейнер для списка новостей */}
+				{filteredNews.length > 0 ? (
+					filteredNews.map((item) => (
+						<Card
+							key={item.id}
+							sx={{
+								mb: 3,
+								borderRadius: 3
+							}}
+						>
+							<CardContent sx={{ p: 3 }}>
+								{/* Заголовок */}
 								<CardActionArea
 									onClick={() => handleOpenNews(item.link)}
 									sx={{
-										mb: 2,
-										'&.Mui-selected, &:focus': { outline: 'none' }
-									}}
-								>
-									<img
-										src={item.image}
-										alt={item.title}
-										style={{
-											maxWidth: '100%',
-											height: 'auto',
-											borderRadius: '8px'
-										}}
-										onError={(e) => {
-											e.target.style.display = 'none';
-										}}
-									/>
-								</CardActionArea>
-							)}
-
-							{/* Описание */}
-							{item.content && (
-								<CardActionArea
-									onClick={() => handleOpenNews(item.link)}
-									sx={{
-										mb: 2,
+										mb: 1.5,
 										'&.Mui-selected, &:focus': { outline: 'none' }
 									}}
 								>
 									<EllipsisTypography
-										variant="body1"
-										color="text.secondary"
+										variant="h6"
 										sx={{
-											minHeight: '6em',
+											fontWeight: 600,
+											color: 'text.primary',
+											minHeight: '3em',
 											lineHeight: '1.5em',
-											WebkitLineClamp: 4
+											WebkitLineClamp: 2
 										}}
 									>
-										{item.content}
+										{item.title}
 									</EllipsisTypography>
 								</CardActionArea>
-							)}
 
-							<Divider sx={{
-								my: 1.5,
-							}} />
+								{/* Изображение */}
+								{item.image && (
+									<CardActionArea
+										onClick={() => handleOpenNews(item.link)}
+										sx={{
+											mb: 2,
+											'&.Mui-selected, &:focus': { outline: 'none' }
+										}}
+									>
+										<Box sx={{
+											width: '100%',
+											height: 200,
+											overflow: 'hidden',
+											borderRadius: '8px',
+											display: 'flex',
+											alignItems: 'center',
+											justifyContent: 'center'
+										}}>
+											<img
+												src={item.image}
+												alt={item.title}
+												style={{
+													width: '100%',
+													height: 'auto',
+													maxHeight: '100%',
+													objectFit: 'cover'
+												}}
+												onError={(e) => {
+													e.target.style.display = 'none';
+												}}
+											/>
+										</Box>
+									</CardActionArea>
+								)}
 
-							<Box sx={{
-								display: 'flex',
-								justifyContent: 'space-between',
-								alignItems: 'center'
-							}}>
-								<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-									{item.category && (
-										<Chip
-											label={item.category}
-											size="small"
-											variant="outlined"
-											sx={{
-												fontWeight: 500,
-												borderColor: 'primary.main',
-												color: 'primary.main',
-												backgroundColor: 'transparent'
-											}}
-										/>
-									)}
-									{item.date && (
-										<Typography
+								{/* Описание */}
+								{item.content && (
+									<CardActionArea
+										onClick={() => handleOpenNews(item.link)}
+										sx={{
+											mb: 2,
+											'&.Mui-selected, &:focus': { outline: 'none' }
+										}}
+									>
+										<EllipsisTypography
+											variant="body1"
 											color="text.secondary"
-											variant="body2"
-											sx={{ fontSize: '0.8rem' }}
+											sx={{
+												minHeight: '6em',
+												lineHeight: '1.5em',
+												WebkitLineClamp: 4
+											}}
 										>
-											{item.date}
-										</Typography>
-									)}
-								</Box>
+											{item.content}
+										</EllipsisTypography>
+									</CardActionArea>
+								)}
 
-								<Box>
-									<IconButton
-										size="small"
-										onClick={(e) => {
-											e.stopPropagation();
-											toggleBookmark(item.id);
-										}}
-										sx={{
-											color: bookmarked.includes(item.id) ? 'primary.main' : 'text.secondary',
-										}}
-									>
-										{bookmarked.includes(item.id) ? <Bookmark /> : <BookmarkBorder />}
-									</IconButton>
-									<IconButton
-										size="small"
-										onClick={(e) => {
-											e.stopPropagation();
-											handleShare(item.link);
-										}}
-										sx={{
-											color: 'text.secondary',
-										}}
-									>
-										<Share />
-									</IconButton>
+								<Divider sx={{ my: 1.5 }} />
+
+								<Box sx={{
+									display: 'flex',
+									justifyContent: 'space-between',
+									alignItems: 'center'
+								}}>
+									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+										{item.category && (
+											<Chip
+												label={item.category}
+												size="small"
+												variant="outlined"
+												sx={{
+													fontWeight: 500,
+													borderColor: 'primary.main',
+													color: 'primary.main',
+													backgroundColor: 'transparent'
+												}}
+											/>
+										)}
+										{item.date && (
+											<Typography
+												color="text.secondary"
+												variant="body2"
+												sx={{ fontSize: '0.8rem' }}
+											>
+												{item.date}
+											</Typography>
+										)}
+									</Box>
+
+									<Box>
+										<IconButton
+											size="small"
+											onClick={(e) => {
+												e.stopPropagation();
+												toggleBookmark(item.id);
+											}}
+											sx={{
+												color: bookmarked.includes(item.id) ? 'primary.main' : 'text.secondary',
+											}}
+										>
+											{bookmarked.includes(item.id) ? <Bookmark /> : <BookmarkBorder />}
+										</IconButton>
+										<IconButton
+											size="small"
+											onClick={(e) => {
+												e.stopPropagation();
+												handleShare(item.link);
+											}}
+											sx={{
+												color: 'text.secondary',
+											}}
+										>
+											<Share />
+										</IconButton>
+									</Box>
 								</Box>
-							</Box>
-						</CardContent>
-					</Card>
-				))
-			) : (
-				<Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
-					Ничего не найдено
-				</Typography>
-			)}
+							</CardContent>
+						</Card>
+					))
+				) : (
+					<Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
+						Ничего не найдено
+					</Typography>
+				)}
+			</Box>
 		</Box>
 	);
 }

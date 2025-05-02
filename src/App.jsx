@@ -19,19 +19,19 @@ import { ThemeProvider } from "@mui/material/styles";
 import { auth } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import Auth from "@components/Auth";
 import News from "@pages/news/News";
 import Eios from "@pages/eios/EIOS";
 import ChatsPage from '@pages/messenger/ChatsPage';
 import UsersPage from '@pages/messenger/UsersPage';
 import Chat from '@pages/messenger/Chat';
+import UserProfile from '@pages/UserProfile';
 import Schedule from "@pages/schedule/Schedule";
 import More from "@pages/more/More";
 import Settings from '@pages/more/Settings';
 import Documents from '@pages/more/Documents';
 import Support from '@pages/more/Support';
 import IDCard from '@pages/more/IDCard';
-import UserProfile from '@pages/UserProfile';
-import Auth from "@components/Auth";
 import { createAppTheme, getSystemTheme } from './theme';
 
 const MainLayout = ({
@@ -136,6 +136,26 @@ const MainLayout = ({
 	);
 };
 
+const AppRoute = ({ activeTab, setActiveTab, tabs, tabLabelsMode, element }) => (
+	<MainLayout
+		activeTab={activeTab}
+		setActiveTab={setActiveTab}
+		tabs={tabs}
+		tabLabelsMode={tabLabelsMode}
+	>
+		{element}
+	</MainLayout>
+);
+
+const commonRoutes = [
+	{ path: "/documents", element: <Documents /> },
+	{ path: "/users", element: <UsersPage /> },
+	{ path: "/user/:userId", element: <UserProfile /> },
+	{ path: "/support", element: <Support /> },
+	{ path: "/idcard", element: <IDCard /> },
+	{ path: "/chat/:chatId", element: <Chat /> }
+];
+
 export default function App() {
 	const [user, setUser] = useState(null);
 	const [loading, setLoading] = useState(true);
@@ -216,8 +236,27 @@ export default function App() {
 		{ label: "ЭИОС", icon: <School />, path: "/eios", component: <Eios /> },
 		{ label: "Чаты", icon: <ChatIcon />, path: "/chats", component: <ChatsPage /> },
 		{ label: "Расписание", icon: <CalendarMonth />, path: "/schedule", component: <Schedule /> },
-		{ label: "Ещё", icon: <Pending />, path: "/more", component: <More user={user} onLogout={handleLogout} /> }
+		{ label: "Ещё", icon: <Pending />, path: "/more", component: <More /> }
 	];
+
+	const AnimatedRoute = ({ children }) => {
+		const location = useLocation();
+
+		return (
+			<AnimatePresence mode="wait">
+				<motion.div
+					key={location.pathname}
+					initial={{ opacity: 0, x: 10 }}
+					animate={{ opacity: 1, x: 0 }}
+					exit={{ opacity: 0, x: -10 }}
+					transition={{ duration: 0.3 }}
+					style={{ height: '100%' }}
+				>
+					{children}
+				</motion.div>
+			</AnimatePresence>
+		);
+	};
 
 	if (loading) {
 		return (
@@ -247,160 +286,85 @@ export default function App() {
 			<CssBaseline />
 			<Router>
 				<Routes>
+					{/* Главный маршрут */}
 					<Route
 						path="/"
 						element={
-							<MainLayout
+							<AppRoute
 								activeTab={activeTab}
 								setActiveTab={setActiveTab}
 								tabs={tabs}
 								tabLabelsMode={tabLabelsMode}
-							>
-								<AnimatePresence mode="wait">
-									<motion.div
-										key={activeTab}
-										initial={{ opacity: 0 }}
-										animate={{ opacity: 1 }}
-										exit={{ opacity: 0 }}
-										transition={{ duration: 0.25 }}
-										style={{
-											flex: 1,
-											overflow: 'auto',
-										}}
-									>
+								element={
+									<AnimatedRoute>
 										{tabs[activeTab].component}
-									</motion.div>
-								</AnimatePresence>
-							</MainLayout>
+									</AnimatedRoute>
+								}
+							/>
 						}
 					/>
 
+					{/* Маршруты вкладок */}
 					{tabs.map((tab, index) => (
 						<Route
 							key={index}
 							path={tab.path}
 							element={
-								<MainLayout
+								<AppRoute
 									activeTab={activeTab}
 									setActiveTab={setActiveTab}
 									tabs={tabs}
 									tabLabelsMode={tabLabelsMode}
-								>
-									{tab.component}
-								</MainLayout>
+									element={<AnimatedRoute>{tab.component}</AnimatedRoute>}
+								/>
 							}
 						/>
 					))}
 
-					<Route
-						path="/documents"
-						element={
-							<MainLayout
-								activeTab={activeTab}
-								setActiveTab={setActiveTab}
-								tabs={tabs}
-								tabLabelsMode={tabLabelsMode}
-							>
-								<Documents />
-							</MainLayout>
-						}
-					/>
-
+					{/* Настройки */}
 					<Route
 						path="/settings"
 						element={
-							<MainLayout
+							<AppRoute
 								activeTab={activeTab}
 								setActiveTab={setActiveTab}
 								tabs={tabs}
 								tabLabelsMode={tabLabelsMode}
-							>
-								<Settings
-									themeConfig={themeConfig}
-									onThemeChange={handleThemeChange}
+								element={
+									<Settings
+										themeConfig={themeConfig}
+										onThemeChange={handleThemeChange}
+										tabLabelsMode={tabLabelsMode}
+										onTabLabelsModeChange={handleTabLabelsModeChange}
+										borderRadius={themeConfig.borderRadius}
+										onBorderRadiusChange={(newValue) => {
+											handleThemeChange({
+												...themeConfig,
+												borderRadius: newValue
+											});
+										}}
+									/>
+								}
+							/>
+						}
+					/>
+
+					{/* Общие маршруты */}
+					{commonRoutes.map((route, index) => (
+						<Route
+							key={index}
+							path={route.path}
+							element={
+								<AppRoute
+									activeTab={activeTab}
+									setActiveTab={setActiveTab}
+									tabs={tabs}
 									tabLabelsMode={tabLabelsMode}
-									onTabLabelsModeChange={handleTabLabelsModeChange}
-									borderRadius={themeConfig.borderRadius}
-									onBorderRadiusChange={(newValue) => {
-										handleThemeChange({
-											...themeConfig,
-											borderRadius: newValue
-										});
-									}}
+									element={<AnimatedRoute>{route.element}</AnimatedRoute>}
 								/>
-							</MainLayout>
-						}
-					/>
-
-					<Route
-						path="/users"
-						element={
-							<MainLayout
-								activeTab={activeTab}
-								setActiveTab={setActiveTab}
-								tabs={tabs}
-								tabLabelsMode={tabLabelsMode}
-							>
-								<UsersPage />
-							</MainLayout>
-						}
-					/>
-
-					<Route
-						path="/user/:userId"
-						element={
-							<MainLayout
-								activeTab={activeTab}
-								setActiveTab={setActiveTab}
-								tabs={tabs}
-								tabLabelsMode={tabLabelsMode}
-							>
-								<UserProfile />
-							</MainLayout>
-						}
-					/>
-
-					<Route
-						path="/support"
-						element={
-							<MainLayout
-								activeTab={activeTab}
-								setActiveTab={setActiveTab}
-								tabs={tabs}
-								tabLabelsMode={tabLabelsMode}
-							>
-								<Support />
-							</MainLayout>
-						}
-					/>
-
-					<Route
-						path="/idcard"
-						element={
-							<MainLayout
-								activeTab={activeTab}
-								setActiveTab={setActiveTab}
-								tabs={tabs}
-								tabLabelsMode={tabLabelsMode}
-							>
-								<IDCard />
-							</MainLayout>
-						}
-					/>
-
-					<Route
-						path="/chat/:chatId"
-						element={
-							<MainLayout
-								activeTab={activeTab}
-								setActiveTab={setActiveTab}
-								tabs={tabs}
-								tabLabelsMode={tabLabelsMode}
-							>
-								<Chat />
-							</MainLayout>
-						}
-					/>
+							}
+						/>
+					))}
 				</Routes>
 			</Router>
 		</ThemeProvider>
