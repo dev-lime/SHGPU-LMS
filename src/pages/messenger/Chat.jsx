@@ -593,7 +593,7 @@ export default function Chat() {
     const handleDeleteChat = async () => {
         try {
             await deleteDoc(doc(db, 'chats', chatId));
-            navigate('/messenger');
+            navigate('/chats');
         } catch (error) {
             console.error("Error deleting chat:", error);
             setError(error.message || "Ошибка при удалении чата");
@@ -638,7 +638,7 @@ export default function Chat() {
                 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <IconButton
-                            onClick={() => navigate('/messenger')}
+                            onClick={() => navigate('/chats')}
                             sx={{ ml: 1, mr: 1 }}
                         >
                             <ArrowBack color="primary" />

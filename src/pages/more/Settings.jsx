@@ -8,7 +8,6 @@ import {
     ListItemText,
     ListItemSecondaryAction,
     IconButton,
-    Switch,
     Radio,
     RadioGroup,
     FormControlLabel,
@@ -39,15 +38,13 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { HexColorPicker } from 'react-colorful';
-import pkg from '../../../package.json'
+import pkg from '../../../package.json';
 
 export default function Settings({
     themeConfig,
     onThemeChange,
-    hideTabLabels,
-    onHideTabLabelsChange,
-    keepCurrentTabLabel,
-    onKeepCurrentTabLabelChange,
+    tabLabelsMode,
+    onTabLabelsModeChange,
     borderRadius,
     onBorderRadiusChange
 }) {
@@ -70,16 +67,12 @@ export default function Settings({
     };
 
     useEffect(() => {
-        // Определяем системную тему
         const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         const handleSystemThemeChange = (e) => {
             setSystemTheme(e.matches ? 'dark' : 'light');
         };
 
-        // Устанавливаем начальное значение
         setSystemTheme(darkModeMediaQuery.matches ? 'dark' : 'light');
-
-        // Добавляем слушатель изменений
         darkModeMediaQuery.addListener(handleSystemThemeChange);
 
         return () => {
@@ -135,9 +128,12 @@ export default function Settings({
 
     const handleThemeModeChange = (event) => {
         const mode = event.target.value;
-        const isDark = mode === 'dark' || (mode === 'system' && systemTheme === 'dark');
-        setDarkMode(isDark);
+        setDarkMode(mode === 'dark' || (mode === 'system' && systemTheme === 'dark'));
         onThemeChange({ ...themeConfig, mode });
+    };
+
+    const handleTabLabelsModeChange = (event) => {
+        onTabLabelsModeChange(event.target.value);
     };
 
     const getThemeIcon = () => {
@@ -155,15 +151,6 @@ export default function Settings({
         return themeConfig?.mode === 'dark' ? 'Тёмная' : 'Светлая';
     };
 
-    const handleTabLabelsChange = (event) => {
-        const hide = event.target.checked;
-        onHideTabLabelsChange(hide);
-    };
-
-    const handleCurrentTabLabelChange = (event) => {
-        onKeepCurrentTabLabelChange(event.target.checked);
-    };
-
     const handleAboutOpen = () => setAboutOpen(true);
     const handleAboutClose = () => setAboutOpen(false);
 
@@ -172,6 +159,39 @@ export default function Settings({
     };
 
     const settingsItems = [
+        {
+            name: "Тема",
+            icon: getThemeIcon(),
+            action: (
+                <Select
+                    value={themeConfig?.mode || 'light'}
+                    onChange={handleThemeModeChange}
+                    size="small"
+                    sx={{ width: 180 }}
+                    renderValue={(value) => getDisplayedTheme()}
+                >
+                    <MenuItem value="light">Светлая</MenuItem>
+                    <MenuItem value="dark">Тёмная</MenuItem>
+                    <MenuItem value="system">Как в системе</MenuItem>
+                </Select>
+            )
+        },
+        {
+            name: "Названия вкладок",
+            icon: <TextFields color="primary" />,
+            action: (
+                <Select
+                    value={tabLabelsMode}
+                    onChange={handleTabLabelsModeChange}
+                    size="small"
+                    sx={{ width: 180 }}
+                >
+                    <MenuItem value="showAll">Показывать</MenuItem>
+                    <MenuItem value="hideAll">Скрыть всё</MenuItem>
+                    <MenuItem value="currentOnly">Только на текущей</MenuItem>
+                </Select>
+            )
+        },
         {
             name: "Цветовая схема",
             icon: <Palette color="primary" />,
@@ -231,23 +251,6 @@ export default function Settings({
             ]
         },
         {
-            name: "Тема",
-            icon: getThemeIcon(),
-            action: (
-                <Select
-                    value={themeConfig?.mode || 'light'}
-                    onChange={handleThemeModeChange}
-                    size="small"
-                    sx={{ width: 180 }}
-                    renderValue={(value) => getDisplayedTheme()}
-                >
-                    <MenuItem value="light">Светлая</MenuItem>
-                    <MenuItem value="dark">Тёмная</MenuItem>
-                    <MenuItem value="system">Как в системе</MenuItem>
-                </Select>
-            )
-        },
-        {
             name: "Скругления",
             icon: <Interests color="primary" />,
             action: (
@@ -267,34 +270,6 @@ export default function Settings({
                     ]}
                 />
             )
-        },
-        {
-            name: "Скрыть названия вкладок",
-            icon: <TextFields color="primary" />,
-            expandable: true,
-            isExpanded: expandedGroups['tabLabels'],
-            toggle: () => toggleGroup('tabLabels'),
-            action: (
-                <Switch
-                    checked={hideTabLabels}
-                    onChange={handleTabLabelsChange}
-                    color="primary"
-                />
-            ),
-            children: [
-                {
-                    name: "Не скрывать название текущей вкладки",
-                    description: !hideTabLabels ? "Доступно только при включённом 'Скрыть названия вкладок'" : null,
-                    action: (
-                        <Switch
-                            checked={keepCurrentTabLabel}
-                            onChange={handleCurrentTabLabelChange}
-                            color="primary"
-                            disabled={!hideTabLabels}
-                        />
-                    )
-                }
-            ]
         },
         {
             name: "О приложении",
