@@ -6,16 +6,11 @@ import {
     List,
     ListItem,
     ListItemText,
-    ListItemSecondaryAction,
     IconButton,
     Radio,
     RadioGroup,
     FormControlLabel,
     Button,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
     Divider,
     Collapse,
     TextField,
@@ -30,7 +25,6 @@ import {
     Palette,
     Brightness4,
     Brightness7,
-    Computer,
     Info,
     TextFields,
     Colorize,
@@ -38,7 +32,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { HexColorPicker } from 'react-colorful';
-import pkg from '../../../package.json';
+import AboutDialog from '@components/AboutDialog';
+import CustomListItem from '@components/CustomListItem';
 
 export default function Settings({
     themeConfig,
@@ -153,10 +148,6 @@ export default function Settings({
 
     const handleAboutOpen = () => setAboutOpen(true);
     const handleAboutClose = () => setAboutOpen(false);
-
-    const handleRepoClick = () => {
-        window.open('https://github.com/dev-lime/SHGPU-LMS', '_blank');
-    };
 
     const settingsItems = [
         {
@@ -308,47 +299,48 @@ export default function Settings({
                 <List disablePadding>
                     {settingsItems.map((item, index) => (
                         <React.Fragment key={index}>
-                            <ListItem
-                                onClick={item.expandable ? item.toggle : item.onClick}
-                                sx={{
-                                    py: 2,
-                                    px: 2,
-                                    '&:hover': {
-                                        backgroundColor: 'action.hover',
-                                        cursor: 'pointer'
-                                    },
-                                    color: item.color || 'text.primary'
-                                }}
-                            >
-                                <Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
-                                    {item.icon}
-                                </Box>
-                                <ListItemText
-                                    primary={<Typography variant="subtitle1" sx={{ fontWeight: 500 }}>{item.name}</Typography>}
-                                    secondary={item.description}
-                                    sx={{ mr: 2 }}
-                                />
-                                {item.action && (
-                                    <ListItemSecondaryAction>
-                                        {item.action}
-                                    </ListItemSecondaryAction>
-                                )}
-                            </ListItem>
+                            <CustomListItem
+                                name={item.name}
+                                description={item.description}
+                                icon={item.icon}
+                                onClick={item.onClick}
+                                action={item.action}
+                                expandable={item.expandable}
+                                isExpanded={item.isExpanded}
+                                toggle={item.toggle}
+                            />
 
                             {item.children && (
                                 <Collapse in={item.isExpanded} timeout="auto" unmountOnExit>
                                     <List component="div" disablePadding>
                                         {item.children.map((child, childIndex) => (
-                                            <ListItem key={childIndex} sx={{ pl: 6 }}>
+                                            <ListItem
+                                                key={childIndex}
+                                                sx={{ pl: 6 }}
+                                                secondaryAction={child.action && (
+                                                    <Box sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        flexShrink: 0
+                                                    }}>
+                                                        {child.action}
+                                                    </Box>
+                                                )}
+                                            >
                                                 <ListItemText
                                                     primary={<Typography variant="body2">{child.name}</Typography>}
                                                     secondary={child.description}
+                                                    sx={{
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis'
+                                                    }}
+                                                    slotProps={{
+                                                        primary: {
+                                                            noWrap: true,
+                                                            sx: { maxWidth: 'calc(100% - 200px)' }
+                                                        }
+                                                    }}
                                                 />
-                                                {child.action && (
-                                                    <ListItemSecondaryAction>
-                                                        {child.action}
-                                                    </ListItemSecondaryAction>
-                                                )}
                                             </ListItem>
                                         ))}
                                     </List>
@@ -394,76 +386,10 @@ export default function Settings({
                 </Box>
             </Popover>
 
-            <Dialog
+            <AboutDialog
                 open={aboutOpen}
                 onClose={handleAboutClose}
-                maxWidth="xs"
-                fullWidth
-                PaperProps={{
-                    sx: {
-                        borderRadius: 3,
-                        bgcolor: 'background.paper',
-                        p: 1
-                    }
-                }}
-            >
-                <DialogTitle sx={{
-                    typography: 'h6',
-                    color: 'text.primary',
-                    px: 3,
-                    pt: 3
-                }}>
-                    О приложении
-                </DialogTitle>
-                <DialogContent sx={{ px: 3, py: 1 }}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Typography variant="body1" component="div" color="text.primary">
-                            <Box component="span" sx={{ fontWeight: 600 }}>{pkg.name}</Box>
-                        </Typography>
-                        <Typography variant="body2" component="div" color="text.secondary">
-                            Неофициальный клиент Шадринского государственного педагогического университета.
-                            <br />
-                            Исходный код:
-                            <Box
-                                component="span"
-                                onClick={handleRepoClick}
-                                sx={{
-                                    color: 'primary.main',
-                                    textDecoration: 'underline',
-                                    cursor: 'pointer',
-                                    '&:hover': {
-                                        color: 'primary.dark'
-                                    }
-                                }}
-                            >
-                                https://github.com/dev-lime/SHGPU-LMS
-                            </Box>
-                        </Typography>
-                        <Typography variant="caption" display="block" color="text.secondary">
-                            Версия {pkg.version}
-                        </Typography>
-                    </Box>
-                </DialogContent>
-                <DialogActions sx={{ px: 3, py: 2, justifyContent: 'right' }}>
-                    <Button
-                        onClick={handleAboutClose}
-                        color="primary"
-                        variant="contained"
-                        sx={{
-                            textTransform: 'none',
-                            borderRadius: 2,
-                            px: 3,
-                            py: 1,
-                            minWidth: 120,
-                            '&.Mui-selected, &:focus': { outline: 'none' },
-                            cursor: 'pointer'
-                        }}
-                        autoFocus
-                    >
-                        Закрыть
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            />
         </Box>
     );
 }

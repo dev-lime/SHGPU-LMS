@@ -4,15 +4,11 @@ import {
     Typography,
     IconButton,
     Paper,
-    List,
-    ListItem,
-    ListItemText
+    List
 } from '@mui/material';
-import {
-    ArrowBack,
-    EventRepeat
-} from '@mui/icons-material';
+import { ArrowBack, EventRepeat } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import CustomListItem from '@components/CustomListItem';
 
 export default function IDCard() {
     const navigate = useNavigate();
@@ -41,28 +37,11 @@ export default function IDCard() {
                 borderColor: 'divider'
             }}>
                 <List disablePadding>
-
-                    <ListItem
-                        sx={{
-                            py: 2,
-                            px: 2,
-                            color: 'text.primary'
-                        }}
-                    >
-                        <Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
-                            <EventRepeat color="primary"/>
-                        </Box>
-
-                        <ListItemText
-                            primary={
-                                <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                                    В разработке
-                                </Typography>
-                            }
-                            secondary={"Здесь будет электронная копия студенческого билета"}
-                            sx={{ mr: 2 }}
-                        />
-                    </ListItem>
+                    <CustomListItem
+                        name="В разработке"
+                        description="Здесь будет электронная копия студенческого билета"
+                        icon={<EventRepeat color="primary" />}
+                    />
                 </List>
             </Paper>
         </Box>

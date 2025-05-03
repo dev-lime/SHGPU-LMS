@@ -4,8 +4,6 @@ import {
 	Typography,
 	Paper,
 	List,
-	ListItem,
-	ListItemText,
 	Divider
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
@@ -18,6 +16,7 @@ import {
 	CreditCard
 } from '@mui/icons-material';
 import ProfileSection from './ProfileSection';
+import CustomListItem from '@components/CustomListItem';
 
 export default function More() {
 	const navigate = useNavigate();
@@ -63,7 +62,7 @@ export default function More() {
 			<Paper elevation={0} sx={{
 				borderRadius: 3,
 				border: '1px solid',
-                overflow: 'hidden',
+				overflow: 'hidden',
 				borderColor: 'divider',
 				mb: 3
 			}}>
@@ -81,36 +80,18 @@ export default function More() {
 			<Paper elevation={0} sx={{
 				borderRadius: 3,
 				border: '1px solid',
-                overflow: 'hidden',
+				overflow: 'hidden',
 				borderColor: 'divider'
 			}}>
 				<List disablePadding>
 					{menuItems.map((item, index) => (
 						<React.Fragment key={index}>
-							<ListItem
+							<CustomListItem
+								name={item.name}
+								description={item.description}
+								icon={item.icon}
 								onClick={item.onClick}
-								sx={{
-									py: 2,
-									px: 2,
-									'&:hover': {
-										backgroundColor: 'action.hover',
-										cursor: 'pointer'
-									}
-								}}
-							>
-								<Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
-									{item.icon}
-								</Box>
-								<ListItemText
-									primary={
-										<Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-											{item.name}
-										</Typography>
-									}
-									secondary={item.description}
-									sx={{ mr: 2 }}
-								/>
-							</ListItem>
+							/>
 							{index < menuItems.length - 1 && <Divider sx={{ mx: 2 }} />}
 						</React.Fragment>
 					))}

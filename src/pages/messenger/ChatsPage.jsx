@@ -87,7 +87,6 @@ export default function ChatsPage() {
             <Box sx={{
                 display: 'flex',
                 flexDirection: 'column',
-                mb: 3,
                 gap: 2
             }}>
                 <Typography variant="h6" fontWeight="bold">

@@ -5,9 +5,7 @@ import {
     IconButton,
     Paper
 } from '@mui/material';
-import {
-    ArrowBack
-} from '@mui/icons-material';
+import { ArrowBack } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import SearchBar from '@components/SearchBar';
 
@@ -15,6 +13,10 @@ const FAQ_CATEGORIES = [
     {
         title: "Общие вопросы",
         questions: [
+            {
+                question: "Что здесь можно найти?",
+                answer: "Это мок-вопросы, имеющие мало общего с реальностью."
+            },
             {
                 question: "Что делать, если не отображается расписание?",
                 answer: "Убедитесь, что в профиле указана правильная группа. Если проблема не исчезла — обратитесь в поддержку."
@@ -75,20 +77,19 @@ export default function Support() {
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
 
-    // Фильтрация вопросов на основе введенного текста
     const filteredCategories = FAQ_CATEGORIES.map(category => ({
         ...category,
         questions: category.questions.filter(question =>
             question.question.toLowerCase().includes(searchTerm.toLowerCase())
         )
-    })).filter(category => category.questions.length > 0); // Оставляем только категории с вопросами
+    })).filter(category => category.questions.length > 0);
 
     return (
         <Box sx={{
-            padding: { xs: 2, sm: 3 },
             display: 'flex',
             flexDirection: 'column',
-            height: '100%'
+            height: '100%',
+            p: 2
         }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <IconButton
