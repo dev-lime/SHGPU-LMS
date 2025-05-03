@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
 	Typography,
 	Button,
@@ -6,7 +6,13 @@ import {
 	Box,
 	useTheme,
 	useMediaQuery,
-	Fade
+	Fade,
+	TextField,
+	Checkbox,
+	FormControlLabel,
+	FormGroup,
+	Collapse,
+	Divider
 } from '@mui/material';
 import { OpenInNew, School } from '@mui/icons-material';
 import { motion } from 'framer-motion';
@@ -14,9 +20,25 @@ import { motion } from 'framer-motion';
 export default function Eios() {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+	const [username, setUsername] = useState('');
+	const [password, setPassword] = useState('');
+	const [autoLogin, setAutoLogin] = useState(false);
+	const [error, setError] = useState('');
 
 	const openEios = () => {
+		if (autoLogin && (!username || !password)) {
+			setError('Для автовхода введите логин и пароль');
+			return;
+		}
+
 		window.open('https://edu.shspu.ru/my/', '_blank');
+	};
+
+	const handleAutoLoginChange = (event) => {
+		setAutoLogin(event.target.checked);
+		if (!event.target.checked) {
+			setError('');
+		}
 	};
 
 	return (
@@ -145,6 +167,90 @@ export default function Eios() {
 					>
 						Откроется в новом окне
 					</Typography>
+
+					{/* Блок автовхода внутри основной карточки */}
+					<Box sx={{ width: '100%', mt: 4 }}>
+						<Divider sx={{
+							mb: 3,
+							borderColor: theme.palette.mode === 'dark' ? theme.palette.tones[5] : theme.palette.tones[7],
+							opacity: 0.5
+						}} />
+
+						<FormGroup sx={{ width: '100%' }}>
+							<FormControlLabel
+								control={
+									<Checkbox
+										checked={autoLogin}
+										onChange={handleAutoLoginChange}
+										color="primary"
+										sx={{
+											color: theme.palette.mode === 'dark' ? theme.palette.tones[7] : theme.palette.tones[3]
+										}}
+									/>
+								}
+								label={
+									<Typography
+										variant="body1"
+										sx={{
+											color: theme.palette.mode === 'dark' ? theme.palette.tones[7] : theme.palette.tones[3]
+										}}
+									>
+										Автоматический вход (в разработке)
+									</Typography>
+								}
+								sx={{
+									mb: autoLogin ? 2 : 0,
+									alignSelf: 'flex-start'
+								}}
+							/>
+
+							<Collapse in={autoLogin} timeout="auto" unmountOnExit>
+								<Box
+									component={motion.div}
+									initial={{ opacity: 0, y: -10 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ duration: 0.3 }}
+									sx={{ width: '100%', mt: 1 }}
+								>
+									<TextField
+										label="Логин"
+										variant="outlined"
+										fullWidth
+										value={username}
+										onChange={(e) => setUsername(e.target.value)}
+										sx={{
+											mb: 2,
+											'& .MuiOutlinedInput-root': {
+												'& fieldset': {
+													borderColor: theme.palette.mode === 'dark' ? theme.palette.tones[5] : theme.palette.tones[7],
+												},
+											}
+										}}
+									/>
+									<TextField
+										label="Пароль"
+										type="password"
+										variant="outlined"
+										fullWidth
+										value={password}
+										onChange={(e) => setPassword(e.target.value)}
+										sx={{
+											'& .MuiOutlinedInput-root': {
+												'& fieldset': {
+													borderColor: theme.palette.mode === 'dark' ? theme.palette.tones[5] : theme.palette.tones[7],
+												},
+											}
+										}}
+									/>
+									{error && (
+										<Typography color="error" variant="body2" sx={{ mt: 1 }}>
+											{error}
+										</Typography>
+									)}
+								</Box>
+							</Collapse>
+						</FormGroup>
+					</Box>
 				</Paper>
 			</Fade>
 		</Box>
