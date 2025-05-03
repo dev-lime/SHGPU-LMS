@@ -41,10 +41,7 @@ export default function UsersPage() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (history.state && history.state.autoFocusSearch) {
-            setAutoFocusSearch(true);
-            window.history.replaceState({}, document.title);
-        }
+        setAutoFocusSearch(true);
     }, []);
 
     useEffect(() => {
@@ -115,7 +112,7 @@ export default function UsersPage() {
             {/* Заголовок с кнопкой назад */}
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <IconButton onClick={() => navigate(-1)} sx={{ mr: 1 }}>
-                    <ArrowBack color='primary'/>
+                    <ArrowBack color='primary' />
                 </IconButton>
                 <Typography variant="h6" fontWeight="bold">
                     Пользователи

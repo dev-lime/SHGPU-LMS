@@ -13,7 +13,7 @@ const SearchBar = ({
     onChange,
     width = '100%',
     sx = {},
-    autoFocus = false // Новый необязательный параметр
+    autoFocus = false // необязательный параметр
 }) => {
     const inputRef = useRef(null);
 

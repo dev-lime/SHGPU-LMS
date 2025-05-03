@@ -169,14 +169,19 @@ const ChatList = ({ chats, onChatClick }) => {
                 return (
                     <React.Fragment key={chat.id}>
                         <ListItem
-                            component="button"
+                            component="div"
                             onClick={() => onChatClick(chat.id)}
                             sx={{
                                 px: 1,
                                 borderRadius: 1,
                                 '&:hover': { backgroundColor: 'action.hover' },
                                 '&.Mui-selected, &:focus': { outline: 'none' },
-                                backgroundColor: 'transparent'
+                                backgroundColor: 'transparent',
+                                width: '100%',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                cursor: 'pointer'
                             }}
                         >
                             <ListItemAvatar>
