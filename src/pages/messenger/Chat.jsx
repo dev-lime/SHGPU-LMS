@@ -636,7 +636,7 @@ export default function Chat() {
                     bgcolor: 'background.paper',
                     flexShrink: 0
                 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
                         <IconButton
                             onClick={() => navigate('/chats')}
                             sx={{ ml: 1, mr: 1 }}
@@ -662,18 +662,45 @@ export default function Chat() {
                                 sx={{
                                     textTransform: 'none',
                                     color: 'text.primary',
-                                    '&:hover': { backgroundColor: 'action.hover' }
+                                    '&:hover': { backgroundColor: 'action.hover' },
+                                    flex: 1,
+                                    minWidth: 0,
+                                    textAlign: 'left',
+                                    justifyContent: 'flex-start',
+                                    py: 0.5
                                 }}
                             >
-                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                    <Typography variant="h6">
+                                <Box sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    minWidth: 0,
+                                    width: '100%',
+                                    gap: 0.2
+                                }}>
+                                    <Typography
+                                        variant="h6"
+                                        noWrap
+                                        sx={{
+                                            textOverflow: 'ellipsis',
+                                            overflow: 'hidden',
+                                            display: 'block',
+                                            lineHeight: 1.2
+                                        }}
+                                    >
                                         {otherUser.fullName || 'Пользователь'}
                                     </Typography>
                                     {otherUser?.accountType && (
                                         <Typography
                                             variant="caption"
                                             color="text.secondary"
-                                            sx={{ fontSize: '0.75rem', lineHeight: 0.7 }}
+                                            noWrap
+                                            sx={{
+                                                fontSize: '0.75rem',
+                                                lineHeight: 1,
+                                                textOverflow: 'ellipsis',
+                                                overflow: 'hidden',
+                                                display: 'block'
+                                            }}
                                         >
                                             {getUserRoleText(otherUser)}
                                         </Typography>
