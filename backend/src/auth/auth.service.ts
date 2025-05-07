@@ -1,5 +1,5 @@
 // auth.service.ts
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
@@ -21,6 +21,18 @@ export class AuthService {
 			return result;
 		}
 		return null;
+	}
+
+	async verifyToken(token: string): Promise<any> {
+		return this.jwtService.verify(token, {
+			secret: this.configService.get<string>('JWT_SECRET'),
+		});
+	}
+
+	async getUserFromSocket(client: any): Promise<User> {
+		const token = client.handshake.auth.token || client.handshake.query.token;
+		const payload = await this.verifyToken(token);
+		return this.usersService.findOneById(payload.sub);
 	}
 
 	async login(user: User) {

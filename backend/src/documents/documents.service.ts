@@ -1,9 +1,9 @@
 // documents.service.ts
 import { Injectable } from '@nestjs/common';
-import { User } from '../users/entities/user.entity';
-import { Template } from './entities/template.entity';
-import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Template } from './entities/template.entity';
+import { User } from '../users/entities/user.entity';
 import { compile } from 'handlebars';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -24,7 +24,6 @@ export class DocumentsService {
 			throw new Error('Template not found');
 		}
 
-		// Загружаем шаблон из файла
 		const templatePath = path.join(
 			process.cwd(),
 			'templates',
@@ -32,12 +31,10 @@ export class DocumentsService {
 		);
 		const templateContent = fs.readFileSync(templatePath, 'utf-8');
 
-		// Компилируем шаблон с данными пользователя
 		const compiledTemplate = compile(templateContent);
 		const data = this.prepareUserData(user);
 		const result = compiledTemplate(data);
 
-		// В перспективе: конвертация в PDF
 		return Buffer.from(result, 'utf-8');
 	}
 

@@ -3,18 +3,17 @@ import { AuthService } from '../../auth/auth.service';
 
 @Injectable()
 export class WsJwtGuard implements CanActivate {
-    constructor(private authService: AuthService) { }
+	constructor(private authService: AuthService) { }
 
-    async canActivate(context: ExecutionContext): Promise<boolean> {
-        const client = context.switchToWs().getClient();
-        const token = client.handshake.query.token;
+	async canActivate(context: ExecutionContext): Promise<boolean> {
+		const client = context.switchToWs().getClient();
+		const token = client.handshake.auth.token || client.handshake.query.token;
 
-        try {
-            const user = await this.authService.verifyToken(token);
-            client.user = user;
-            return true;
-        } catch (e) {
-            return false;
-        }
-    }
+		try {
+			client.user = await this.authService.verifyToken(token);
+			return true;
+		} catch (e) {
+			return false;
+		}
+	}
 }

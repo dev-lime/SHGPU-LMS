@@ -1,3 +1,4 @@
+// entities/user.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from 'typeorm';
 import { Profile } from './profile.entity';
 import { UserRole } from '../enums/user-role.enum';
