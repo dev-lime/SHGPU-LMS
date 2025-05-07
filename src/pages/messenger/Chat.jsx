@@ -187,7 +187,7 @@ const MessageItem = React.memo(({
                                     wordBreak: 'break-word'
                                 },
                                 '& pre': {
-                                    backgroundColor: 'rgba(0,0,0,0.1)',
+                                    backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                                     borderRadius: '4px',
                                     padding: '8px',
                                     overflowX: 'auto',
@@ -196,7 +196,60 @@ const MessageItem = React.memo(({
                                 },
                                 '& code': {
                                     fontFamily: 'monospace',
-                                    whiteSpace: 'pre-wrap'
+                                    whiteSpace: 'pre-wrap',
+                                    backgroundColor: 'transparent',
+                                    padding: '2px 4px',
+                                    borderRadius: '3px'
+                                },
+                                '& blockquote': {
+                                    borderLeft: '3px solid',
+                                    borderColor: isOwnMessage ? 'primary.light' : 'text.secondary',
+                                    paddingLeft: '12px',
+                                    margin: '8px 0',
+                                    color: isOwnMessage ? 'primary.light' : 'text.secondary',
+                                    fontStyle: 'italic'
+                                },
+                                '& ul, & ol': {
+                                    paddingLeft: '24px',
+                                    margin: '8px 0'
+                                },
+                                '& li': {
+                                    marginBottom: '4px'
+                                },
+                                '& table': {
+                                    borderCollapse: 'collapse',
+                                    width: '100%',
+                                    margin: '8px 0',
+                                    overflow: 'hidden',
+                                    borderRadius: '4px'
+                                },
+                                '& th, & td': {
+                                    border: '1px solid',
+                                    borderColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
+                                    padding: '6px 12px',
+                                    textAlign: 'left'
+                                },
+                                '& th': {
+                                    backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'
+                                },
+                                '& a': {
+                                    color: 'inherit',
+                                    textDecoration: 'none',
+                                    borderBottom: '1px solid',
+                                    borderColor: isOwnMessage ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)',
+                                    transition: 'border-color 0.2s',
+                                    '&:hover': {
+                                        borderColor: 'inherit',
+                                        textDecoration: 'none'
+                                    }
+                                },
+                                '& img': {
+                                    maxWidth: '100%',
+                                    borderRadius: '4px'
+                                },
+                                '& h1, & h2, & h3, & h4, & h5, & h6': {
+                                    margin: '16px 0 8px 0',
+                                    lineHeight: 1.2
                                 },
                                 maxWidth: '100%',
                                 overflow: 'hidden'
@@ -208,7 +261,14 @@ const MessageItem = React.memo(({
                                         components={{
                                             p: ({ node, ...props }) => <p {...props} />,
                                             pre: ({ node, ...props }) => <pre {...props} />,
-                                            code: ({ node, ...props }) => <code {...props} />
+                                            code: ({ node, ...props }) => <code {...props} />,
+                                            a: ({ node, ...props }) => (
+                                                <a
+                                                    {...props}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                />
+                                            )
                                         }}
                                     >
                                         {message?.text || ''}
