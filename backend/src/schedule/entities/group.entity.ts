@@ -1,14 +1,14 @@
-// entities/group.entity.ts
+// schedule/entities/group.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity()
 export class Group {
 	@PrimaryGeneratedColumn('uuid')
-	id: string;
+	id!: string;
 
 	@Column()
-	name: string;
+	name!: string;
 
 	@Column()
-	course: number;
+	course!: number;
 }

@@ -1,17 +1,17 @@
-// entities/template.entity.ts
+// documents/entities/template.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity()
 export class Template {
 	@PrimaryGeneratedColumn('uuid')
-	id: string;
+	id!: string;
 
 	@Column()
-	name: string;
+	name!: string;
 
 	@Column()
-	templateFile: string;
+	templateFile!: string;
 
 	@Column({ type: 'json', nullable: true })
-	fields: Record<string, any>;
+	fields?: Record<string, any>;
 }

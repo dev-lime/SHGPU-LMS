@@ -1,3 +1,4 @@
+// common/guards/ws-jwt.guard.ts
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { AuthService } from '../../auth/auth.service';
 
@@ -7,10 +8,11 @@ export class WsJwtGuard implements CanActivate {
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const client = context.switchToWs().getClient();
-		const token = client.handshake.auth.token || client.handshake.query.token;
+		const token = client.handshake.auth.token;
 
 		try {
-			client.user = await this.authService.verifyToken(token);
+			const user = await this.authService.validateToken(token);
+			client.data.user = user;
 			return true;
 		} catch (e) {
 			return false;

@@ -1,23 +1,23 @@
-// entities/news-item.entity.ts
+// news/entities/news-item.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity()
 export class NewsItem {
 	@PrimaryGeneratedColumn('uuid')
-	id: string;
+	id!: string;
 
 	@Column()
-	title: string;
+	title!: string;
 
 	@Column('text')
-	content: string;
+	content!: string;
 
 	@Column()
-	date: Date;
+	date!: Date;
 
 	@Column({ nullable: true })
-	imageUrl: string;
+	imageUrl?: string;
 
 	@Column({ nullable: true })
-	sourceUrl: string;
+	sourceUrl?: string;
 }

@@ -1,4 +1,4 @@
-// enums/user-role.enum.ts
+// users/enums/user-role.enum.ts
 export enum UserRole {
 	STUDENT = 'student',
 	TEACHER = 'teacher',

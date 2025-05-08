@@ -1,4 +1,4 @@
-// auth.service.ts
+// auth/auth.service.ts
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
@@ -14,25 +14,12 @@ export class AuthService {
 		private configService: ConfigService,
 	) { }
 
-	async validateUser(email: string, pass: string): Promise<any> {
+	async validateUser(email: string, pass: string): Promise<User | null> {
 		const user = await this.usersService.findOneByEmail(email);
 		if (user && (await bcrypt.compare(pass, user.password))) {
-			const { password, ...result } = user;
-			return result;
+			return user;
 		}
 		return null;
-	}
-
-	async verifyToken(token: string): Promise<any> {
-		return this.jwtService.verify(token, {
-			secret: this.configService.get<string>('JWT_SECRET'),
-		});
-	}
-
-	async getUserFromSocket(client: any): Promise<User> {
-		const token = client.handshake.auth.token || client.handshake.query.token;
-		const payload = await this.verifyToken(token);
-		return this.usersService.findOneById(payload.sub);
 	}
 
 	async login(user: User) {
@@ -67,5 +54,15 @@ export class AuthService {
 		return {
 			access_token: this.jwtService.sign(payload),
 		};
+	}
+
+	async validateToken(token: string): Promise<User | null> {
+		try {
+			const decoded = this.jwtService.verify(token);
+			// Здесь будет логика проверки пользователя по id или другому параметру
+			return await this.usersService.findOneById(decoded.sub);
+		} catch (e) {
+			return null;
+		}
 	}
 }

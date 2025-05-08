@@ -16,10 +16,19 @@
     "cheerio": "^1.0.0",
     "fs": "^0.0.1-security",
     "handlebars": "^4.7.8",
+    "multer": "^1.4.5-lts.2",
     "nestjs": "^0.0.1",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "path": "^0.12.7",
     "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/express": "^5.0.1",
+    "@types/multer": "^1.4.12",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/passport-local": "^1.0.38",
+    "class-validator": "^0.14.2"
   }
 }

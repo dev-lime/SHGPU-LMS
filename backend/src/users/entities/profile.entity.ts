@@ -1,26 +1,26 @@
-// entities/profile.entity.ts
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+// users/entities/profile.entity.ts
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity()
 export class Profile {
 	@PrimaryGeneratedColumn('uuid')
-	id: string;
+	id!: string;
 
 	@Column()
-	firstName: string;
+	firstName!: string;
 
 	@Column()
-	lastName: string;
+	lastName!: string;
 
 	@Column({ nullable: true })
-	middleName: string;
+	middleName?: string;
 
 	@Column({ nullable: true })
-	avatar: string;
+	avatar?: string;
 
 	@Column({ nullable: true })
-	group: string;
+	group?: string;
 
 	@Column({ nullable: true })
-	course: number;
+	course?: number;
 }
