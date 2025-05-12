@@ -33,16 +33,20 @@ const Schedule = () => {
 	const studentGroup = userData?.accountType === 'student' ? userData.studentGroup : null;
 	const controls = useAnimation();
 	const [isDragging, setIsDragging] = useState(false);
+	// Состояние для хранения прогресса текущей пары
+	const [currentPairProgress, setCurrentPairProgress] = useState(0);
+	// Состояние для хранения следующей пары (для выделения на перемене)
+	const [nextPair, setNextPair] = useState(null);
 
 	const transformedData = useMemo(() => transformScheduleData(scheduleData), []);
 
 	const pairTimes = [
-		[8, 0, 9, 30],    // 1 пара
-		[9, 40, 11, 10],   // 2 пара
-		[11, 20, 12, 50],  // 3 пара
-		[13, 20, 14, 50],  // 4 пара
-		[15, 0, 16, 30],   // 5 пара
-		[16, 40, 18, 10]   // 6 пара
+		[8, 0, 9, 30],		// 1 пара
+		[9, 40, 11, 10],	// 2 пара
+		[11, 20, 12, 50],	// 3 пара
+		[13, 20, 14, 50],	// 4 пара
+		[15, 0, 16, 30],	// 5 пара
+		[16, 40, 18, 10],	// 6 пара
 	];
 
 	// Обработчик клика по преподавателю
@@ -130,11 +134,12 @@ const Schedule = () => {
 		});
 	}, [weekDates, transformedData]);
 
-	// Определение текущей пары с учетом UTC+5
+	// Определение текущей и следующей пары с учетом UTC+5
 	useEffect(() => {
 		const updateCurrentTime = () => {
 			const now = getCurrentDate();
 			let activePair = 0;
+			let nextPair = null;
 
 			for (let i = 0; i < pairTimes.length; i++) {
 				const [startHour, startMinute, endHour, endMinute] = pairTimes[i];
@@ -147,15 +152,23 @@ const Schedule = () => {
 
 				if (now >= startTime && now <= endTime) {
 					activePair = i + 1;
+					// Рассчитываем прогресс текущей пары
+					const totalDuration = endTime - startTime;
+					const elapsed = now - startTime;
+					const progress = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
+					setCurrentPairProgress(progress);
 					break;
+				} else if (now < startTime && !nextPair) {
+					nextPair = i + 1;
 				}
 			}
 
 			setCurrentPair(activePair);
+			setNextPair(activePair === 0 ? nextPair : null);
 		};
 
 		updateCurrentTime();
-		const interval = setInterval(updateCurrentTime, 60000);
+		const interval = setInterval(updateCurrentTime, 1000); // Обновляем каждую секунду
 		return () => clearInterval(interval);
 	}, []);
 
@@ -270,10 +283,11 @@ const Schedule = () => {
 				sx={{
 					touchAction: 'pan-y',
 					userSelect: 'none',
-					WebkitUserSelect: 'none'
+					WebkitUserSelect: 'none',
+					position: 'relative'
 				}}
 			>
-				<Table>
+				<Table sx={{ position: 'relative' }}>
 					<TableBody>
 						{scheduleDataForWeek.map(({ day, dateString, classes, isToday, isEmpty }) => (
 							<React.Fragment key={day + dateString}>
@@ -311,52 +325,72 @@ const Schedule = () => {
 										</TableCell>
 									</TableRow>
 								) : (
-									classes.map((cls) => (
-										<TableRow
-											key={cls.number}
-											ref={isToday && cls.number === currentPair ? currentPairRef : null}
-											sx={{
-												bgcolor: isToday && cls.number === currentPair ? 'primary.main' :
-													isToday ? theme.palette.tones[1] : 'inherit',
-												color: isToday && cls.number === currentPair ? 'primary.contrastText' : 'inherit',
-												'&:last-child td': { borderBottom: isToday ? 'none' : 'inherit' }
-											}}
-										>
-											<TableCell
-												align="center"
+									classes.map((cls) => {
+										const isCurrentPair = isToday && cls.number === currentPair;
+										const isNextPair = isToday && nextPair === cls.number;
+
+										return (
+											<TableRow
+												key={cls.number}
+												ref={(isCurrentPair || isNextPair) ? currentPairRef : null}
 												sx={{
-													width: '40px',
-													padding: '0px 10px',
-													textAlign: 'right'
-												}}>
-												{cls.number}
-											</TableCell>
-											<TableCell>
-												<Typography fontWeight="medium">
-													{cls.subject}
-												</Typography>
-												<Typography
-													variant="body2"
-													color={isToday && cls.number === currentPair ? 'theme.palette.tones[1].contrastText' : 'text.secondary'}
-													onClick={(e) => handleTeacherClick(cls.teachers, e)}
-													sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
-												>
-													{cls.teachers}
-												</Typography>
-											</TableCell>
-											<TableCell width={120}>
-												<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-													<Typography>{cls.type}</Typography>
+													bgcolor: isCurrentPair ? 'primary.main' :
+														isNextPair ? 'primary.main' :
+															isToday ? theme.palette.tones[1] : 'inherit',
+													color: isCurrentPair ? 'primary.contrastText' : 'inherit',
+													'&:last-child td': { borderBottom: isToday ? 'none' : 'inherit' },
+													position: 'relative',
+													'&::after': isCurrentPair ? {
+														content: '""',
+														position: 'absolute',
+														top: 0,
+														left: 0,
+														height: '100%',
+														width: `${currentPairProgress}%`,
+														backgroundColor: theme.palette.primary.dark,
+														zIndex: 0,
+														transition: 'width 1s linear'
+													} : {}
+												}}
+											>
+												<TableCell
+													align="center"
+													sx={{
+														width: '40px',
+														padding: '0px 10px',
+														textAlign: 'right',
+														position: 'relative',
+														zIndex: 1
+													}}>
+													{cls.number}
+												</TableCell>
+												<TableCell sx={{ position: 'relative', zIndex: 1 }}>
+													<Typography fontWeight="medium">
+														{cls.subject}
+													</Typography>
 													<Typography
-														onClick={(e) => handleRoomClick(cls.room, e)}
+														variant="body2"
+														color={isCurrentPair ? 'primary.contrastText' : 'text.secondary'}
+														onClick={(e) => handleTeacherClick(cls.teachers, e)}
 														sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
 													>
-														{cls.room}
+														{cls.teachers}
 													</Typography>
-												</Box>
-											</TableCell>
-										</TableRow>
-									))
+												</TableCell>
+												<TableCell width={120} sx={{ position: 'relative', zIndex: 1 }}>
+													<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+														<Typography>{cls.type}</Typography>
+														<Typography
+															onClick={(e) => handleRoomClick(cls.room, e)}
+															sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+														>
+															{cls.room}
+														</Typography>
+													</Box>
+												</TableCell>
+											</TableRow>
+										);
+									})
 								)}
 							</React.Fragment>
 						))}
