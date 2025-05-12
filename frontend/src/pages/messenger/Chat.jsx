@@ -25,9 +25,25 @@ import {
     Menu,
     MenuItem,
     ListItemIcon,
-    ListItemText
+    ListItemText,
+    Paper,
+    Tabs,
+    Tab,
+    useTheme
 } from '@mui/material';
-import { Send, ArrowBack, MoreVert, ContentCopy, Delete, Phone } from '@mui/icons-material';
+import {
+    Send,
+    ArrowBack,
+    MoreVert,
+    ContentCopy,
+    Delete,
+    Phone,
+    AttachFile,
+    InsertPhoto,
+    InsertDriveFile,
+    Poll,
+    DragIndicator
+} from '@mui/icons-material';
 import { db, auth } from '@src/firebase';
 import {
     doc,
@@ -44,6 +60,7 @@ import {
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
 const ReactMarkdown = lazy(() => import('react-markdown'));
+const AttachmentPanel = lazy(() => import('@components/AttachmentPanel'));
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github.css';
@@ -366,6 +383,7 @@ export default function Chat() {
     const [initialScrollDone, setInitialScrollDone] = useState(false);
     const [menuAnchorEl, setMenuAnchorEl] = useState(null);
     const [isChatDeleteDialogOpen, setIsChatDeleteDialogOpen] = useState(false);
+    const [isAttachmentPanelOpen, setIsAttachmentPanelOpen] = useState(false);
 
     const cleanMessageText = (text) => {
         text = text.replace(/[\x00-\x08\x0B-\x1F\x7F]/g, '');
@@ -891,7 +909,12 @@ export default function Chat() {
                         placeholder="Написать сообщение..."
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyPress={handleKeyPress}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                            }
+                        }}
                         multiline
                         maxRows={4}
                         sx={{
@@ -904,6 +927,16 @@ export default function Chat() {
                             }
                         }}
                         InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <IconButton
+                                        onClick={() => setIsAttachmentPanelOpen(true)}
+                                        edge="start"
+                                    >
+                                        <AttachFile />
+                                    </IconButton>
+                                </InputAdornment>
+                            ),
                             endAdornment: (
                                 <InputAdornment position="end">
                                     <IconButton
@@ -915,9 +948,30 @@ export default function Chat() {
                                     </IconButton>
                                 </InputAdornment>
                             ),
-                            disableUnderline: true
                         }}
                     />
+
+                    <Suspense fallback={null}>
+                        <AttachmentPanel
+                            open={isAttachmentPanelOpen}
+                            onClose={() => setIsAttachmentPanelOpen(false)}
+                        />
+                    </Suspense>
+
+                    {isAttachmentPanelOpen && (
+                        <Box
+                            sx={{
+                                position: 'fixed',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                                zIndex: 1200
+                            }}
+                            onClick={() => setIsAttachmentPanelOpen(false)}
+                        />
+                    )}
                 </Box>
             </Slide>
         </Box>
