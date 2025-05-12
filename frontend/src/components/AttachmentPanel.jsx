@@ -11,8 +11,7 @@ import {
 import {
 	InsertPhoto,
 	InsertDriveFile,
-	Poll,
-	DragIndicator
+	Poll
 } from '@mui/icons-material';
 
 const AttachmentPanel = ({ open, onClose }) => {
@@ -136,18 +135,30 @@ const AttachmentPanel = ({ open, onClose }) => {
 						justifyContent: 'center',
 						alignItems: 'center',
 						height: 24,
+						py: 1,
 						cursor: isDragging ? 'grabbing' : 'grab',
-						bgcolor: isDragging ? 'action.selected' : 'background.paper',
-						transition: 'background-color 0.2s'
+						position: 'relative',
+						'&:hover': {
+							'& .drag-handle': {
+								backgroundColor: theme.palette.primary.main,
+								width: '48px'
+							}
+						}
 					}}
 					onMouseDown={handleDragStart}
 					onTouchStart={handleDragStart}
 				>
-					<DragIndicator
+					<Box
+						className="drag-handle"
 						sx={{
-							color: 'text.secondary',
-							transform: 'rotate(90deg)',
-							opacity: 0.7
+							width: '40px',
+							height: '4px',
+							borderRadius: '2px',
+							backgroundColor: isDragging
+								? theme.palette.primary.main
+								: theme.palette.text.secondary,
+							opacity: isDragging ? 1 : 0.7,
+							transition: 'all 0.2s ease',
 						}}
 					/>
 				</Box>
