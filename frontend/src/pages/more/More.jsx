@@ -13,7 +13,8 @@ import {
 	Settings,
 	HelpOutline,
 	AccountCircle,
-	CreditCard
+	Badge,
+	Payment
 } from '@mui/icons-material';
 import ProfileSection from './ProfileSection';
 import CustomListItem from '@components/CustomListItem';
@@ -24,8 +25,14 @@ export default function More() {
 	const menuItems = [
 		{
 			name: "Предъявить студенческий",
-			icon: <CreditCard color="primary" />,
+			icon: <Badge color="primary" />,
 			onClick: () => navigate('/idcard')
+		},
+		{
+			name: "Онлайн-платежи",
+			description: "Оплата обучения и других услуг",
+			icon: <Payment color="primary" />,
+			onClick: () => window.open('https://pay.shspu.ru/', '_blank')
 		},
 		{
 			name: "Документы",
