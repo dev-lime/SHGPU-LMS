@@ -69,7 +69,6 @@ export default function More() {
 			<Paper elevation={0} sx={{
 				borderRadius: 3,
 				border: '1px solid',
-				overflow: 'hidden',
 				borderColor: 'divider',
 				mb: 3
 			}}>
@@ -87,7 +86,6 @@ export default function More() {
 			<Paper elevation={0} sx={{
 				borderRadius: 3,
 				border: '1px solid',
-				overflow: 'hidden',
 				borderColor: 'divider'
 			}}>
 				<List disablePadding>
