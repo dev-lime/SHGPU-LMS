@@ -23,9 +23,9 @@ export const transformScheduleData = (originalData) => {
 
         if (text.toLowerCase().includes("зачет")) {
             const teacher = parts[0];
-            const rest = parts.slice(1).join(" / ");
-            const subject = rest.replace(/\s*\(зачет.*?\)/i, '').trim();
-            const roomMatch = rest.match(/(?:\)\s*)?([а-яa-z0-9]+)$/i);
+            const subjectAndRoom = parts.slice(1).join(" / ");
+            const subject = subjectAndRoom.split(/(\(?зачет\)?)/i)[0].trim();
+            const roomMatch = subjectAndRoom.match(/([а-яa-z0-9]+)$/i);
             const room = roomMatch ? roomMatch[1] : "";
 
             return {
@@ -33,7 +33,7 @@ export const transformScheduleData = (originalData) => {
                 subject: subject,
                 type: "зачет",
                 room: room,
-                originalText: text,
+                originalText: text
             };
         }
 
