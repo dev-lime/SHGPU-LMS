@@ -379,7 +379,9 @@ const Schedule = () => {
 												</TableCell>
 												<TableCell width={120} sx={{ position: 'relative', zIndex: 1 }}>
 													<Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-														<Typography>{cls.type}</Typography>
+														<Typography fontWeight={cls.type === 'зачет' ? 'bold' : 'normal'}>
+															{cls.type}
+														</Typography>
 														<Typography
 															onClick={(e) => handleRoomClick(cls.room, e)}
 															sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}

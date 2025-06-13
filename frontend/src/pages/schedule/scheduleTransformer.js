@@ -19,8 +19,22 @@ export const transformScheduleData = (originalData) => {
         const normalizedText = text.replace(/\s*\/\s*/g, " / ");
         const parts = normalizedText.split(" / ").map((part) => part.trim());
 
-        if (parts.length < 2) {
-            return null;
+        if (parts.length < 2) return null;
+
+        if (text.toLowerCase().includes("зачет")) {
+            const teacher = parts[0];
+            const rest = parts.slice(1).join(" / ");
+            const subject = rest.replace(/\s*\(зачет.*?\)/i, '').trim();
+            const roomMatch = rest.match(/(?:\)\s*)?([а-яa-z0-9]+)$/i);
+            const room = roomMatch ? roomMatch[1] : "";
+
+            return {
+                teachers: teacher,
+                subject: subject,
+                type: "зачет",
+                room: room,
+                originalText: text,
+            };
         }
 
         let teachersPart = "";
