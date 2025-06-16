@@ -7,6 +7,7 @@ export const transformScheduleData = (originalData) => {
         "День самостоятельной работы",
         "Праздничный день",
         "Проектная среда",
+        "День подготовки"
     ];
 
     const shouldFilterPair = (pairText) => {
