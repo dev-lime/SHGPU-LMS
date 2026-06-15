@@ -21,9 +21,9 @@ export class ScheduleService {
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
 	) { }
 
-	async getGroupSchedule(groupId: string, week?: number) {
+	async getGroupSchedule(groupId: string, week?: number): Promise<Lesson[]> {
 		const cacheKey = `schedule_group_${groupId}_${week || 'current'}`;
-		const cached = await this.cacheManager.get(cacheKey);
+		const cached = await this.cacheManager.get<Lesson[]>(cacheKey);
 
 		if (cached) {
 			return cached;
@@ -35,17 +35,17 @@ export class ScheduleService {
 			order: { weekDay: 'ASC', startTime: 'ASC' },
 		});
 
-		await this.cacheManager.set(cacheKey, schedule, 3600); // Кэш на 1 час
+		await this.cacheManager.set(cacheKey, schedule, 3600);
 		return schedule;
 	}
 
 	async getCurrentLesson(groupId: string) {
 		const now = new Date();
-		const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1; // Приводим к формату 0-6 (ПН-ВС)
+		const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1;
 		const currentTime = `${now.getHours()}:${now.getMinutes()}`;
 
 		const schedule = await this.getGroupSchedule(groupId);
-		return schedule.find(lesson => {
+		return schedule.find((lesson: Lesson) => {
 			return (
 				lesson.weekDay === dayOfWeek &&
 				lesson.startTime <= currentTime &&
@@ -63,8 +63,7 @@ export class ScheduleService {
 			// Обработка и сохранение данных
 			// ...
 
-			// Очистка кэша
-			await this.cacheManager.reset();
+			await this.cacheManager.clear();
 		} catch (error) {
 			// Обработка ошибок
 		}

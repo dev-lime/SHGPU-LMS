@@ -11,7 +11,7 @@ import {
 	Description,
 	FormatListBulleted,
 	Settings,
-	HelpOutline,
+	HelpOutlined,
 	AccountCircle,
 	Badge,
 	Payment

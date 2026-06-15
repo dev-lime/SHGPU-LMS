@@ -19,10 +19,10 @@ export default defineConfig({
 	build: {
 		rollupOptions: {
 			output: {
-				manualChunks: {
-					mui: ['@mui/material', '@mui/icons-material'],
-					firebase: ['firebase/firestore', 'firebase/auth', 'firebase/storage'],
-					react: ['react', 'react-dom', 'react-router-dom']
+				manualChunks(id) {
+					if (id.includes('@mui/material') || id.includes('@mui/icons-material')) return 'mui';
+					if (id.includes('node_modules/react/')) return 'react';
+					if (id.includes('firebase/')) return 'firebase';
 				}
 			}
 		},
