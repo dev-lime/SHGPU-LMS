@@ -319,7 +319,7 @@ const Schedule = () => {
 										}}
 									>
 										<TableCell colSpan={3} sx={{ textAlign: 'center', py: 2 }}>
-											<Typography variant="body2" color="theme.palette.tones[1].contrastText">
+											<Typography variant="body2" color={theme.palette.tones[1]?.contrastText}>
 												Нет занятий
 											</Typography>
 										</TableCell>

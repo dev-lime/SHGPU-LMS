@@ -626,7 +626,7 @@ export default function Chat() {
         try {
             const messageRef = await addDoc(collection(db, 'chats', chatId, 'messages'), {
                 text: cleanedMessage,
-                sender: auth.currentUser.uid,
+                sender: auth.currentUser?.uid,
                 timestamp: serverTimestamp()
             });
 
