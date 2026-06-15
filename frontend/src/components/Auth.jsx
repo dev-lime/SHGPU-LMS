@@ -6,6 +6,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@src/firebase';
+import { getGroupId } from '@services/groupService';
 import {
 	validatePhone,
 	getPhoneError,
@@ -130,11 +131,15 @@ export default function Auth() {
 					displayName: fullName
 				});
 
+				const normalizedGroup = studentGroup ? studentGroup.toUpperCase() : '';
+				const groupId = normalizedGroup ? await getGroupId(normalizedGroup) : null;
+
 				await setDoc(doc(db, 'users', userCredential.user.uid), {
 					fullName,
 					email,
 					phone,
-					studentGroup: studentGroup ? studentGroup.toUpperCase() : '',
+					studentGroup: normalizedGroup,
+					groupId,
 					createdAt: new Date(),
 					updatedAt: new Date()
 				});

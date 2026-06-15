@@ -1,6 +1,10 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { writeFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Категории и соответствующие URL (новости университета идут последними)
 const categories = [
@@ -169,10 +173,13 @@ async function main() {
 
     // Сохраняем результаты в JSON файл
     const jsonData = JSON.stringify(allNews, null, 2);
-    writeFileSync('news-data.json', jsonData, 'utf8');
+    writeFileSync(resolve(__dirname, 'news-data.json'), jsonData, 'utf8');
 
     console.log(`Парсинг завершен. Сохранено ${allNews.length} уникальных новостей.`);
 }
 
 // Запускаем парсер
-main();
+main().then(() => process.exit(0)).catch((err) => {
+    console.error('Парсинг завершился ошибкой:', err);
+    process.exit(1);
+});

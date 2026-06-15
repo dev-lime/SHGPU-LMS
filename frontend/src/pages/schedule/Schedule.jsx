@@ -15,7 +15,7 @@ import {
 import { ChevronLeft, ChevronRight, Schedule as ScheduleIcon } from "@mui/icons-material";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { transformScheduleData } from './scheduleTransformer';
-import scheduleData from './schedule-data.json';
+import fallbackScheduleData from './schedule-data.json';
 import useProfile from '@hooks/useProfile';
 
 // Константа для UTC+5 (Екатеринбург)
@@ -31,14 +31,40 @@ const Schedule = () => {
 	const todayRowRef = useRef(null);
 	const { userData } = useProfile();
 	const studentGroup = userData?.accountType === 'student' ? userData.studentGroup : null;
+	const groupId = userData?.groupId;
 	const controls = useAnimation();
 	const [isDragging, setIsDragging] = useState(false);
 	// Состояние для хранения прогресса текущей пары
 	const [currentPairProgress, setCurrentPairProgress] = useState(0);
 	// Состояние для хранения следующей пары (для выделения на перемене)
 	const [nextPair, setNextPair] = useState(null);
+	const [scheduleData, setScheduleData] = useState(fallbackScheduleData);
 
-	const transformedData = useMemo(() => transformScheduleData(scheduleData), []);
+	useEffect(() => {
+		if (!groupId) {
+			console.log('Расписание: кэшированное (JSON) — группа не указана');
+			return;
+		}
+
+		const now = getCurrentDate();
+		const currentDay = now.getUTCDay();
+		const monday = new Date(now);
+		monday.setUTCDate(now.getUTCDate() - (currentDay === 0 ? 6 : currentDay - 1));
+
+		fetch(`https://shspu.ru/sch_api/index.php?method=pairs.get&date=${formatDate(monday)}&groupId=${groupId}`)
+			.then(r => r.json())
+			.then(data => {
+				if (data.ok && data.result) {
+					console.log('Расписание: актуальное (API)');
+					setScheduleData(data.result);
+				}
+			})
+			.catch(() => {
+				console.warn('Расписание: кэшированное (JSON) — API недоступен');
+			});
+	}, [groupId]);
+
+	const transformedData = useMemo(() => transformScheduleData(scheduleData), [scheduleData]);
 
 	const pairTimes = [
 		[8, 0, 9, 30],		// 1 пара

@@ -51,6 +51,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, storage } from '@src/firebase';
 import useProfile from '@hooks/useProfile';
 import { createOrGetChat } from '@services/chatService';
+import { getGroupId } from '@services/groupService';
 import {
     getTelegramError,
     getPhoneError,
@@ -338,10 +339,14 @@ const UserProfile = () => {
                 formattedTelegramUrl = `https://t.me/${formData.telegramUrl.replace(/^@/, '')}`;
             }
 
+            const normalizedGroup = formData.accountType === 'student' ? normalizeGroupName(formData.studentGroup) : '';
+            const groupId = normalizedGroup ? await getGroupId(normalizedGroup) : null;
+
             const updatedData = {
                 fullName: formData.fullName,
                 phone: formData.phone,
-                studentGroup: formData.accountType === 'student' ? normalizeGroupName(formData.studentGroup) : '',
+                studentGroup: normalizedGroup,
+                groupId,
                 accountType: formData.accountType,
                 telegramUrl: formattedTelegramUrl,
                 avatarUrl: formData.avatarUrl || null
