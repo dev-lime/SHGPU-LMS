@@ -48,7 +48,7 @@ export default function More() {
 		},
 		{
 			name: "Помощь",
-			icon: <HelpOutline color="primary" />,
+			icon: <HelpOutlined color="primary" />,
 			onClick: () => navigate('/support')
 		}
 	];
