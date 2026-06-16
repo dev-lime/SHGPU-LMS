@@ -53,7 +53,7 @@ const Schedule = () => {
 		}
 		monday.setUTCDate(monday.getUTCDate() + currentWeekOffset * 7);
 
-		fetch(`https://shspu.ru/sch_api/index.php?method=pairs.get&date=${formatDate(monday)}&groupId=${groupId}`)
+		fetch(`https://shspu.ru/sch_api/index.php?method=pairs.get&date=${formatDate(monday)}&week=1&groupId=${groupId}`)
 			.then(r => r.json())
 			.then(data => {
 				if (data.ok && data.result) {
