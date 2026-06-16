@@ -33,6 +33,7 @@ import Documents from '@pages/more/Documents';
 import Support from '@pages/more/Support';
 import IDCard from '@pages/more/IDCard';
 import { createAppTheme, getSystemTheme } from './theme';
+import { useNotifications } from '@hooks/useNotifications';
 
 const MainLayout = ({
 	children,
@@ -238,6 +239,8 @@ export default function App() {
 		{ label: "Расписание", icon: <CalendarMonth />, path: "/schedule", component: <Schedule /> },
 		{ label: "Ещё", icon: <Pending />, path: "/more", component: <More /> }
 	];
+
+	useNotifications(user);
 
 	const AnimatedRoute = ({ children }) => {
 		const location = useLocation();
