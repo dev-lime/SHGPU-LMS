@@ -12,7 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build frontend
-        working-directory: frontend
         run: npm ci && npm run build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -20,4 +19,3 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SHGPU_LMS }}
           channelId: live
           projectId: shgpu-lms
-          entryPoint: frontend
