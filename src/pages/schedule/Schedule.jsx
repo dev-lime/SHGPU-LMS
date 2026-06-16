@@ -39,9 +39,19 @@ const Schedule = () => {
 	// Состояние для хранения следующей пары (для выделения на перемене)
 	const [nextPair, setNextPair] = useState(null);
 	const [scheduleData, setScheduleData] = useState(fallbackScheduleData);
+	const scheduleCacheRef = useRef({});
 
 	useEffect(() => {
 		if (!groupId) return;
+
+		const cacheKey = `${groupId}-${currentWeekOffset}`;
+
+		if (scheduleCacheRef.current[cacheKey]) {
+			const label = currentWeekOffset === 0 ? '' : currentWeekOffset > 0 ? ' — следующая неделя' : ' — прошлая неделя';
+			console.log('Расписание: кэшированное (с предыдущего запроса)' + label);
+			setScheduleData(scheduleCacheRef.current[cacheKey]);
+			return;
+		}
 
 		const now = getCurrentDate();
 		const currentDay = now.getUTCDay();
@@ -59,6 +69,7 @@ const Schedule = () => {
 				if (data.ok && data.result) {
 					const label = currentWeekOffset === 0 ? '' : currentWeekOffset > 0 ? ' — следующая неделя' : ' — прошлая неделя';
 					console.log('Расписание: актуальное (API)' + label);
+					scheduleCacheRef.current[cacheKey] = data.result;
 					setScheduleData(data.result);
 				}
 			})
