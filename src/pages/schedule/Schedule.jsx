@@ -335,26 +335,26 @@ const Schedule = () => {
 									className={isToday ? 'today-row' : ''}
 									ref={isToday ? todayRowRef : null}
 									sx={{
-										bgcolor: isToday ? theme.palette.tones[2] : 'action.hover',
-										'& .MuiTableCell-root': { borderBottom: 'none' }
-									}}
-								>
-									<TableCell colSpan={3}>
-										<Typography fontWeight="bold">
-											{day}, {dateString}
-											{isToday && (
-												<Typography component="span" variant="body2" color="primary" sx={{ ml: 1 }}>
-													(сегодня)
-												</Typography>
-											)}
-										</Typography>
-									</TableCell>
-								</TableRow>
+									bgcolor: isToday ? (theme.palette.mode === 'dark' ? theme.palette.tones[2] : theme.palette.tones[10]) : 'action.hover',
+									'& .MuiTableCell-root': { borderBottom: 'none' }
+								}}
+							>
+								<TableCell colSpan={3}>
+									<Typography fontWeight="bold">
+										{day}, {dateString}
+										{isToday && (
+											<Typography component="span" variant="body2" color="primary" sx={{ ml: 1 }}>
+												(сегодня)
+											</Typography>
+										)}
+									</Typography>
+								</TableCell>
+							</TableRow>
 
-								{isEmpty ? (
-									<TableRow
-										sx={{
-											bgcolor: isToday ? theme.palette.tones[1] : 'inherit',
+							{isEmpty ? (
+								<TableRow
+									sx={{
+										bgcolor: isToday ? (theme.palette.mode === 'dark' ? theme.palette.tones[1] : theme.palette.tones[9]) : 'inherit',
 											'&:last-child td': { borderBottom: isToday ? 'none' : 'inherit' }
 										}}
 									>
@@ -374,9 +374,9 @@ const Schedule = () => {
 												key={cls.number}
 												ref={(isCurrentPair || isNextPair) ? currentPairRef : null}
 												sx={{
-													bgcolor: isCurrentPair ? 'primary.main' :
-														isNextPair ? 'primary.main' :
-															isToday ? theme.palette.tones[1] : 'inherit',
+												bgcolor: isCurrentPair ? 'primary.main' :
+													isNextPair ? 'primary.main' :
+														isToday ? (theme.palette.mode === 'dark' ? theme.palette.tones[1] : theme.palette.tones[9]) : 'inherit',
 													color: isCurrentPair ? 'primary.contrastText' : 'inherit',
 													'&:last-child td': { borderBottom: isToday ? 'none' : 'inherit' },
 													position: 'relative',
