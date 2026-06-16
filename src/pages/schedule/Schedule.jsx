@@ -41,28 +41,31 @@ const Schedule = () => {
 	const [scheduleData, setScheduleData] = useState(fallbackScheduleData);
 
 	useEffect(() => {
-		if (!groupId) {
-			console.log('Расписание: кэшированное (JSON) — группа не указана');
-			return;
-		}
+		if (!groupId) return;
 
 		const now = getCurrentDate();
 		const currentDay = now.getUTCDay();
 		const monday = new Date(now);
-		monday.setUTCDate(now.getUTCDate() - (currentDay === 0 ? 6 : currentDay - 1));
+		if (currentDay === 0) {
+			monday.setUTCDate(now.getUTCDate() + 1);
+		} else {
+			monday.setUTCDate(now.getUTCDate() - (currentDay - 1));
+		}
+		monday.setUTCDate(monday.getUTCDate() + currentWeekOffset * 7);
 
 		fetch(`https://shspu.ru/sch_api/index.php?method=pairs.get&date=${formatDate(monday)}&groupId=${groupId}`)
 			.then(r => r.json())
 			.then(data => {
 				if (data.ok && data.result) {
-					console.log('Расписание: актуальное (API)');
+					const label = currentWeekOffset === 0 ? '' : currentWeekOffset > 0 ? ' — следующая неделя' : ' — прошлая неделя';
+					console.log('Расписание: актуальное (API)' + label);
 					setScheduleData(data.result);
 				}
 			})
 			.catch(() => {
 				console.warn('Расписание: кэшированное (JSON) — API недоступен');
 			});
-	}, [groupId]);
+	}, [groupId, currentWeekOffset]);
 
 	const transformedData = useMemo(() => transformScheduleData(scheduleData), [scheduleData]);
 
