@@ -43,13 +43,13 @@ export const transformScheduleData = (originalData) => {
         let typePart = "";
         let roomPart = "";
 
-        const typeIndex = parts.findIndex((part) => /\([а-яa-z]\d+\)/i.test(part));
+        const typeIndex = parts.findIndex((part) => /\([а-яa-z]+[а-яa-z\d\s]*\)/i.test(part));
 
         if (typeIndex !== -1) {
             teachersPart = parts.slice(0, typeIndex).join(" / ");
             const remainingParts = parts.slice(typeIndex);
 
-            const typeMatch = remainingParts[0].match(/\(([а-яa-z]\d+)\)/i);
+            const typeMatch = remainingParts[0].match(/\(([а-яa-z]+[а-яa-z\d\s]*)\)/i);
             typePart = typeMatch ? typeMatch[1] : "";
 
             subjectPart = remainingParts[0].split("(")[0].trim();
