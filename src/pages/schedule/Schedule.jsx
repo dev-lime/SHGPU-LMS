@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
 	Table,
 	TableBody,
@@ -19,13 +19,22 @@ import fallbackScheduleData from './schedule-data.json';
 import useProfile from '@hooks/useProfile';
 
 // Константа для UTC+5 (Екатеринбург)
-const TIMEZONE_OFFSET = 5 * 60 * 60 * 1000; // 5 часов в миллисекундах
+const TIMEZONE_OFFSET = 5 * 60 * 60 * 1000;
+
+const pairTimes = [
+	[8, 0, 9, 30],
+	[9, 40, 11, 10],
+	[11, 20, 12, 50],
+	[13, 20, 14, 50],
+	[15, 0, 16, 30],
+	[16, 40, 18, 10],
+];
 
 const Schedule = () => {
 	const theme = useTheme();
 	const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
 	const [currentPair, setCurrentPair] = useState(0);
-	const [initialLoad, setInitialLoad] = useState(true);
+	const initialLoad = useRef(true);
 	const tableRef = useRef(null);
 	const currentPairRef = useRef(null);
 	const todayRowRef = useRef(null);
@@ -34,12 +43,39 @@ const Schedule = () => {
 	const groupId = userData?.groupId;
 	const controls = useAnimation();
 	const [isDragging, setIsDragging] = useState(false);
-	// Состояние для хранения прогресса текущей пары
 	const [currentPairProgress, setCurrentPairProgress] = useState(0);
-	// Состояние для хранения следующей пары (для выделения на перемене)
 	const [nextPair, setNextPair] = useState(null);
 	const [scheduleData, setScheduleData] = useState(fallbackScheduleData);
 	const scheduleCacheRef = useRef({});
+
+	const getCurrentDate = useCallback(() => {
+		const now = new Date();
+		return new Date(now.getTime() + TIMEZONE_OFFSET);
+	}, []);
+
+	const formatDate = useCallback((date) => {
+		const year = date.getUTCFullYear();
+		const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+		const day = String(date.getUTCDate()).padStart(2, '0');
+		return `${year}-${month}-${day}`;
+	}, []);
+
+	const getWeekDates = useCallback((offset = 0) => {
+		const now = getCurrentDate();
+		const currentDay = now.getUTCDay();
+		const monday = new Date(now);
+		if (currentDay === 0) {
+			monday.setUTCDate(now.getUTCDate() + 1);
+		} else {
+			monday.setUTCDate(now.getUTCDate() - (currentDay - 1));
+		}
+		monday.setUTCDate(monday.getUTCDate() + offset * 7);
+		return Array.from({ length: 6 }, (_, i) => {
+			const date = new Date(monday);
+			date.setUTCDate(monday.getUTCDate() + i);
+			return date;
+		});
+	}, [getCurrentDate]);
 
 	useEffect(() => {
 		if (!groupId) return;
@@ -76,18 +112,9 @@ const Schedule = () => {
 			.catch(() => {
 				console.warn('Расписание: кэшированное (JSON) — API недоступен');
 			});
-	}, [groupId, currentWeekOffset]);
+	}, [groupId, currentWeekOffset, getCurrentDate, formatDate]);
 
 	const transformedData = useMemo(() => transformScheduleData(scheduleData), [scheduleData]);
-
-	const pairTimes = [
-		[8, 0, 9, 30],		// 1 пара
-		[9, 40, 11, 10],	// 2 пара
-		[11, 20, 12, 50],	// 3 пара
-		[13, 20, 14, 50],	// 4 пара
-		[15, 0, 16, 30],	// 5 пара
-		[16, 40, 18, 10],	// 6 пара
-	];
 
 	// Обработчик клика по преподавателю
 	const handleTeacherClick = (teacherName, e) => {
@@ -101,51 +128,13 @@ const Schedule = () => {
 		console.log(`Нажата аудитория: ${roomNumber}`);
 	};
 
-	// Функция для получения текущей даты в UTC+5
-	const getCurrentDate = () => {
-		const now = new Date();
-		return new Date(now.getTime() + TIMEZONE_OFFSET);
-	};
+	const weekDates = useMemo(() => getWeekDates(currentWeekOffset), [currentWeekOffset, getWeekDates]);
 
-	// Форматирование даты в YYYY-MM-DD с учетом UTC+5
-	const formatDate = (date) => {
-		const year = date.getUTCFullYear();
-		const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-		const day = String(date.getUTCDate()).padStart(2, '0');
-		return `${year}-${month}-${day}`;
-	};
-
-	// Генерация дат недели с учетом UTC+5
-	const getWeekDates = (offset = 0) => {
-		const now = getCurrentDate();
-		const currentDay = now.getUTCDay(); // 0 (воскресенье) до 6 (суббота)
-		const monday = new Date(now);
-
-		// Для воскресенья показываем следующую неделю
-		if (currentDay === 0) {
-			monday.setUTCDate(now.getUTCDate() + 1); // Следующий день (понедельник)
-		} else {
-			monday.setUTCDate(now.getUTCDate() - (currentDay - 1)); // Текущий понедельник
-		}
-
-		// Применяем смещение недели
-		monday.setUTCDate(monday.getUTCDate() + offset * 7);
-
-		// Генерируем 6 дней (пн-сб)
-		return Array.from({ length: 6 }, (_, i) => {
-			const date = new Date(monday);
-			date.setUTCDate(monday.getUTCDate() + i);
-			return date;
-		});
-	};
-
-	const weekDates = useMemo(() => getWeekDates(currentWeekOffset), [currentWeekOffset]);
-
-	const getDaySchedule = (date) => {
+	const getDaySchedule = useCallback((date) => {
 		const dateStr = formatDate(date);
 		const dayData = transformedData.find(item => item.date === dateStr);
 		return dayData ? dayData.pairs : [];
-	};
+	}, [formatDate, transformedData]);
 
 	const scheduleDataForWeek = useMemo(() => {
 		const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
@@ -172,7 +161,7 @@ const Schedule = () => {
 				isEmpty: classes.length === 0
 			};
 		});
-	}, [weekDates, transformedData]);
+	}, [weekDates, transformedData, formatDate, getDaySchedule, getCurrentDate]);
 
 	// Определение текущей и следующей пары с учетом UTC+5
 	useEffect(() => {
@@ -210,23 +199,23 @@ const Schedule = () => {
 		updateCurrentTime();
 		const interval = setInterval(updateCurrentTime, 1000); // Обновляем каждую секунду
 		return () => clearInterval(interval);
-	}, []);
+	}, [getCurrentDate]);
 
 	// Прокрутка к текущей паре/дню
-	const scrollToCurrent = () => {
+	const scrollToCurrent = useCallback(() => {
 		if (currentPair > 0 && currentPairRef.current) {
 			currentPairRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
 		} else if (todayRowRef.current) {
 			todayRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
 		}
-	};
+	}, [currentPair]);
 
 	useEffect(() => {
-		if (initialLoad) {
+		if (initialLoad.current) {
 			setTimeout(scrollToCurrent, 100);
-			setInitialLoad(false);
+			initialLoad.current = false;
 		}
-	}, [currentPair, initialLoad]);
+	}, [currentPair, scrollToCurrent]);
 
 	const scrollToCurrentPair = () => {
 		if (currentWeekOffset !== 0) {

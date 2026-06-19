@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
 	Box,
 	Paper,
@@ -46,7 +46,7 @@ const AttachmentPanel = ({ open, onClose }) => {
 		document.body.style.userSelect = 'none';
 	};
 
-	const handleDragMove = (e) => {
+	const handleDragMove = useCallback((e) => {
 		if (!isDragging) return;
 
 		const y = e.clientY || e.touches?.[0]?.clientY;
@@ -55,9 +55,9 @@ const AttachmentPanel = ({ open, onClose }) => {
 
 		newHeight = Math.max(30, Math.min(80, newHeight));
 		setPanelHeight(`${newHeight}vh`);
-	};
+	}, [isDragging, startY, startHeight]);
 
-	const handleDragEnd = () => {
+	const handleDragEnd = useCallback(() => {
 		if (!isDragging) return;
 
 		setIsDragging(false);
@@ -73,7 +73,7 @@ const AttachmentPanel = ({ open, onClose }) => {
 		} else {
 			setPanelHeight('70vh');
 		}
-	};
+	}, [isDragging, panelHeight, onClose]);
 
 	const handleTouchStart = (e) => {
 		setStartY(e.touches[0].clientY);
@@ -102,7 +102,7 @@ const AttachmentPanel = ({ open, onClose }) => {
 			window.removeEventListener('mouseup', handleDragEnd);
 			window.removeEventListener('touchend', handleDragEnd);
 		};
-	}, [isDragging]);
+	}, [isDragging, handleDragMove, handleDragEnd]);
 
 	return (
 		<Slide direction="up" in={open} mountOnEnter unmountOnExit>

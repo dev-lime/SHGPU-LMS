@@ -37,12 +37,8 @@ export default function UsersPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [autoFocusSearch, setAutoFocusSearch] = useState(false);
+    const [autoFocusSearch] = useState(true);
     const navigate = useNavigate();
-
-    useEffect(() => {
-        setAutoFocusSearch(true);
-    }, []);
 
     useEffect(() => {
         const searchUsers = async () => {
@@ -140,7 +136,6 @@ export default function UsersPage() {
                     <UserList
                         users={users}
                         onUserClick={createChat}
-                        currentUserId={auth.currentUser?.uid}
                     />
                     {searchQuery.length === 1 && (
                         <Box sx={{
@@ -162,7 +157,7 @@ export default function UsersPage() {
     );
 }
 
-const UserList = ({ users, onUserClick, currentUserId }) => {
+const UserList = ({ users, onUserClick }) => {
     const navigate = useNavigate();
 
     const handleUserClick = (userId) => {

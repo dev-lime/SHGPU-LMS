@@ -40,16 +40,21 @@ export default function Settings({
     onThemeChange,
     tabLabelsMode,
     onTabLabelsModeChange,
-    borderRadius,
     onBorderRadiusChange
 }) {
     const navigate = useNavigate();
-    const [darkMode, setDarkMode] = useState(themeConfig?.mode === 'dark');
+    const [, setDarkMode] = useState(themeConfig?.mode === 'dark');
     const [aboutOpen, setAboutOpen] = useState(false);
     const [expandedGroups, setExpendedGroups] = useState({});
     const [colorPickerAnchor, setColorPickerAnchor] = useState(null);
     const [selectedColor, setSelectedColor] = useState('');
-    const [systemTheme, setSystemTheme] = useState(null);
+    const [systemTheme, setSystemTheme] = useState(() => {
+        try {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        } catch {
+            return null;
+        }
+    });
 
     const currentColor = themeConfig?.color || 'green';
     const isCustomColor = /^#([0-9A-F]{3}){1,2}$/i.test(currentColor);
@@ -67,7 +72,6 @@ export default function Settings({
             setSystemTheme(e.matches ? 'dark' : 'light');
         };
 
-        setSystemTheme(darkModeMediaQuery.matches ? 'dark' : 'light');
         darkModeMediaQuery.addListener(handleSystemThemeChange);
 
         return () => {
@@ -159,7 +163,7 @@ export default function Settings({
                     onChange={handleThemeModeChange}
                     size="small"
                     sx={{ width: 180 }}
-                    renderValue={(value) => getDisplayedTheme()}
+                    renderValue={() => getDisplayedTheme()}
                 >
                     <MenuItem value="light">Светлая</MenuItem>
                     <MenuItem value="dark">Тёмная</MenuItem>

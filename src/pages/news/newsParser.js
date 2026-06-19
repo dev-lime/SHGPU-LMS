@@ -1,3 +1,4 @@
+/* global process */
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { writeFileSync } from 'fs';
@@ -77,7 +78,7 @@ async function parseNewsPage(url, categoryName) {
             let fullLink = null;
             if (link) {
                 // Удаляем возможные дублирующиеся части пути (например, "news-science/")
-                const cleanLink = link.replace(/^\/?news-[^\/]+\//, '/');
+                const cleanLink = link.replace(/^\/?news-[^/]+\//, '/');
                 fullLink = new URL(cleanLink, 'https://shspu.ru/').toString();
             }
 

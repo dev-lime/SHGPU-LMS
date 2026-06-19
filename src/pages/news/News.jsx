@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
 	Card,
 	CardContent,
@@ -29,11 +29,7 @@ import newsData from './news-data.json';
 export default function News() {
 	const [bookmarked, setBookmarked] = useState([]);
 	const [searchQuery, setSearchQuery] = useState('');
-	const [newsItems, setNewsItems] = useState([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
-
-	useEffect(() => {
+	const [newsItems] = useState(() => {
 		try {
 			const processedData = newsData.map(item => ({
 				id: item.id || '',
@@ -51,14 +47,12 @@ export default function News() {
 				return dateB - dateA;
 			});
 
-			setNewsItems(processedData);
-			setLoading(false);
+			return processedData;
 		} catch (err) {
-			setError('Ошибка загрузки новостей');
 			console.error('Ошибка парсинга новостей:', err);
-			setLoading(false);
+			return [];
 		}
-	}, []);
+	});
 
 	const toggleBookmark = (id) => {
 		if (bookmarked.includes(id)) {
@@ -95,18 +89,10 @@ export default function News() {
 		item.category.toLowerCase().includes(searchQuery.toLowerCase())
 	);
 
-	if (loading) {
+	if (newsItems.length === 0) {
 		return (
 			<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-				<Typography variant="h6">Загрузка новостей...</Typography>
-			</Box>
-		);
-	}
-
-	if (error) {
-		return (
-			<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-				<Typography variant="h6" color="error">{error}</Typography>
+				<Typography variant="h6" color="error">Нет новостей для отображения</Typography>
 			</Box>
 		);
 	}

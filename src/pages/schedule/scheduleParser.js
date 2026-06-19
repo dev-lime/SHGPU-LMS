@@ -1,3 +1,4 @@
+/* global process */
 import axios from 'axios';
 import { writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -12,10 +13,6 @@ function getMonday(date) {
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     d.setDate(diff);
     return d.toISOString().slice(0, 10);
-}
-
-function formatDate(date) {
-    return date.toISOString().slice(0, 10);
 }
 
 async function fetchWeek(monday, groupId) {

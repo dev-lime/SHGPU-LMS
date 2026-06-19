@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import {
     Box,
     Avatar,
@@ -26,10 +26,7 @@ import {
     MenuItem,
     ListItemIcon,
     ListItemText,
-    Paper,
-    Tabs,
-    Tab,
-    useTheme
+    Paper
 } from '@mui/material';
 import {
     Send,
@@ -38,11 +35,7 @@ import {
     ContentCopy,
     Delete,
     Phone,
-    AttachFile,
-    InsertPhoto,
-    InsertDriveFile,
-    Poll,
-    DragIndicator
+    AttachFile
 } from '@mui/icons-material';
 import { db, auth } from '@src/firebase';
 import {
@@ -51,19 +44,60 @@ import {
     collection,
     query,
     orderBy,
-    onSnapshot,
     addDoc,
     serverTimestamp,
     updateDoc,
     deleteDoc
 } from 'firebase/firestore';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { onSnapshot } from 'firebase/firestore';
+import useDialog from '@hooks/useDialog';
+import useSnackbar from '@hooks/useSnackbar';
+import useScrollToBottom from '@hooks/useScrollToBottom';
+import useMessageDisplay, {
+    cleanMessageText,
+    formatMessageDate,
+    getUserRoleText
+} from '@hooks/useMessageDisplay';
 
 const ReactMarkdown = lazy(() => import('react-markdown'));
 const AttachmentPanel = lazy(() => import('@components/AttachmentPanel'));
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github.css';
+
+const DeleteConfirmationDialog = ({
+    open,
+    onClose,
+    onConfirm,
+    title,
+    content,
+    confirmText = "Удалить",
+    cancelText = "Отмена"
+}) => (
+    <Dialog
+        open={open}
+        onClose={onClose}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+    >
+        <DialogTitle id="alert-dialog-title">{title}</DialogTitle>
+        <DialogContent>
+            <DialogContentText id="alert-dialog-description">
+                {content}
+            </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+            <Button onClick={onClose} sx={{ '&.Mui-selected, &:focus': { outline: 'none' } }}>
+                {cancelText}
+            </Button>
+            <Button onClick={onConfirm} color="error" autoFocus
+                sx={{ '&.Mui-selected, &:focus': { outline: 'none' } }}>
+                {confirmText}
+            </Button>
+        </DialogActions>
+    </Dialog>
+);
 
 const MessageItem = React.memo(({
     message,
@@ -75,37 +109,25 @@ const MessageItem = React.memo(({
     onCopy,
     onDelete
 }) => {
+    const navigate = useNavigate();
+    const [showActions, setShowActions] = useState(false);
+    const deleteDialog = useDialog();
+
     const timeString = useMemo(() => {
         try {
             if (!message?.timestamp?.toDate) return '';
             const date = message.timestamp.toDate();
             return date?.toLocaleTimeString?.([], { hour: '2-digit', minute: '2-digit' }) || '';
-        } catch (e) {
-            console.error("Error formatting time:", e);
+        } catch {
             return '';
         }
     }, [message.timestamp]);
 
-    const navigate = useNavigate();
-
-    const [showActions, setShowActions] = useState(false);
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
-    const handleCopy = () => {
-        onCopy(message.text);
-    };
-
-    const handleDeleteClick = () => {
-        setIsDeleteDialogOpen(true);
-    };
-
+    const handleCopy = () => onCopy(message.text);
+    const handleDelete = () => deleteDialog.handleOpen();
     const handleDeleteConfirm = () => {
         onDelete(message.id);
-        setIsDeleteDialogOpen(false);
-    };
-
-    const handleDeleteCancel = () => {
-        setIsDeleteDialogOpen(false);
+        deleteDialog.handleClose();
     };
 
     return (
@@ -114,11 +136,8 @@ const MessageItem = React.memo(({
                 <ListItem
                     sx={{
                         justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
-                        px: 1,
-                        alignItems: 'flex-start',
-                        pt: 0.5,
-                        pb: 0.5,
-                        position: 'relative'
+                        px: 1, alignItems: 'flex-start',
+                        pt: 0.5, pb: 0.5, position: 'relative'
                     }}
                     onMouseEnter={() => setShowActions(true)}
                     onMouseLeave={() => setShowActions(false)}
@@ -127,15 +146,11 @@ const MessageItem = React.memo(({
                         maxWidth: '70%',
                         display: 'flex',
                         flexDirection: isOwnMessage ? 'row-reverse' : 'row',
-                        alignItems: 'flex-end',
-                        gap: 1,
-                        position: 'relative'
+                        alignItems: 'flex-end', gap: 1, position: 'relative'
                     }}>
                         {!isOwnMessage && (
                             <Box sx={{
-                                width: 32,
-                                height: 32,
-                                flexShrink: 0,
+                                width: 32, height: 32, flexShrink: 0,
                                 visibility: !showAvatar ? 'hidden' : 'visible'
                             }}>
                                 {showAvatar && otherUser && (
@@ -145,11 +160,7 @@ const MessageItem = React.memo(({
                                     >
                                         <Avatar
                                             src={otherUser?.avatarUrl || ''}
-                                            sx={{
-                                                width: 32,
-                                                height: 32,
-                                                bgcolor: 'primary.main'
-                                            }}
+                                            sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}
                                         >
                                             {otherUser?.fullName?.charAt?.(0) || ''}
                                         </Avatar>
@@ -162,21 +173,16 @@ const MessageItem = React.memo(({
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: isOwnMessage ? 'flex-end' : 'flex-start',
-                            minWidth: 0,
-                            position: 'relative'
+                            minWidth: 0, position: 'relative'
                         }}>
                             {showActions && (
                                 <Box sx={{
-                                    position: 'absolute',
-                                    top: '0',
+                                    position: 'absolute', top: '0',
                                     ...(isOwnMessage ? { left: -40 } : { right: -20 }),
-                                    display: 'flex',
-                                    gap: 0.5,
+                                    display: 'flex', gap: 0.5,
                                     bgcolor: 'background.paper',
-                                    borderRadius: 2,
-                                    p: 0.5,
-                                    boxShadow: 1,
-                                    zIndex: 1
+                                    borderRadius: 2, p: 0.5,
+                                    boxShadow: 1, zIndex: 1
                                 }}>
                                     <Tooltip title="Копировать">
                                         <IconButton size="small" onClick={handleCopy}>
@@ -185,7 +191,7 @@ const MessageItem = React.memo(({
                                     </Tooltip>
                                     {isOwnMessage && (
                                         <Tooltip title="Удалить">
-                                            <IconButton size="small" onClick={handleDeleteClick}>
+                                            <IconButton size="small" onClick={handleDelete}>
                                                 <Delete fontSize="small" color="error" />
                                             </IconButton>
                                         </Tooltip>
@@ -194,97 +200,59 @@ const MessageItem = React.memo(({
                             )}
 
                             <Box sx={{
-                                p: 1.5,
-                                borderRadius: 2,
+                                p: 1.5, borderRadius: 2,
                                 bgcolor: isOwnMessage ? 'primary.main' : 'action.hover',
                                 color: isOwnMessage ? 'primary.contrastText' : 'text.primary',
-                                '& p': {
-                                    margin: 0,
-                                    lineHeight: 1.5,
-                                    wordBreak: 'break-word'
-                                },
+                                '& p': { margin: 0, lineHeight: 1.5, wordBreak: 'break-word' },
                                 '& pre': {
                                     backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                                    borderRadius: '4px',
-                                    padding: '8px',
-                                    overflowX: 'auto',
-                                    margin: '8px 0',
-                                    maxWidth: '100%'
+                                    borderRadius: '4px', padding: '8px', overflowX: 'auto',
+                                    margin: '8px 0', maxWidth: '100%'
                                 },
                                 '& code': {
-                                    fontFamily: 'monospace',
-                                    whiteSpace: 'pre-wrap',
-                                    backgroundColor: 'transparent',
-                                    padding: '2px 4px',
-                                    borderRadius: '3px'
+                                    fontFamily: 'monospace', whiteSpace: 'pre-wrap',
+                                    backgroundColor: 'transparent', padding: '2px 4px', borderRadius: '3px'
                                 },
                                 '& blockquote': {
                                     borderLeft: '3px solid',
                                     borderColor: isOwnMessage ? 'primary.light' : 'text.secondary',
-                                    paddingLeft: '12px',
-                                    margin: '8px 0',
+                                    paddingLeft: '12px', margin: '8px 0',
                                     color: isOwnMessage ? 'primary.light' : 'text.secondary',
                                     fontStyle: 'italic'
                                 },
-                                '& ul, & ol': {
-                                    paddingLeft: '24px',
-                                    margin: '8px 0'
-                                },
-                                '& li': {
-                                    marginBottom: '4px'
-                                },
+                                '& ul, & ol': { paddingLeft: '24px', margin: '8px 0' },
+                                '& li': { marginBottom: '4px' },
                                 '& table': {
-                                    borderCollapse: 'collapse',
-                                    width: '100%',
-                                    margin: '8px 0',
-                                    overflow: 'hidden',
-                                    borderRadius: '4px'
+                                    borderCollapse: 'collapse', width: '100%',
+                                    margin: '8px 0', overflow: 'hidden', borderRadius: '4px'
                                 },
                                 '& th, & td': {
                                     border: '1px solid',
                                     borderColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
-                                    padding: '6px 12px',
-                                    textAlign: 'left'
+                                    padding: '6px 12px', textAlign: 'left'
                                 },
                                 '& th': {
                                     backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'
                                 },
                                 '& a': {
-                                    color: 'inherit',
-                                    textDecoration: 'none',
+                                    color: 'inherit', textDecoration: 'none',
                                     borderBottom: '1px solid',
                                     borderColor: isOwnMessage ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)',
-                                    transition: 'border-color 0.2s',
-                                    '&:hover': {
-                                        borderColor: 'inherit',
-                                        textDecoration: 'none'
-                                    }
+                                    '&:hover': { borderColor: 'inherit', textDecoration: 'none' }
                                 },
-                                '& img': {
-                                    maxWidth: '100%',
-                                    borderRadius: '4px'
-                                },
+                                '& img': { maxWidth: '100%', borderRadius: '4px' },
                                 '& h1, & h2, & h3, & h4, & h5, & h6': {
-                                    margin: '16px 0 8px 0',
-                                    lineHeight: 1.2
+                                    margin: '16px 0 8px 0', lineHeight: 1.2
                                 },
-                                maxWidth: '100%',
-                                overflow: 'hidden'
+                                maxWidth: '100%', overflow: 'hidden'
                             }}>
                                 <Suspense fallback={<div>Loading...</div>}>
                                     <ReactMarkdown
                                         remarkPlugins={[remarkGfm]}
                                         rehypePlugins={[rehypeHighlight]}
                                         components={{
-                                            p: ({ node, ...props }) => <p {...props} />,
-                                            pre: ({ node, ...props }) => <pre {...props} />,
-                                            code: ({ node, ...props }) => <code {...props} />,
-                                            a: ({ node, ...props }) => (
-                                                <a
-                                                    {...props}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                />
+                                             a: ({ children, ...rest }) => (
+                                                <a {...rest} target="_blank" rel="noopener noreferrer">{children}</a>
                                             )
                                         }}
                                     >
@@ -292,16 +260,11 @@ const MessageItem = React.memo(({
                                     </ReactMarkdown>
                                 </Suspense>
                             </Box>
+
                             {showTime && timeString && (
                                 <Fade in={true} timeout={1000}>
-                                    <Typography
-                                        variant="caption"
-                                        sx={{
-                                            color: 'text.secondary',
-                                            px: 1,
-                                            mt: 0.5
-                                        }}
-                                    >
+                                    <Typography variant="caption"
+                                        sx={{ color: 'text.secondary', px: 1, mt: 0.5 }}>
                                         {timeString}
                                     </Typography>
                                 </Fade>
@@ -312,8 +275,8 @@ const MessageItem = React.memo(({
             </Grow>
 
             <DeleteConfirmationDialog
-                open={isDeleteDialogOpen}
-                onClose={handleDeleteCancel}
+                open={deleteDialog.open}
+                onClose={deleteDialog.handleClose}
                 onConfirm={handleDeleteConfirm}
                 title="Удалить сообщение?"
                 content="Вы уверены, что хотите удалить это сообщение? Это действие нельзя отменить."
@@ -323,122 +286,47 @@ const MessageItem = React.memo(({
     );
 });
 
-const DeleteConfirmationDialog = ({
-    open,
-    onClose,
-    onConfirm,
-    title,
-    content,
-    confirmText = "Удалить",
-    cancelText = "Отмена"
-}) => {
-    return (
-        <Dialog
-            open={open}
-            onClose={onClose}
-            aria-labelledby="alert-dialog-title"
-            aria-describedby="alert-dialog-description"
-        >
-            <DialogTitle id="alert-dialog-title">{title}</DialogTitle>
-            <DialogContent>
-                <DialogContentText id="alert-dialog-description">
-                    {content}
-                </DialogContentText>
-            </DialogContent>
-            <DialogActions>
-                <Button
-                    onClick={onClose}
-                    sx={{
-                        '&.Mui-selected, &:focus': { outline: 'none' },
-                    }}>
-                    {cancelText}
-                </Button>
-                <Button
-                    onClick={onConfirm}
-                    color="error"
-                    autoFocus
-                    sx={{
-                        '&.Mui-selected, &:focus': { outline: 'none' },
-                    }}>
-                    {confirmText}
-                </Button>
-            </DialogActions>
-        </Dialog>
-    );
-};
-
 export default function Chat() {
     const { chatId } = useParams();
     const navigate = useNavigate();
-    const location = useLocation();
+    const snackbar = useSnackbar();
+    const chatDeleteDialog = useDialog();
+    const { containerRef: messagesContainerRef, scrollToBottom } = useScrollToBottom();
+
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
-    const [chatInfo, setChatInfo] = useState(null);
     const [otherUser, setOtherUser] = useState(null);
-    const [error, setError] = useState(null);
-    const messagesEndRef = useRef(null);
-    const messagesContainerRef = useRef(null);
     const [lastMessageId, setLastMessageId] = useState(null);
-    const [initialScrollDone, setInitialScrollDone] = useState(false);
+    const initialScrollDoneRef = useRef(false);
     const [menuAnchorEl, setMenuAnchorEl] = useState(null);
-    const [isChatDeleteDialogOpen, setIsChatDeleteDialogOpen] = useState(false);
     const [isAttachmentPanelOpen, setIsAttachmentPanelOpen] = useState(false);
 
-    const cleanMessageText = (text) => {
-        text = text.replace(/[\x00-\x08\x0B-\x1F\x7F]/g, '');
-        text = text.replace(/[\u202A-\u202E\u2066-\u2069\u200B-\u200F\uFEFF]/g, '');
-        text = text.replace(/([\u0300-\u036F]){5,}/g, '');
-        if (text.length > 4096) {
-            text = text.substring(0, 4096);
-        }
-        return text;
-    };
+    const { shouldShowAvatar, shouldShowTime, isNewDay } = useMessageDisplay(messages);
 
     const isValidChatId = useCallback((id) => {
         return id && typeof id === 'string' && id.trim().length > 0;
     }, []);
 
-    const scrollToBottom = useCallback((behavior = 'auto') => {
-        const scrollContainer = messagesContainerRef.current;
-        if (scrollContainer) {
-            scrollContainer.scrollTo({
-                top: scrollContainer.scrollHeight,
-                behavior: behavior
-            });
-        }
-    }, []);
-
     const loadChatData = useCallback(async () => {
-        if (!isValidChatId(chatId)) return;
+        if (!isValidChatId(chatId)) return null;
 
         try {
             const chatRef = doc(db, 'chats', chatId);
             const chatDoc = await getDoc(chatRef);
 
-            if (!chatDoc.exists()) {
-                throw new Error("Chat not found");
-            }
+            if (!chatDoc.exists()) throw new Error("Chat not found");
 
             const chatData = chatDoc.data();
             if (!chatData?.participants || !Array.isArray(chatData.participants)) {
                 throw new Error("Invalid chat data structure");
             }
 
-            setChatInfo(chatData);
-
-            const otherUserId = chatData.participants.find(
-                id => id !== auth.currentUser?.uid
-            );
-
+            const otherUserId = chatData.participants.find(id => id !== auth.currentUser?.uid);
             if (otherUserId) {
-                const userRef = doc(db, 'users', otherUserId);
-                const userDoc = await getDoc(userRef);
+                const userDoc = await getDoc(doc(db, 'users', otherUserId));
                 if (userDoc.exists()) {
-                    setOtherUser({
-                        id: userDoc.id,
-                        ...userDoc.data()
-                    });
+                    setOtherUser({ id: userDoc.id, ...userDoc.data() });
                 }
             }
 
@@ -448,84 +336,58 @@ export default function Chat() {
             );
         } catch (error) {
             console.error("Error loading chat:", error);
-            setError(error.message || "Error loading chat data");
+            snackbar.show(error.message || "Ошибка загрузки чата");
             setLoading(false);
             return null;
         }
-    }, [chatId, isValidChatId]);
-
-    const loadMessages = useCallback((messagesQuery) => {
-        return onSnapshot(messagesQuery,
-            (snapshot) => {
-                const messagesData = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                setMessages(messagesData);
-                setLoading(false);
-
-                if (messagesData.length > 0) {
-                    setLastMessageId(messagesData[messagesData.length - 1].id);
-                }
-            },
-            (error) => {
-                console.error("Error in messages subscription:", error);
-                setError("Error loading messages");
-                setLoading(false);
-            }
-        );
-    }, []);
-
-    const getUserRoleText = (user) => {
-        if (!user?.accountType) return '';
-        if (user.accountType === 'student') {
-            return user.studentGroup ? `Студент, ${user.studentGroup}` : 'Студент';
-        }
-        return {
-            teacher: 'Преподаватель',
-            admin: 'Администратор',
-            support: 'Техподдержка'
-        }[user.accountType] || '';
-    };
-
-    const handleCallClick = () => {
-        console.log('Call to user ID:', otherUser?.id);
-        // Здесь будет логика инициализации звонка
-    };
+    }, [chatId, isValidChatId, snackbar]);
 
     useEffect(() => {
         let unsubscribe = () => { };
         let isMounted = true;
 
         const initializeChat = async () => {
-            if (!isValidChatId(chatId) || !location.pathname.startsWith('/chat/')) return;
-
+            if (!isValidChatId(chatId)) return;
             try {
                 const messagesQuery = await loadChatData();
                 if (messagesQuery) {
-                    unsubscribe = loadMessages(messagesQuery);
+                    unsubscribe = onSnapshot(messagesQuery,
+                        (snapshot) => {
+                            const messagesData = snapshot.docs.map(doc => ({
+                                id: doc.id,
+                                ...doc.data()
+                            }));
+                            setMessages(messagesData);
+                            setLoading(false);
+                            if (messagesData.length > 0) {
+                                setLastMessageId(messagesData[messagesData.length - 1].id);
+                            }
+                        },
+                        (error) => {
+                            console.error("Error in messages subscription:", error);
+                            snackbar.show("Ошибка загрузки сообщений");
+                            setLoading(false);
+                        }
+                    );
                 }
-            } catch (error) {
-                if (isMounted) {
-                    setLoading(false);
-                }
+            } catch {
+                if (isMounted) setLoading(false);
             }
         };
 
         initializeChat();
-
         return () => {
             isMounted = false;
             unsubscribe();
         };
-    }, [chatId, loadChatData, loadMessages, location.pathname, isValidChatId]);
+    }, [chatId, loadChatData, isValidChatId, snackbar]);
 
     useEffect(() => {
-        if (messages.length > 0 && !initialScrollDone) {
-            scrollToBottom();
-            setInitialScrollDone(true);
+        if (messages.length > 0 && !initialScrollDoneRef.current) {
+            scrollToBottom('auto');
+            initialScrollDoneRef.current = true;
         }
-    }, [messages, initialScrollDone, scrollToBottom]);
+    }, [messages, scrollToBottom]);
 
     useEffect(() => {
         if (messages.length > 0) {
@@ -533,67 +395,19 @@ export default function Chat() {
         }
     }, [messages.length, scrollToBottom]);
 
-    const shouldShowAvatar = useCallback((index) => {
-        if (!messages[index] || messages[index].sender === auth.currentUser?.uid) return false;
-        if (index === messages.length - 1) return true;
-        return messages[index].sender !== messages[index + 1]?.sender;
-    }, [messages]);
-
-    const shouldShowTime = useCallback((index) => {
-        if (index === messages.length - 1) return true;
-        if (!messages[index]?.timestamp || !messages[index + 1]?.timestamp) return true;
-
-        try {
-            const currentTime = messages[index].timestamp.toDate();
-            const nextTime = messages[index + 1].timestamp.toDate();
-            return (messages[index].sender !== messages[index + 1].sender) ||
-                (nextTime.getTime() - currentTime.getTime()) > 60000;
-        } catch {
-            return true;
-        }
-    }, [messages]);
-
-    const isNewDay = useCallback((index) => {
-        if (index === 0) return true;
-        if (!messages[index]?.timestamp || !messages[index - 1]?.timestamp) return false;
-
-        try {
-            const currentDate = messages[index].timestamp.toDate();
-            const prevDate = messages[index - 1].timestamp.toDate();
-            return currentDate.toDateString() !== prevDate.toDateString();
-        } catch {
-            return false;
-        }
-    }, [messages]);
-
-    const formatDate = useCallback((date) => {
-        if (!date) return '';
-        try {
-            return date.toLocaleDateString('ru-RU', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        } catch {
-            return '';
-        }
-    }, []);
-
     const handleCopyMessage = useCallback((text) => {
         navigator.clipboard.writeText(text).then(() => {
-            setError('Сообщение скопировано');
-            setTimeout(() => setError(null), 2000);
-        }).catch(err => {
-            setError('Не удалось скопировать сообщение');
+            snackbar.show('Сообщение скопировано', 'success');
+        }).catch(() => {
+            snackbar.show('Не удалось скопировать сообщение');
         });
-    }, []);
+    }, [snackbar]);
 
     const handleDeleteMessage = useCallback(async (messageId) => {
         try {
             const messageToDelete = messages.find(m => m.id === messageId);
             if (!messageToDelete || messageToDelete.sender !== auth.currentUser?.uid) {
-                setError('Вы можете удалять только свои сообщения');
+                snackbar.show('Вы можете удалять только свои сообщения');
                 return;
             }
 
@@ -611,20 +425,20 @@ export default function Chat() {
             }
         } catch (error) {
             console.error("Error deleting message:", error);
-            if (error.code === 'permission-denied') {
-                setError('Недостаточно прав для удаления сообщения');
-            } else {
-                setError(error.message || "Ошибка при удалении сообщения");
-            }
+            snackbar.show(
+                error.code === 'permission-denied'
+                    ? 'Недостаточно прав для удаления сообщения'
+                    : error.message || "Ошибка при удалении сообщения"
+            );
         }
-    }, [chatId, messages]);
+    }, [chatId, messages, snackbar]);
 
     const handleSendMessage = useCallback(async () => {
         const cleanedMessage = cleanMessageText(newMessage.trim());
         if (!cleanedMessage || !chatId || !isValidChatId(chatId)) return;
 
         try {
-            const messageRef = await addDoc(collection(db, 'chats', chatId, 'messages'), {
+            await addDoc(collection(db, 'chats', chatId, 'messages'), {
                 text: cleanedMessage,
                 sender: auth.currentUser?.uid,
                 timestamp: serverTimestamp()
@@ -639,34 +453,9 @@ export default function Chat() {
             setNewMessage('');
         } catch (error) {
             console.error("Error sending message:", error);
-            setError(error.message || "Ошибка при отправке сообщения");
+            snackbar.show(error.message || "Ошибка при отправке сообщения");
         }
-    }, [newMessage, chatId, isValidChatId]);
-
-    const handleKeyPress = useCallback((e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSendMessage();
-        }
-    }, [handleSendMessage]);
-
-    const handleCloseError = useCallback(() => {
-        setError(null);
-    }, []);
-
-    const handleUserClick = useCallback(() => {
-        if (otherUser) {
-            navigate(`/user/${otherUser.id}`);
-        }
-    }, [otherUser, navigate]);
-
-    const handleMenuOpen = (event) => {
-        setMenuAnchorEl(event.currentTarget);
-    };
-
-    const handleMenuClose = () => {
-        setMenuAnchorEl(null);
-    };
+    }, [newMessage, chatId, isValidChatId, snackbar]);
 
     const handleDeleteChat = async () => {
         try {
@@ -674,7 +463,7 @@ export default function Chat() {
             navigate('/chats');
         } catch (error) {
             console.error("Error deleting chat:", error);
-            setError(error.message || "Ошибка при удалении чата");
+            snackbar.show(error.message || "Ошибка при удалении чата");
         }
     };
 
@@ -687,99 +476,56 @@ export default function Chat() {
     }
 
     return (
-        <Box sx={{
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-        }}>
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <Snackbar
-                open={!!error}
+                open={snackbar.open}
                 autoHideDuration={6000}
-                onClose={handleCloseError}
+                onClose={snackbar.hide}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             >
-                <Alert onClose={handleCloseError} severity={error === 'Сообщение скопировано' ? 'success' : 'error'} sx={{ width: '100%' }}>
-                    {error}
+                <Alert onClose={snackbar.hide} severity={snackbar.severity} sx={{ width: '100%' }}>
+                    {snackbar.message}
                 </Alert>
             </Snackbar>
 
             <Slide direction="down" in={true} mountOnEnter unmountOnExit>
                 <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderBottom: '1px solid',
-                    borderColor: 'divider',
-                    bgcolor: 'background.paper',
-                    flexShrink: 0
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    borderBottom: '1px solid', borderColor: 'divider',
+                    bgcolor: 'background.paper', flexShrink: 0
                 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                        <IconButton
-                            onClick={() => navigate('/chats')}
-                            sx={{ ml: 1, mr: 1 }}
-                        >
+                        <IconButton onClick={() => navigate('/chats')} sx={{ ml: 1, mr: 1 }}>
                             <ArrowBack color="primary" />
                         </IconButton>
 
                         {otherUser && (
                             <Button
-                                onClick={handleUserClick}
+                                onClick={() => navigate(`/user/${otherUser.id}`)}
                                 startIcon={
-                                    <Avatar
-                                        src={otherUser.avatarUrl || ''}
-                                        sx={{
-                                            width: 40,
-                                            height: 40,
-                                            bgcolor: 'primary.main'
-                                        }}
-                                    >
+                                    <Avatar src={otherUser.avatarUrl || ''}
+                                        sx={{ width: 40, height: 40, bgcolor: 'primary.main' }}>
                                         {otherUser.fullName?.charAt?.(0) || ''}
                                     </Avatar>
                                 }
                                 sx={{
-                                    textTransform: 'none',
-                                    color: 'text.primary',
+                                    textTransform: 'none', color: 'text.primary',
                                     '&:hover': { backgroundColor: 'action.hover' },
-                                    flex: 1,
-                                    minWidth: 0,
-                                    textAlign: 'left',
-                                    justifyContent: 'flex-start',
-                                    py: 0.5
+                                    flex: 1, minWidth: 0, textAlign: 'left',
+                                    justifyContent: 'flex-start', py: 0.5
                                 }}
                             >
                                 <Box sx={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    minWidth: 0,
-                                    width: '100%',
-                                    gap: 0.2
+                                    display: 'flex', flexDirection: 'column',
+                                    minWidth: 0, width: '100%', gap: 0.2
                                 }}>
-                                    <Typography
-                                        variant="h6"
-                                        noWrap
-                                        sx={{
-                                            textOverflow: 'ellipsis',
-                                            overflow: 'hidden',
-                                            display: 'block',
-                                            lineHeight: 1.2
-                                        }}
-                                    >
+                                    <Typography variant="h6" noWrap
+                                        sx={{ textOverflow: 'ellipsis', overflow: 'hidden', lineHeight: 1.2 }}>
                                         {otherUser.fullName || 'Пользователь'}
                                     </Typography>
                                     {otherUser?.accountType && (
-                                        <Typography
-                                            variant="caption"
-                                            color="text.secondary"
-                                            noWrap
-                                            sx={{
-                                                fontSize: '0.75rem',
-                                                lineHeight: 1,
-                                                textOverflow: 'ellipsis',
-                                                overflow: 'hidden',
-                                                display: 'block'
-                                            }}
-                                        >
+                                        <Typography variant="caption" color="text.secondary" noWrap
+                                            sx={{ fontSize: '0.75rem', lineHeight: 1, textOverflow: 'ellipsis', overflow: 'hidden' }}>
                                             {getUserRoleText(otherUser)}
                                         </Typography>
                                     )}
@@ -789,19 +535,15 @@ export default function Chat() {
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <IconButton
-                            aria-label="call"
-                            onClick={handleCallClick}
-                            sx={{ color: 'text.primary', mr: 1 }}
-                        >
+                        <IconButton aria-label="call" sx={{ color: 'text.primary', mr: 1 }}>
                             <Phone />
                         </IconButton>
 
                         <IconButton
                             aria-label="more options"
-                            aria-controls={Boolean(menuAnchorEl) ? 'chat-menu' : undefined}
+                            aria-controls={menuAnchorEl ? 'chat-menu' : undefined}
                             aria-haspopup="true"
-                            onClick={handleMenuOpen}
+                            onClick={(e) => setMenuAnchorEl(e.currentTarget)}
                             sx={{ color: 'text.primary', mr: 1 }}
                         >
                             <MoreVert />
@@ -811,23 +553,21 @@ export default function Chat() {
                     <Menu
                         id="chat-menu"
                         anchorEl={menuAnchorEl}
-                        open={Boolean(menuAnchorEl)}
-                        onClose={handleMenuClose}
+                        open={!!menuAnchorEl}
+                        onClose={() => setMenuAnchorEl(null)}
                     >
                         <MenuItem onClick={() => {
-                            handleMenuClose();
-                            setIsChatDeleteDialogOpen(true);
+                            setMenuAnchorEl(null);
+                            chatDeleteDialog.handleOpen();
                         }}>
-                            <ListItemIcon>
-                                <Delete fontSize="small" />
-                            </ListItemIcon>
+                            <ListItemIcon><Delete fontSize="small" /></ListItemIcon>
                             <ListItemText>Удалить чат</ListItemText>
                         </MenuItem>
                     </Menu>
 
                     <DeleteConfirmationDialog
-                        open={isChatDeleteDialogOpen}
-                        onClose={() => setIsChatDeleteDialogOpen(false)}
+                        open={chatDeleteDialog.open}
+                        onClose={chatDeleteDialog.handleClose}
                         onConfirm={handleDeleteChat}
                         title="Удалить чат?"
                         content="Вы уверены, что хотите удалить этот чат? Это действие нельзя отменить."
@@ -839,40 +579,24 @@ export default function Chat() {
             <Box
                 ref={messagesContainerRef}
                 sx={{
-                    flex: 1,
-                    overflowY: 'auto',
-                    p: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflowX: 'hidden'
+                    flex: 1, overflowY: 'auto', p: 1,
+                    display: 'flex', flexDirection: 'column', overflowX: 'hidden'
                 }}
             >
                 <List sx={{ width: '100%' }}>
                     {messages.map((message, index) => {
                         const showDateDivider = isNewDay(index);
                         const messageDate = message.timestamp?.toDate?.();
-                        const isNewMessage = message.id === lastMessageId;
                         const isOwnMessage = message.sender === auth.currentUser?.uid;
 
                         return (
                             <React.Fragment key={message.id || `msg-${index}`}>
                                 {showDateDivider && (
                                     <Fade in={true}>
-                                        <Box sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            my: 2,
-                                            px: 1
-                                        }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', my: 2, px: 1 }}>
                                             <Divider sx={{ flex: 1 }} />
-                                            <Typography
-                                                variant="caption"
-                                                sx={{
-                                                    mx: 2,
-                                                    color: 'text.secondary'
-                                                }}
-                                            >
-                                                {formatDate(messageDate)}
+                                            <Typography variant="caption" sx={{ mx: 2, color: 'text.secondary' }}>
+                                                {formatMessageDate(messageDate)}
                                             </Typography>
                                             <Divider sx={{ flex: 1 }} />
                                         </Box>
@@ -885,23 +609,20 @@ export default function Chat() {
                                     showAvatar={!isOwnMessage && shouldShowAvatar(index)}
                                     showTime={shouldShowTime(index)}
                                     otherUser={otherUser}
-                                    isNewMessage={isNewMessage}
+                                    isNewMessage={message.id === lastMessageId}
                                     onCopy={handleCopyMessage}
                                     onDelete={handleDeleteMessage}
                                 />
                             </React.Fragment>
                         );
                     })}
-                    <div ref={messagesEndRef} />
                 </List>
             </Box>
 
             <Slide direction="up" in={true} mountOnEnter unmountOnExit>
                 <Box sx={{
-                    borderTop: '1px solid',
-                    borderColor: 'divider',
-                    bgcolor: 'background.paper',
-                    flexShrink: 0
+                    borderTop: '1px solid', borderColor: 'divider',
+                    bgcolor: 'background.paper', flexShrink: 0
                 }}>
                     <TextField
                         fullWidth
@@ -918,32 +639,21 @@ export default function Chat() {
                         multiline
                         maxRows={4}
                         sx={{
-                            '& .MuiInput-root': {
-                                px: 2,
-                                py: 1
-                            },
-                            '& .MuiInput-root:before, & .MuiInput-root:after': {
-                                display: 'none'
-                            }
+                            '& .MuiInput-root': { px: 2, py: 1 },
+                            '& .MuiInput-root:before, & .MuiInput-root:after': { display: 'none' }
                         }}
                         InputProps={{
                             startAdornment: (
                                 <InputAdornment position="start">
-                                    <IconButton
-                                        onClick={() => setIsAttachmentPanelOpen(true)}
-                                        edge="start"
-                                    >
+                                    <IconButton onClick={() => setIsAttachmentPanelOpen(true)} edge="start">
                                         <AttachFile />
                                     </IconButton>
                                 </InputAdornment>
                             ),
                             endAdornment: (
                                 <InputAdornment position="end">
-                                    <IconButton
-                                        color="primary"
-                                        onClick={handleSendMessage}
-                                        disabled={!newMessage.trim()}
-                                    >
+                                    <IconButton color="primary" onClick={handleSendMessage}
+                                        disabled={!newMessage.trim()}>
                                         <Send />
                                     </IconButton>
                                 </InputAdornment>
@@ -961,13 +671,8 @@ export default function Chat() {
                     {isAttachmentPanelOpen && (
                         <Box
                             sx={{
-                                position: 'fixed',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                                zIndex: 1200
+                                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                                backgroundColor: 'rgba(0, 0, 0, 0.5)', zIndex: 1200
                             }}
                             onClick={() => setIsAttachmentPanelOpen(false)}
                         />

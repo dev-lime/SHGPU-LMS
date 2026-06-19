@@ -14,7 +14,6 @@ const CustomListItem = ({
     action,
     secondaryAction,
     expandable,
-    isExpanded,
     toggle
 }) => {
     return (

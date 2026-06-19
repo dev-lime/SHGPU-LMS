@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     Box,
     Typography,
@@ -19,16 +19,13 @@ import docsData from './documents.json';
 
 export default function Documents() {
     const navigate = useNavigate();
-    const [docs, setDocs] = useState([]);
-    const [searchQuery, setSearchQuery] = useState('');
-
-    useEffect(() => {
-        const loadedDocs = docsData.map(doc => ({
+    const [docs] = useState(() =>
+        docsData.map(doc => ({
             ...doc,
             uploadDate: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000))
-        }));
-        setDocs(loadedDocs);
-    }, []);
+        }))
+    );
+    const [searchQuery, setSearchQuery] = useState('');
 
     const handleDownload = (url, name) => {
         console.log('Downloading:', url);

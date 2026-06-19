@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
 	createUserWithEmailAndPassword,
 	signInWithEmailAndPassword,
@@ -14,11 +14,10 @@ import {
 	getGroupError,
 	validateEmail,
 	getPasswordError,
-	validateUserName,
-	getUserNameError,
-	getPasswordStrength,
-	getPasswordStrengthText
+	getUserNameError
 } from '@utils/validators';
+import useField from '@hooks/useField';
+import usePasswordStrength from '@hooks/usePasswordStrength';
 import {
 	Box,
 	TextField,
@@ -43,69 +42,26 @@ import {
 } from '@mui/icons-material';
 
 export default function Auth() {
-	const [email, setEmail] = useState('');
-	const [password, setPassword] = useState('');
-	const [fullName, setFullName] = useState('');
-	const [phone, setPhone] = useState('');
-	const [studentGroup, setStudentGroup] = useState('');
-	const [error, setError] = useState('');
 	const [activeTab, setActiveTab] = useState(0);
+	const [error, setError] = useState('');
 	const [loading, setLoading] = useState(false);
-	const [phoneError, setPhoneError] = useState('');
-	const [groupError, setGroupError] = useState('');
-	const [nameError, setNameError] = useState('');
-	const [emailError, setEmailError] = useState('');
-	const [passwordError, setPasswordError] = useState('');
-	const [passwordStrength, setPasswordStrength] = useState(0);
-	const [strengthText, setStrengthText] = useState('');
 
-	useEffect(() => {
-		if (password) {
-			const strength = getPasswordStrength(password);
-			setPasswordStrength(strength);
-			setStrengthText(getPasswordStrengthText(strength));
-		} else {
-			setPasswordStrength(0);
-			setStrengthText('');
-		}
-	}, [password]);
+	const nameField = useField('', getUserNameError);
+	const phoneField = useField('', getPhoneError);
+	const groupField = useField('', getGroupError);
+	const emailField = useField('', (v) => validateEmail(v) ? null : 'Введите корректный email');
+	const passwordField = useField('', getPasswordError);
 
-	const handlePhoneChange = (e) => {
-		const value = e.target.value;
-		setPhone(value);
-		setPhoneError(getPhoneError(value));
-	};
-
-	const handleGroupChange = (e) => {
-		const value = e.target.value;
-		setStudentGroup(value);
-		setGroupError(getGroupError(value));
-	};
-
-	const handleNameChange = (e) => {
-		const value = e.target.value;
-		setFullName(value);
-		setNameError(getUserNameError(value));
-	};
-
-	const handleEmailChange = (e) => {
-		const value = e.target.value;
-		setEmail(value);
-		setEmailError(validateEmail(value) ? '' : 'Введите корректный email');
-	};
-
-	const handlePasswordChange = (e) => {
-		const value = e.target.value;
-		setPassword(value);
-		setPasswordError(getPasswordError(value));
-	};
+	const { strength, strengthText } = usePasswordStrength(passwordField.value);
 
 	const validateForm = () => {
 		if (activeTab === 0) {
-			return !emailError && !passwordError && email && password;
+			return !emailField.error && !passwordField.error && emailField.value && passwordField.value;
 		} else {
-			const basicValid = !nameError && !emailError && !passwordError && fullName && email && password;
-			const optionalValid = (!phone || !phoneError) && (!studentGroup || !groupError);
+			const basicValid = !nameField.error && !emailField.error && !passwordField.error
+				&& nameField.value && emailField.value && passwordField.value;
+			const optionalValid = (!phoneField.value || !phoneField.error)
+				&& (!groupField.value || !groupField.error);
 			return basicValid && optionalValid;
 		}
 	};
@@ -117,27 +73,27 @@ export default function Auth() {
 
 		try {
 			if (activeTab === 0) {
-				await signInWithEmailAndPassword(auth, email, password);
+				await signInWithEmailAndPassword(auth, emailField.value, passwordField.value);
 			} else {
-				if (phone && !validatePhone(phone)) {
+				if (phoneField.value && !validatePhone(phoneField.value)) {
 					throw new Error('invalid-phone');
 				}
-				if (studentGroup && !validateGroup(studentGroup)) {
+				if (groupField.value && !validateGroup(groupField.value)) {
 					throw new Error('invalid-group');
 				}
 
-				const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+				const userCredential = await createUserWithEmailAndPassword(auth, emailField.value, passwordField.value);
 				await updateProfile(userCredential.user, {
-					displayName: fullName
+					displayName: nameField.value
 				});
 
-				const normalizedGroup = studentGroup ? studentGroup.toUpperCase() : '';
+				const normalizedGroup = groupField.value ? groupField.value.toUpperCase() : '';
 				const groupId = normalizedGroup ? await getGroupId(normalizedGroup) : null;
 
 				await setDoc(doc(db, 'users', userCredential.user.uid), {
-					fullName,
-					email,
-					phone,
+					fullName: nameField.value,
+					email: emailField.value,
+					phone: phoneField.value,
 					studentGroup: normalizedGroup,
 					groupId,
 					createdAt: new Date(),
@@ -188,12 +144,15 @@ export default function Auth() {
 			}}>
 				<Tabs
 					value={activeTab}
-					onChange={(e, newValue) => setActiveTab(newValue)}
+					onChange={(e, newValue) => {
+						setActiveTab(newValue);
+						setError('');
+					}}
 					variant="fullWidth"
 					sx={{ mb: 3 }}
 				>
-					<Tab label="Вход" icon={<Login />} iconPosition="start"/>
-					<Tab label="Регистрация" icon={<PersonAdd />} iconPosition="start"/>
+					<Tab label="Вход" icon={<Login />} iconPosition="start" />
+					<Tab label="Регистрация" icon={<PersonAdd />} iconPosition="start" />
 				</Tabs>
 
 				{error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
@@ -205,10 +164,10 @@ export default function Auth() {
 								fullWidth
 								label="ФИО"
 								margin="normal"
-								value={fullName}
-								onChange={handleNameChange}
-								error={!!nameError}
-								helperText={nameError}
+								value={nameField.value}
+								onChange={nameField.onChange}
+								error={!!nameField.error}
+								helperText={nameField.error}
 								InputProps={{ startAdornment: <Person sx={{ color: 'action.active', mr: 1 }} /> }}
 								required
 							/>
@@ -217,23 +176,23 @@ export default function Auth() {
 								fullWidth
 								label="Телефон"
 								margin="normal"
-								value={phone}
-								onChange={handlePhoneChange}
-								error={!!phoneError}
+								value={phoneField.value}
+								onChange={phoneField.onChange}
+								error={!!phoneField.error}
 								InputProps={{ startAdornment: <Phone sx={{ color: 'action.active', mr: 1 }} /> }}
 								placeholder="+7 или 8"
 							/>
-							{phoneError && <FormHelperText error>{phoneError}</FormHelperText>}
+							{phoneField.error && <FormHelperText error>{phoneField.error}</FormHelperText>}
 
 							<TextField
 								fullWidth
 								label="Группа"
 								margin="normal"
-								value={studentGroup}
-								onChange={handleGroupChange}
-								error={!!groupError}
+								value={groupField.value}
+								onChange={groupField.onChange}
+								error={!!groupField.error}
 								InputProps={{ startAdornment: <School sx={{ color: 'action.active', mr: 1 }} /> }}
-								helperText={groupError || 'Пример: 230б, 133б-а, 2-11б'}
+								helperText={groupField.error || 'Пример: 230б, 133б-а, 2-11б'}
 							/>
 						</>
 					)}
@@ -243,10 +202,10 @@ export default function Auth() {
 						label="Email"
 						type="email"
 						margin="normal"
-						value={email}
-						onChange={handleEmailChange}
-						error={!!emailError}
-						helperText={emailError}
+						value={emailField.value}
+						onChange={emailField.onChange}
+						error={!!emailField.error}
+						helperText={emailField.error}
 						InputProps={{ startAdornment: <Email sx={{ color: 'action.active', mr: 1 }} /> }}
 						required
 					/>
@@ -256,19 +215,19 @@ export default function Auth() {
 						label="Пароль"
 						type="password"
 						margin="normal"
-						value={password}
-						onChange={handlePasswordChange}
-						error={!!passwordError}
-						helperText={passwordError}
+						value={passwordField.value}
+						onChange={passwordField.onChange}
+						error={!!passwordField.error}
+						helperText={passwordField.error}
 						InputProps={{ startAdornment: <Lock sx={{ color: 'action.active', mr: 1 }} /> }}
 						required
 					/>
 
-					{activeTab === 1 && password && (
+					{activeTab === 1 && passwordField.value && (
 						<Box sx={{ mt: 1, mb: 2 }}>
 							<LinearProgress
 								variant="determinate"
-								value={(passwordStrength / 4) * 100}
+								value={(strength / 4) * 100}
 								sx={{
 									height: 6,
 									borderRadius: 3,
@@ -291,12 +250,7 @@ export default function Auth() {
 						size="large"
 						sx={{
 							mt: 3, height: 48,
-							'&.Mui-selected': {
-								outline: 'none'
-							},
-							'&:focus': {
-								outline: 'none'
-							}
+							'&.Mui-selected, &:focus': { outline: 'none' }
 						}}
 						disabled={loading || !validateForm()}
 						startIcon={loading ? null : (activeTab === 0 ? <Login /> : <PersonAdd />)}

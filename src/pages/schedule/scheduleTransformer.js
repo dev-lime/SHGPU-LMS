@@ -38,10 +38,10 @@ export const transformScheduleData = (originalData) => {
             };
         }
 
-        let teachersPart = "";
-        let subjectPart = "";
+        let teachersPart;
+        let subjectPart;
         let typePart = "";
-        let roomPart = "";
+        let roomPart;
 
         const typeIndex = parts.findIndex((part) => /\([а-яa-z]+[а-яa-z\d\s]*\)/i.test(part));
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
 	CssBaseline,
 	Paper,
@@ -16,8 +16,6 @@ import {
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeProvider } from "@mui/material/styles";
-import { auth } from './firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Auth from "@components/Auth";
 import News from "@pages/news/News";
@@ -32,8 +30,9 @@ import Settings from '@pages/more/Settings';
 import Documents from '@pages/more/Documents';
 import Support from '@pages/more/Support';
 import IDCard from '@pages/more/IDCard';
-import { createAppTheme, getSystemTheme } from './theme';
 import { useNotifications } from '@hooks/useNotifications';
+import useAuthState from '@hooks/useAuthState';
+import useThemeConfig from '@hooks/useThemeConfig';
 
 const MainLayout = ({
 	children,
@@ -47,8 +46,6 @@ const MainLayout = ({
 
 	const handleTabChange = (e, newValue) => {
 		setActiveTab(newValue);
-		localStorage.setItem('lastActiveTab', newValue);
-
 		if (location.pathname !== '/') {
 			navigate('/');
 		}
@@ -126,9 +123,7 @@ const MainLayout = ({
 								color: 'primary.main',
 								outline: 'none',
 							},
-							'&:focus': {
-								outline: 'none',
-							},
+							'&:focus': { outline: 'none' },
 						}}
 					/>
 				))}
@@ -157,80 +152,41 @@ const commonRoutes = [
 	{ path: "/chat/:chatId", element: <Chat /> }
 ];
 
+const AnimatedRoute = ({ children }) => {
+	const location = useLocation();
+	return (
+		<AnimatePresence mode="wait">
+			<motion.div
+				key={location.pathname}
+				initial={{ opacity: 0, x: 10 }}
+				animate={{ opacity: 1, x: 0 }}
+				exit={{ opacity: 0, x: -10 }}
+				transition={{ duration: 0.3 }}
+				style={{ height: '100%' }}
+			>
+				{children}
+			</motion.div>
+		</AnimatePresence>
+	);
+};
+
 export default function App() {
-	const [user, setUser] = useState(null);
-	const [loading, setLoading] = useState(true);
+	const { user, loading } = useAuthState();
+	const {
+		theme,
+		mode,
+		color,
+		borderRadius,
+		tabLabelsMode,
+		setTabLabelsMode,
+		handleThemeChange
+	} = useThemeConfig();
 	const [activeTab, setActiveTab] = useState(() => {
 		const savedTab = localStorage.getItem('lastActiveTab');
 		return savedTab ? Number(savedTab) : 0;
 	});
-	const [themeConfig, setThemeConfig] = useState(() => {
-		const savedColor = localStorage.getItem('primaryColor') || 'green';
-		const savedMode = localStorage.getItem('themeMode') || 'light';
-		const borderRadiusItem = localStorage.getItem('borderRadius');
-		const savedBorderRadius = borderRadiusItem !== null ? Number(borderRadiusItem) : 16;
 
-		return {
-			color: savedColor,
-			mode: savedMode,
-			borderRadius: savedBorderRadius
-		};
-	});
-	const [tabLabelsMode, setTabLabelsMode] = useState(
-		localStorage.getItem('tabLabelsMode') || 'showAll'
-	);
-	const [systemTheme, setSystemTheme] = useState(getSystemTheme());
-
-	useEffect(() => {
-		const unsubscribe = onAuthStateChanged(auth, (user) => {
-			setUser(user);
-			setLoading(false);
-		});
-		return unsubscribe;
-	}, []);
-
-	useEffect(() => {
-		const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-		const handleSystemThemeChange = (e) => {
-			const newSystemTheme = e.matches ? 'dark' : 'light';
-			setSystemTheme(newSystemTheme);
-
-			if (themeConfig.mode === 'system') {
-				const theme = createAppTheme(themeConfig.color, 'system', themeConfig.borderRadius);
-			}
-		};
-
-		setSystemTheme(getSystemTheme());
-		darkModeMediaQuery.addEventListener('change', handleSystemThemeChange);
-
-		return () => {
-			darkModeMediaQuery.removeEventListener('change', handleSystemThemeChange);
-		};
-	}, [themeConfig.mode]);
-
-	const handleThemeChange = (newConfig) => {
-		setThemeConfig(newConfig);
-		localStorage.setItem('primaryColor', newConfig.color);
-		localStorage.setItem('themeMode', newConfig.mode);
-		localStorage.setItem('borderRadius', newConfig.borderRadius);
-	};
-
-	const handleTabLabelsModeChange = (mode) => {
-		setTabLabelsMode(mode);
-		localStorage.setItem('tabLabelsMode', mode);
-	};
-
-	const handleLogout = async () => {
-		try {
-			await signOut(auth);
-			localStorage.removeItem('lastActiveTab');
-		} catch (error) {
-			console.error('Ошибка при выходе:', error);
-		}
-	};
-
-	const theme = createAppTheme(themeConfig.color, themeConfig.mode, themeConfig.borderRadius);
+	useNotifications(user);
 
 	const tabs = [
 		{ label: "Новости", icon: <Article />, path: "/news", component: <News /> },
@@ -239,27 +195,6 @@ export default function App() {
 		{ label: "Расписание", icon: <CalendarMonth />, path: "/schedule", component: <Schedule /> },
 		{ label: "Ещё", icon: <Pending />, path: "/more", component: <More /> }
 	];
-
-	useNotifications(user);
-
-	const AnimatedRoute = ({ children }) => {
-		const location = useLocation();
-
-		return (
-			<AnimatePresence mode="wait">
-				<motion.div
-					key={location.pathname}
-					initial={{ opacity: 0, x: 10 }}
-					animate={{ opacity: 1, x: 0 }}
-					exit={{ opacity: 0, x: -10 }}
-					transition={{ duration: 0.3 }}
-					style={{ height: '100%' }}
-				>
-					{children}
-				</motion.div>
-			</AnimatePresence>
-		);
-	};
 
 	if (loading) {
 		return (
@@ -289,7 +224,6 @@ export default function App() {
 			<CssBaseline />
 			<Router>
 				<Routes>
-					{/* Главный маршрут */}
 					<Route
 						path="/"
 						element={
@@ -307,7 +241,6 @@ export default function App() {
 						}
 					/>
 
-					{/* Маршруты вкладок */}
 					{tabs.map((tab, index) => (
 						<Route
 							key={index}
@@ -324,7 +257,6 @@ export default function App() {
 						/>
 					))}
 
-					{/* Настройки */}
 					<Route
 						path="/settings"
 						element={
@@ -335,16 +267,13 @@ export default function App() {
 								tabLabelsMode={tabLabelsMode}
 								element={
 									<Settings
-										themeConfig={themeConfig}
+										themeConfig={{ color, mode, borderRadius }}
 										onThemeChange={handleThemeChange}
 										tabLabelsMode={tabLabelsMode}
-										onTabLabelsModeChange={handleTabLabelsModeChange}
-										borderRadius={themeConfig.borderRadius}
+										onTabLabelsModeChange={setTabLabelsMode}
+										borderRadius={borderRadius}
 										onBorderRadiusChange={(newValue) => {
-											handleThemeChange({
-												...themeConfig,
-												borderRadius: newValue
-											});
+											handleThemeChange({ borderRadius: newValue });
 										}}
 									/>
 								}
@@ -352,7 +281,6 @@ export default function App() {
 						}
 					/>
 
-					{/* Общие маршруты */}
 					{commonRoutes.map((route, index) => (
 						<Route
 							key={index}
