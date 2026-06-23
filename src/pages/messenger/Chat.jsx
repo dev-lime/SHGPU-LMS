@@ -34,7 +34,6 @@ import {
     MoreVert,
     ContentCopy,
     Delete,
-    Phone,
     AttachFile,
     BookmarkBorder,
     Bookmark
@@ -613,10 +612,6 @@ export default function Chat() {
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <IconButton aria-label="call" sx={{ color: 'text.primary', mr: 1 }}>
-                            <Phone />
-                        </IconButton>
-
                         <IconButton
                             aria-label="more options"
                             aria-controls={menuAnchorEl ? 'chat-menu' : undefined}

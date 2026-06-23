@@ -1,32 +1,21 @@
-import { useState, useEffect } from 'react';
-import {
-	Card,
-	CardContent,
-	Box,
-	Chip,
-	Typography,
-	IconButton,
-	Divider,
-	CardActionArea
-} from '@mui/material';
-import {
-	BookmarkBorder,
-	Bookmark,
-	Share
-} from '@mui/icons-material';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Box, Typography } from '@mui/material';
+import { List, useDynamicRowHeight } from 'react-window';
 import SearchBar from '@components/SearchBar';
-import { styled } from '@mui/system';
+import NewsCard from '@components/NewsCard';
 import { db, auth } from '@src/firebase';
 import { doc, setDoc, deleteDoc, collection, query, where, onSnapshot, serverTimestamp } from 'firebase/firestore';
 
-const EllipsisTypography = styled(Typography)({
-	display: '-webkit-box',
-	overflow: 'hidden',
-	textOverflow: 'ellipsis',
-	WebkitBoxOrient: 'vertical',
-});
-
 import newsData from './news-data.json';
+
+const NewsRow = ({ index, style, items, bookmarkedMap, toggleBookmark }) => (
+	<NewsCard
+		item={items[index]}
+		bookmarkedMap={bookmarkedMap}
+		toggleBookmark={toggleBookmark}
+		style={{ ...style }}
+	/>
+);
 
 export default function News() {
 	const [bookmarkedMap, setBookmarkedMap] = useState({});
@@ -55,7 +44,6 @@ export default function News() {
 			return [];
 		}
 	});
-
 	useEffect(() => {
 		if (!auth.currentUser) return;
 		const q = query(
@@ -91,32 +79,26 @@ export default function News() {
 		}
 	};
 
-	const handleOpenNews = (link) => {
-		if (link) {
-			window.open(link, '_blank');
-		}
-	};
-
-	const handleShare = (link) => {
-		if (navigator.share) {
-			navigator.share({
-				title: 'Поделиться новостью',
-				url: link
-			}).then(() => {
-				console.log('Успешно поделились!');
-			}).catch((error) => {
-				console.error('Ошибка при попытке поделиться:', error);
-			});
-		} else {
-			alert('К сожалению, ваша платформа не поддерживает функцию общего доступа.');
-		}
-	};
-
 	const filteredNews = newsItems.filter(item =>
 		item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
 		(item.content && item.content.toLowerCase().includes(searchQuery.toLowerCase())) ||
 		item.category.toLowerCase().includes(searchQuery.toLowerCase())
 	);
+
+	const rowHeight = useDynamicRowHeight({ defaultRowHeight: 380, key: 'news' });
+
+	const [headerVisible, setHeaderVisible] = useState(true);
+	const prevScrollRef = useRef(0);
+
+	const handleScroll = useCallback((e) => {
+		const scrollTop = e.currentTarget.scrollTop;
+		if (scrollTop > prevScrollRef.current) {
+			setHeaderVisible(false);
+		} else if (scrollTop < prevScrollRef.current) {
+			setHeaderVisible(true);
+		}
+		prevScrollRef.current = scrollTop;
+	}, []);
 
 	if (newsItems.length === 0) {
 		return (
@@ -127,196 +109,46 @@ export default function News() {
 	}
 
 	return (
-		<Box sx={{
-			height: '100%',
-			display: 'flex',
-			flexDirection: 'column',
-			p: 2
-		}}>
+		<Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
 			<Box sx={{
-				display: 'flex',
-				justifyContent: 'space-between',
-				alignItems: 'center',
-				mb: 3,
-				position: 'sticky',
-				top: 0,
-				backgroundColor: 'background.default',
-				zIndex: 1,
-				pt: 1,
-				pb: 2
+				overflow: 'hidden',
+				transition: 'max-height 0.2s ease, opacity 0.2s ease, padding-bottom 0.2s ease',
+				maxHeight: headerVisible ? 120 : 0,
+				opacity: headerVisible ? 1 : 0,
+				px: 2,
+				pt: 2,
+				pb: headerVisible ? 2 : 0
 			}}>
-				<Typography
-					variant="h5"
-					sx={{
-						fontWeight: 600,
-						color: 'text.primary',
-						whiteSpace: 'nowrap'
-					}}
-				>
-					Новости
-				</Typography>
-
-				<SearchBar
-					placeholder="Поиск"
-					value={searchQuery}
-					onChange={setSearchQuery}
-					width="70%"
-				/>
+				<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+					<Typography
+						variant="h5"
+						sx={{ fontWeight: 600, color: 'text.primary', whiteSpace: 'nowrap' }}
+					>
+						Новости
+					</Typography>
+					<SearchBar
+						placeholder="Поиск"
+						value={searchQuery}
+						onChange={setSearchQuery}
+						width="70%"
+					/>
+				</Box>
 			</Box>
-
-			<Box sx={{ flex: 1 }}> {/* Контейнер для списка новостей */}
+			<Box sx={{ flex: 1, minHeight: 0 }}>
 				{filteredNews.length > 0 ? (
-					filteredNews.map((item) => (
-						<Card
-							key={item.id}
-							sx={{
-								mb: 3,
-								borderRadius: 3
-							}}
-						>
-							<CardContent sx={{ p: 3 }}>
-								{/* Заголовок */}
-								<CardActionArea
-									onClick={() => handleOpenNews(item.link)}
-									sx={{
-										mb: 1.5,
-										'&.Mui-selected, &:focus': { outline: 'none' }
-									}}
-								>
-									<EllipsisTypography
-										variant="h6"
-										sx={{
-											fontWeight: 600,
-											color: 'text.primary',
-											minHeight: '3em',
-											lineHeight: '1.5em',
-											WebkitLineClamp: 2
-										}}
-									>
-										{item.title}
-									</EllipsisTypography>
-								</CardActionArea>
-
-								{/* Изображение */}
-								{item.image && (
-									<CardActionArea
-										onClick={() => handleOpenNews(item.link)}
-										sx={{
-											mb: 2,
-											'&.Mui-selected, &:focus': { outline: 'none' }
-										}}
-									>
-										<Box sx={{
-											width: '100%',
-											height: 200,
-											overflow: 'hidden',
-											borderRadius: '8px',
-											display: 'flex',
-											alignItems: 'center',
-											justifyContent: 'center'
-										}}>
-											<img
-												src={item.image}
-												alt={item.title}
-												style={{
-													width: '100%',
-													height: 'auto',
-													maxHeight: '100%',
-													objectFit: 'cover'
-												}}
-												onError={(e) => {
-													e.target.style.display = 'none';
-												}}
-											/>
-										</Box>
-									</CardActionArea>
-								)}
-
-								{/* Описание */}
-								{item.content && (
-									<CardActionArea
-										onClick={() => handleOpenNews(item.link)}
-										sx={{
-											mb: 2,
-											'&.Mui-selected, &:focus': { outline: 'none' }
-										}}
-									>
-										<EllipsisTypography
-											variant="body1"
-											color="text.secondary"
-											sx={{
-												minHeight: '6em',
-												lineHeight: '1.5em',
-												WebkitLineClamp: 4
-											}}
-										>
-											{item.content}
-										</EllipsisTypography>
-									</CardActionArea>
-								)}
-
-								<Divider sx={{ my: 1.5 }} />
-
-								<Box sx={{
-									display: 'flex',
-									justifyContent: 'space-between',
-									alignItems: 'center'
-								}}>
-									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-										{item.category && (
-											<Chip
-												label={item.category}
-												size="small"
-												variant="outlined"
-												sx={{
-													fontWeight: 500,
-													borderColor: 'primary.main',
-													color: 'primary.main',
-													backgroundColor: 'transparent'
-												}}
-											/>
-										)}
-										{item.date && (
-											<Typography
-												color="text.secondary"
-												variant="body2"
-												sx={{ fontSize: '0.8rem' }}
-											>
-												{item.date}
-											</Typography>
-										)}
-									</Box>
-
-									<Box>
-										<IconButton
-											size="small"
-											onClick={(e) => {
-												e.stopPropagation();
-												toggleBookmark(item);
-											}}
-											sx={{
-												color: bookmarkedMap[item.id] ? 'primary.main' : 'text.secondary',
-											}}
-										>
-											{bookmarkedMap[item.id] ? <Bookmark /> : <BookmarkBorder />}
-										</IconButton>
-										<IconButton
-											size="small"
-											onClick={(e) => {
-												e.stopPropagation();
-												handleShare(item.link);
-											}}
-											sx={{
-												color: 'text.secondary',
-											}}
-										>
-											<Share />
-										</IconButton>
-									</Box>
-								</Box>
-							</CardContent>
-						</Card>
-					))
+					<List
+						rowCount={filteredNews.length}
+						rowHeight={rowHeight}
+						overscanCount={5}
+						rowComponent={NewsRow}
+						rowProps={{
+							items: filteredNews,
+							bookmarkedMap,
+							toggleBookmark
+						}}
+						style={{ height: '100%' }}
+						onScroll={handleScroll}
+					/>
 				) : (
 					<Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
 						Ничего не найдено

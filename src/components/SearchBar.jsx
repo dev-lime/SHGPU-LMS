@@ -53,29 +53,31 @@ const SearchBar = ({
                         },
                     },
                 }}
-                InputProps={{
-                    startAdornment: (
-                        <InputAdornment position="start">
-                            <Search color="primary" />
-                        </InputAdornment>
-                    ),
-                    endAdornment: value && (
-                        <InputAdornment position="end">
-                            <IconButton
-                                onClick={handleClear}
-                                size="small"
-                                sx={{
-                                    color: 'text.secondary',
-                                    '&:hover': {
-                                        color: 'primary.main',
-                                        backgroundColor: 'transparent'
-                                    }
-                                }}
-                            >
-                                <Close fontSize="small" />
-                            </IconButton>
-                        </InputAdornment>
-                    ),
+                slotProps={{
+                    input: {
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <Search color="primary" />
+                            </InputAdornment>
+                        ),
+                        endAdornment: value && (
+                            <InputAdornment position="end">
+                                <IconButton
+                                    onClick={handleClear}
+                                    size="small"
+                                    sx={{
+                                        color: 'text.secondary',
+                                        '&:hover': {
+                                            color: 'primary.main',
+                                            backgroundColor: 'transparent'
+                                        }
+                                    }}
+                                >
+                                    <Close fontSize="small" />
+                                </IconButton>
+                            </InputAdornment>
+                        ),
+                    }
                 }}
             />
         </Box>
