@@ -30,6 +30,7 @@ import Settings from '@pages/more/Settings';
 import Documents from '@pages/more/Documents';
 import Support from '@pages/more/Support';
 import IDCard from '@pages/more/IDCard';
+import Favorites from '@pages/more/Favorites';
 import { useNotifications } from '@hooks/useNotifications';
 import useAuthState from '@hooks/useAuthState';
 import useThemeConfig from '@hooks/useThemeConfig';
@@ -149,7 +150,8 @@ const commonRoutes = [
 	{ path: "/user/:userId", element: <UserProfile /> },
 	{ path: "/support", element: <Support /> },
 	{ path: "/idcard", element: <IDCard /> },
-	{ path: "/chat/:chatId", element: <Chat /> }
+	{ path: "/chat/:chatId", element: <Chat /> },
+	{ path: "/favorites", element: <Favorites /> }
 ];
 
 const AnimatedRoute = ({ children }) => {

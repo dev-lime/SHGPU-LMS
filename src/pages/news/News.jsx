@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
 	Card,
 	CardContent,
@@ -16,6 +16,8 @@ import {
 } from '@mui/icons-material';
 import SearchBar from '@components/SearchBar';
 import { styled } from '@mui/system';
+import { db, auth } from '@src/firebase';
+import { doc, setDoc, deleteDoc, collection, query, where, onSnapshot, serverTimestamp } from 'firebase/firestore';
 
 const EllipsisTypography = styled(Typography)({
 	display: '-webkit-box',
@@ -27,7 +29,7 @@ const EllipsisTypography = styled(Typography)({
 import newsData from './news-data.json';
 
 export default function News() {
-	const [bookmarked, setBookmarked] = useState([]);
+	const [bookmarkedMap, setBookmarkedMap] = useState({});
 	const [searchQuery, setSearchQuery] = useState('');
 	const [newsItems] = useState(() => {
 		try {
@@ -54,11 +56,38 @@ export default function News() {
 		}
 	});
 
-	const toggleBookmark = (id) => {
-		if (bookmarked.includes(id)) {
-			setBookmarked(bookmarked.filter(item => item !== id));
+	useEffect(() => {
+		if (!auth.currentUser) return;
+		const q = query(
+			collection(db, 'users', auth.currentUser.uid, 'favorites'),
+			where('type', '==', 'news')
+		);
+		const unsubscribe = onSnapshot(q, (snapshot) => {
+			const map = {};
+			snapshot.docs.forEach(doc => {
+				map[doc.data().itemId] = doc.id;
+			});
+			setBookmarkedMap(map);
+		});
+		return unsubscribe;
+	}, []);
+
+	const toggleBookmark = (item) => {
+		const docId = 'news_' + item.id;
+		const ref = doc(db, 'users', auth.currentUser.uid, 'favorites', docId);
+		if (bookmarkedMap[item.id]) {
+			deleteDoc(ref);
 		} else {
-			setBookmarked([...bookmarked, id]);
+			setDoc(ref, {
+				type: 'news',
+				itemId: item.id,
+				title: item.title,
+				date: item.date,
+				category: item.category,
+				content: item.content,
+				link: item.link,
+				savedAt: serverTimestamp()
+			});
 		}
 	};
 
@@ -263,13 +292,13 @@ export default function News() {
 											size="small"
 											onClick={(e) => {
 												e.stopPropagation();
-												toggleBookmark(item.id);
+												toggleBookmark(item);
 											}}
 											sx={{
-												color: bookmarked.includes(item.id) ? 'primary.main' : 'text.secondary',
+												color: bookmarkedMap[item.id] ? 'primary.main' : 'text.secondary',
 											}}
 										>
-											{bookmarked.includes(item.id) ? <Bookmark /> : <BookmarkBorder />}
+											{bookmarkedMap[item.id] ? <Bookmark /> : <BookmarkBorder />}
 										</IconButton>
 										<IconButton
 											size="small"

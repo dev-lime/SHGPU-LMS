@@ -35,7 +35,9 @@ import {
     ContentCopy,
     Delete,
     Phone,
-    AttachFile
+    AttachFile,
+    BookmarkBorder,
+    Bookmark
 } from '@mui/icons-material';
 import { db, auth } from '@src/firebase';
 import {
@@ -47,7 +49,9 @@ import {
     addDoc,
     serverTimestamp,
     updateDoc,
-    deleteDoc
+    deleteDoc,
+    setDoc,
+    where
 } from 'firebase/firestore';
 import { useNavigate, useParams } from 'react-router-dom';
 import { onSnapshot } from 'firebase/firestore';
@@ -107,7 +111,9 @@ const MessageItem = React.memo(({
     otherUser,
     isNewMessage,
     onCopy,
-    onDelete
+    onDelete,
+    isBookmarked,
+    onToggleBookmark
 }) => {
     const navigate = useNavigate();
     const [showActions, setShowActions] = useState(false);
@@ -124,6 +130,7 @@ const MessageItem = React.memo(({
     }, [message.timestamp]);
 
     const handleCopy = () => onCopy(message.text);
+    const handleToggleBookmark = () => onToggleBookmark(message);
     const handleDelete = () => deleteDialog.handleOpen();
     const handleDeleteConfirm = () => {
         onDelete(message.id);
@@ -178,7 +185,7 @@ const MessageItem = React.memo(({
                             {showActions && (
                                 <Box sx={{
                                     position: 'absolute', top: '0',
-                                    ...(isOwnMessage ? { left: -40 } : { right: -20 }),
+                                    ...(isOwnMessage ? { left: -100 } : { right: -70 }),
                                     display: 'flex', gap: 0.5,
                                     bgcolor: 'background.paper',
                                     borderRadius: 2, p: 0.5,
@@ -187,6 +194,11 @@ const MessageItem = React.memo(({
                                     <Tooltip title="Копировать">
                                         <IconButton size="small" onClick={handleCopy}>
                                             <ContentCopy fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title={isBookmarked ? "Убрать из избранного" : "В избранное"}>
+                                        <IconButton size="small" onClick={handleToggleBookmark}>
+                                            {isBookmarked ? <Bookmark fontSize="small" color="primary" /> : <BookmarkBorder fontSize="small" />}
                                         </IconButton>
                                     </Tooltip>
                                     {isOwnMessage && (
@@ -301,6 +313,9 @@ export default function Chat() {
     const initialScrollDoneRef = useRef(false);
     const [menuAnchorEl, setMenuAnchorEl] = useState(null);
     const [isAttachmentPanelOpen, setIsAttachmentPanelOpen] = useState(false);
+    const [bookmarkedMessages, setBookmarkedMessages] = useState({});
+    const bookmarkedMessagesRef = useRef(bookmarkedMessages);
+    bookmarkedMessagesRef.current = bookmarkedMessages;
 
     const { shouldShowAvatar, shouldShowTime, isNewDay } = useMessageDisplay(messages);
 
@@ -395,6 +410,23 @@ export default function Chat() {
         }
     }, [messages.length, scrollToBottom]);
 
+    useEffect(() => {
+        if (!auth.currentUser) return;
+        const q = query(
+            collection(db, 'users', auth.currentUser.uid, 'favorites'),
+            where('type', '==', 'message')
+        );
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const map = {};
+            snapshot.docs.forEach(doc => {
+                const data = doc.data();
+                if (data.messageId) map[data.messageId] = doc.id;
+            });
+            setBookmarkedMessages(map);
+        });
+        return unsubscribe;
+    }, []);
+
     const handleCopyMessage = useCallback((text) => {
         navigator.clipboard.writeText(text).then(() => {
             snackbar.show('Сообщение скопировано', 'success');
@@ -402,6 +434,31 @@ export default function Chat() {
             snackbar.show('Не удалось скопировать сообщение');
         });
     }, [snackbar]);
+
+    const handleToggleBookmark = useCallback(async (message) => {
+        const uid = auth.currentUser?.uid;
+        if (!uid) return;
+        const docId = 'msg_' + message.id;
+        const ref = doc(db, 'users', uid, 'favorites', docId);
+        if (bookmarkedMessagesRef.current[message.id]) {
+            await deleteDoc(ref);
+        } else {
+            const senderName = message.sender === uid
+                ? (auth.currentUser.displayName || 'Вы')
+                : (otherUser?.fullName || 'Пользователь');
+            await setDoc(ref, {
+                type: 'message',
+                messageId: message.id,
+                chatId: chatId,
+                text: message.text,
+                senderId: message.sender,
+                senderName: senderName,
+                chatName: otherUser?.fullName || 'Пользователь',
+                messageTimestamp: message.timestamp,
+                savedAt: serverTimestamp()
+            });
+        }
+    }, [chatId, otherUser]);
 
     const handleDeleteMessage = useCallback(async (messageId) => {
         try {
@@ -612,6 +669,8 @@ export default function Chat() {
                                     isNewMessage={message.id === lastMessageId}
                                     onCopy={handleCopyMessage}
                                     onDelete={handleDeleteMessage}
+                                    isBookmarked={!!bookmarkedMessages[message.id]}
+                                    onToggleBookmark={handleToggleBookmark}
                                 />
                             </React.Fragment>
                         );

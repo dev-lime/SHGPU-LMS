@@ -14,7 +14,8 @@ import {
 	HelpOutlined,
 	AccountCircle,
 	Badge,
-	Payment
+	Payment,
+	BookmarkBorder
 } from '@mui/icons-material';
 import ProfileSection from './ProfileSection';
 import CustomListItem from '@components/CustomListItem';
@@ -39,6 +40,12 @@ export default function More() {
 			description: "Шаблоны для печати",
 			icon: <Description color="primary" />,
 			onClick: () => navigate('/documents')
+		},
+		{
+			name: "Избранное",
+			description: "Сохраненные новости и сообщения",
+			icon: <BookmarkBorder color="primary" />,
+			onClick: () => navigate('/favorites')
 		},
 		{
 			name: "Настройки",
