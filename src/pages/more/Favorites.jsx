@@ -82,8 +82,8 @@ export default function Favorites() {
                     flex: 1, p: 4, color: 'text.secondary'
                 }}>
                     <BookmarkBorder sx={{ fontSize: 64, mb: 2, opacity: 0.4 }} />
-                    <Typography variant="h6">Нет сохраненных элементов</Typography>
-                    <Typography variant="body2" sx={{ mt: 1 }}>
+                    <Typography variant="h6" sx={{ textAlign: 'center' }}>Нет сохраненных элементов</Typography>
+                    <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
                         Добавляйте новости и сообщения в избранное, чтобы они появились здесь
                     </Typography>
                 </Box>
@@ -97,7 +97,7 @@ export default function Favorites() {
                                 if (item.type === 'news' && item.link) {
                                     window.open(item.link, '_blank');
                                 } else if (item.type === 'message' && item.chatId) {
-                                    navigate(`/chat/${item.chatId}`);
+                                    navigate(`/chat/${item.chatId}`, { state: { scrollToMessage: item.messageId } });
                                 }
                             }}
                         >

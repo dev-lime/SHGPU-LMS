@@ -53,7 +53,7 @@ import {
     setDoc,
     where
 } from 'firebase/firestore';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { onSnapshot } from 'firebase/firestore';
 import useDialog from '@hooks/useDialog';
 import useSnackbar from '@hooks/useSnackbar';
@@ -141,6 +141,7 @@ const MessageItem = React.memo(({
         <>
             <Grow in={true} timeout={isNewMessage ? 500 : 0}>
                 <ListItem
+                    id={`msg-${message.id}`}
                     sx={{
                         justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
                         px: 1, alignItems: 'flex-start',
@@ -301,6 +302,7 @@ const MessageItem = React.memo(({
 export default function Chat() {
     const { chatId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const snackbar = useSnackbar();
     const chatDeleteDialog = useDialog();
     const { containerRef: messagesContainerRef, scrollToBottom } = useScrollToBottom();
@@ -316,6 +318,8 @@ export default function Chat() {
     const [bookmarkedMessages, setBookmarkedMessages] = useState({});
     const bookmarkedMessagesRef = useRef(bookmarkedMessages);
     bookmarkedMessagesRef.current = bookmarkedMessages;
+    const scrollToMessageRef = useRef(location.state?.scrollToMessage || null);
+    const cameFromFavoritesRef = useRef(!!location.state?.scrollToMessage);
 
     const { shouldShowAvatar, shouldShowTime, isNewDay } = useMessageDisplay(messages);
 
@@ -398,14 +402,31 @@ export default function Chat() {
     }, [chatId, loadChatData, isValidChatId, snackbar]);
 
     useEffect(() => {
+        if (location.state?.scrollToMessage) {
+            window.history.replaceState({}, document.title);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!scrollToMessageRef.current || messages.length === 0) return;
+        const el = document.getElementById(`msg-${scrollToMessageRef.current}`);
+        if (el) {
+            el.scrollIntoView({ block: 'center' });
+            scrollToMessageRef.current = null;
+            cameFromFavoritesRef.current = false;
+        }
+    }, [messages]);
+
+    useEffect(() => {
         if (messages.length > 0 && !initialScrollDoneRef.current) {
+            if (cameFromFavoritesRef.current) return;
             scrollToBottom('auto');
             initialScrollDoneRef.current = true;
         }
     }, [messages, scrollToBottom]);
 
     useEffect(() => {
-        if (messages.length > 0) {
+        if (messages.length > 0 && !cameFromFavoritesRef.current) {
             scrollToBottom('smooth');
         }
     }, [messages.length, scrollToBottom]);
