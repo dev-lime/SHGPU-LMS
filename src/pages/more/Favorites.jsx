@@ -64,22 +64,6 @@ export default function Favorites() {
         );
     }
 
-    if (favorites.length === 0) {
-        return (
-            <Box sx={{
-                display: 'flex', flexDirection: 'column',
-                justifyContent: 'center', alignItems: 'center',
-                height: '100%', p: 4, color: 'text.secondary'
-            }}>
-                <BookmarkBorder sx={{ fontSize: 64, mb: 2, opacity: 0.4 }} />
-                <Typography variant="h6">Нет сохраненных элементов</Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                    Добавляйте новости и сообщения в избранное, чтобы они появились здесь
-                </Typography>
-            </Box>
-        );
-    }
-
     return (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -91,105 +75,119 @@ export default function Favorites() {
                 </Typography>
             </Box>
 
-            <Box sx={{ flex: 1, overflow: 'auto' }}>
-                {favorites.map((item) => (
-                    <Card
-                        key={item.id}
-                        sx={{ mb: 2, borderRadius: 3, cursor: 'pointer' }}
-                        onClick={() => {
-                            if (item.type === 'news' && item.link) {
-                                window.open(item.link, '_blank');
-                            } else if (item.type === 'message' && item.chatId) {
-                                navigate(`/chat/${item.chatId}`);
-                            }
-                        }}
-                    >
-                        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
-                                    {item.type === 'news' ? (
-                                        <Box>
-                                            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
-                                                {item.title}
-                                            </Typography>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                                                {item.category && (
-                                                    <Chip label={item.category} size="small" variant="outlined"
-                                                        sx={{ fontWeight: 500, borderColor: 'primary.main', color: 'primary.main' }}
-                                                    />
-                                                )}
-                                                {item.date && (
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        {item.date}
+            {favorites.length === 0 ? (
+                <Box sx={{
+                    display: 'flex', flexDirection: 'column',
+                    justifyContent: 'center', alignItems: 'center',
+                    flex: 1, p: 4, color: 'text.secondary'
+                }}>
+                    <BookmarkBorder sx={{ fontSize: 64, mb: 2, opacity: 0.4 }} />
+                    <Typography variant="h6">Нет сохраненных элементов</Typography>
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                        Добавляйте новости и сообщения в избранное, чтобы они появились здесь
+                    </Typography>
+                </Box>
+            ) : (
+                <Box sx={{ flex: 1, overflow: 'auto' }}>
+                    {favorites.map((item) => (
+                        <Card
+                            key={item.id}
+                            sx={{ mb: 2, borderRadius: 3, cursor: 'pointer' }}
+                            onClick={() => {
+                                if (item.type === 'news' && item.link) {
+                                    window.open(item.link, '_blank');
+                                } else if (item.type === 'message' && item.chatId) {
+                                    navigate(`/chat/${item.chatId}`);
+                                }
+                            }}
+                        >
+                            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
+                                        {item.type === 'news' ? (
+                                            <Box>
+                                                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                                    {item.title}
+                                                </Typography>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                                    {item.category && (
+                                                        <Chip label={item.category} size="small" variant="outlined"
+                                                            sx={{ fontWeight: 500, borderColor: 'primary.main', color: 'primary.main' }}
+                                                        />
+                                                    )}
+                                                    {item.date && (
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {item.date}
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                                {item.content && (
+                                                    <Typography variant="body2" color="text.secondary"
+                                                        sx={{
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            display: '-webkit-box',
+                                                            WebkitLineClamp: 3,
+                                                            WebkitBoxOrient: 'vertical',
+                                                        }}
+                                                    >
+                                                        {item.content}
                                                     </Typography>
                                                 )}
                                             </Box>
-                                            {item.content && (
-                                                <Typography variant="body2" color="text.secondary"
+                                        ) : (
+                                            <Box>
+                                                <Typography variant="body1"
                                                     sx={{
                                                         overflow: 'hidden',
                                                         textOverflow: 'ellipsis',
                                                         display: '-webkit-box',
                                                         WebkitLineClamp: 3,
                                                         WebkitBoxOrient: 'vertical',
+                                                        mb: 1,
+                                                        whiteSpace: 'pre-wrap',
+                                                        wordBreak: 'break-word'
                                                     }}
                                                 >
-                                                    {item.content}
+                                                    {item.text}
                                                 </Typography>
-                                            )}
-                                        </Box>
-                                    ) : (
-                                        <Box>
-                                            <Typography variant="body1"
-                                                sx={{
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    display: '-webkit-box',
-                                                    WebkitLineClamp: 3,
-                                                    WebkitBoxOrient: 'vertical',
-                                                    mb: 1,
-                                                    whiteSpace: 'pre-wrap',
-                                                    wordBreak: 'break-word'
-                                                }}
-                                            >
-                                                {item.text}
-                                            </Typography>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {item.senderName || 'Неизвестно'}
-                                                </Typography>
-                                                <Typography variant="caption" color="text.disabled">·</Typography>
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {item.chatName || 'Чат'}
-                                                </Typography>
-                                                {item.messageTimestamp && (
-                                                    <>
-                                                        <Typography variant="caption" color="text.disabled">·</Typography>
-                                                        <Typography variant="caption" color="text.secondary">
-                                                            {formatTimestamp(item.messageTimestamp)}
-                                                        </Typography>
-                                                    </>
-                                                )}
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {item.senderName || 'Неизвестно'}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.disabled">·</Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {item.chatName || 'Чат'}
+                                                    </Typography>
+                                                    {item.messageTimestamp && (
+                                                        <>
+                                                            <Typography variant="caption" color="text.disabled">·</Typography>
+                                                            <Typography variant="caption" color="text.secondary">
+                                                                {formatTimestamp(item.messageTimestamp)}
+                                                            </Typography>
+                                                        </>
+                                                    )}
+                                                </Box>
                                             </Box>
-                                        </Box>
-                                    )}
-                                </Box>
+                                        )}
+                                    </Box>
 
-                                <IconButton
-                                    size="small"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleRemove(item.id);
-                                    }}
-                                    sx={{ color: 'text.secondary', flexShrink: 0, mt: 0.5 }}
-                                >
-                                    <Delete fontSize="small" />
-                                </IconButton>
-                            </Box>
-                        </CardContent>
-                    </Card>
-                ))}
-            </Box>
+                                    <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRemove(item.id);
+                                        }}
+                                        sx={{ color: 'text.secondary', flexShrink: 0, mt: 0.5 }}
+                                    >
+                                        <Delete fontSize="small" />
+                                    </IconButton>
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </Box>
+            )}
         </Box>
     );
 }

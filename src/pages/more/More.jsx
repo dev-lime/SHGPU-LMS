@@ -15,7 +15,7 @@ import {
 	AccountCircle,
 	Badge,
 	Payment,
-	BookmarkBorder
+	Bookmark
 } from '@mui/icons-material';
 import ProfileSection from './ProfileSection';
 import CustomListItem from '@components/CustomListItem';
@@ -44,7 +44,7 @@ export default function More() {
 		{
 			name: "Избранное",
 			description: "Сохраненные новости и сообщения",
-			icon: <BookmarkBorder color="primary" />,
+			icon: <Bookmark color="primary" />,
 			onClick: () => navigate('/favorites')
 		},
 		{
