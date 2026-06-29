@@ -13,11 +13,11 @@ import {
 	validateGroup,
 	getGroupError,
 	validateEmail,
-	getPasswordError,
-	getUserNameError
+	getPasswordError
 } from '@utils/validators';
 import useField from '@hooks/useField';
 import usePasswordStrength from '@hooks/usePasswordStrength';
+import { FACULTIES } from '@constants/faculties';
 import {
 	Box,
 	TextField,
@@ -29,7 +29,11 @@ import {
 	Alert,
 	Divider,
 	FormHelperText,
-	LinearProgress
+	LinearProgress,
+	Select,
+	MenuItem,
+	InputLabel,
+	FormControl
 } from '@mui/material';
 import {
 	Email,
@@ -38,7 +42,8 @@ import {
 	Login,
 	Phone,
 	School,
-	Person
+	Person,
+	Badge
 } from '@mui/icons-material';
 
 export default function Auth() {
@@ -46,9 +51,13 @@ export default function Auth() {
 	const [error, setError] = useState('');
 	const [loading, setLoading] = useState(false);
 
-	const nameField = useField('', getUserNameError);
+	const lastNameField = useField('', (v) => v.trim() ? null : 'Введите фамилию');
+	const firstNameField = useField('', (v) => v.trim() ? null : 'Введите имя');
+	const patronymicField = useField('');
 	const phoneField = useField('', getPhoneError);
 	const groupField = useField('', getGroupError);
+	const studentIdField = useField('');
+	const facultyField = useField('');
 	const emailField = useField('', (v) => validateEmail(v) ? null : 'Введите корректный email');
 	const passwordField = useField('', getPasswordError);
 
@@ -58,8 +67,8 @@ export default function Auth() {
 		if (activeTab === 0) {
 			return !emailField.error && !passwordField.error && emailField.value && passwordField.value;
 		} else {
-			const basicValid = !nameField.error && !emailField.error && !passwordField.error
-				&& nameField.value && emailField.value && passwordField.value;
+			const basicValid = !lastNameField.error && !firstNameField.error && !emailField.error && !passwordField.error
+				&& lastNameField.value && firstNameField.value && emailField.value && passwordField.value;
 			const optionalValid = (!phoneField.value || !phoneField.error)
 				&& (!groupField.value || !groupField.error);
 			return basicValid && optionalValid;
@@ -83,19 +92,29 @@ export default function Auth() {
 				}
 
 				const userCredential = await createUserWithEmailAndPassword(auth, emailField.value, passwordField.value);
+
+				const displayName = [lastNameField.value, firstNameField.value, patronymicField.value].filter(Boolean).join(' ');
 				await updateProfile(userCredential.user, {
-					displayName: nameField.value
+					displayName
 				});
 
 				const normalizedGroup = groupField.value ? groupField.value.toUpperCase() : '';
 				const groupId = normalizedGroup ? await getGroupId(normalizedGroup) : null;
 
 				await setDoc(doc(db, 'users', userCredential.user.uid), {
-					fullName: nameField.value,
+					lastName: lastNameField.value,
+					firstName: firstNameField.value,
+					patronymic: patronymicField.value,
 					email: emailField.value,
 					phone: phoneField.value,
 					studentGroup: normalizedGroup,
 					groupId,
+					studentId: studentIdField.value,
+					accountType: 'student',
+					faculty: facultyField.value,
+					department: '',
+					position: '',
+					schemaVersion: 2,
 					createdAt: new Date(),
 					updatedAt: new Date()
 				});
@@ -162,16 +181,34 @@ export default function Auth() {
 						<>
 							<TextField
 								fullWidth
-								label="ФИО"
+								label="Фамилия"
 								margin="normal"
-								value={nameField.value}
-								onChange={nameField.onChange}
-								error={!!nameField.error}
-								helperText={nameField.error}
+								value={lastNameField.value}
+								onChange={lastNameField.onChange}
+								error={!!lastNameField.error}
+								helperText={lastNameField.error}
 								InputProps={{ startAdornment: <Person sx={{ color: 'action.active', mr: 1 }} /> }}
 								required
 							/>
-
+							<TextField
+								fullWidth
+								label="Имя"
+								margin="normal"
+								value={firstNameField.value}
+								onChange={firstNameField.onChange}
+								error={!!firstNameField.error}
+								helperText={firstNameField.error}
+								InputProps={{ startAdornment: <Person sx={{ color: 'action.active', mr: 1 }} /> }}
+								required
+							/>
+							<TextField
+								fullWidth
+								label="Отчество"
+								margin="normal"
+								value={patronymicField.value}
+								onChange={patronymicField.onChange}
+								InputProps={{ startAdornment: <Person sx={{ color: 'action.active', mr: 1 }} /> }}
+							/>
 							<TextField
 								fullWidth
 								label="Телефон"
@@ -194,6 +231,26 @@ export default function Auth() {
 								InputProps={{ startAdornment: <School sx={{ color: 'action.active', mr: 1 }} /> }}
 								helperText={groupField.error || 'Пример: 230б, 133б-а, 2-11б'}
 							/>
+							<TextField
+								fullWidth
+								label="Номер студенческого"
+								margin="normal"
+								value={studentIdField.value}
+								onChange={studentIdField.onChange}
+								InputProps={{ startAdornment: <Badge sx={{ color: 'action.active', mr: 1 }} /> }}
+							/>
+							<FormControl fullWidth margin="normal">
+								<InputLabel>Факультет</InputLabel>
+								<Select
+									value={facultyField.value}
+									onChange={facultyField.onChange}
+									label="Факультет"
+								>
+									{FACULTIES.map((f) => (
+										<MenuItem key={f} value={f}>{f}</MenuItem>
+									))}
+								</Select>
+							</FormControl>
 						</>
 					)}
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { ListItem, Avatar, Typography, Box, CircularProgress } from '@mui/material';
 import useProfile from '@hooks/useProfile';
 import { useNavigate } from 'react-router-dom';
+import { formatName, getInitials } from '@utils/formatName';
 
 const ProfileSection = () => {
     const {
@@ -19,23 +20,16 @@ const ProfileSection = () => {
         }
     };
 
-    // Получаем первую букву для аватара
     const getAvatarContent = () => {
         if (userData?.avatarUrl) return null;
-        if (userData) {
-            return userData.fullName?.charAt(0)?.toUpperCase() ||
-                userData.email?.charAt(0)?.toUpperCase() || 'П';
-        }
-        return 'Г';
+        return getInitials(userData);
     };
 
-    // Определяем отображаемое имя
     const getDisplayName = () => {
         if (!userData) return 'Гость';
-        return userData.fullName || userData.email?.split('@')[0] || 'Пользователь';
+        return formatName(userData) || userData.email?.split('@')[0] || 'Пользователь';
     };
 
-    // Получаем иконку для типа аккаунта
     const renderAccountTypeIcon = () => {
         if (!userData?.accountType) return null;
         const Icon = getAccountTypeIcon(userData.accountType);
@@ -45,16 +39,15 @@ const ProfileSection = () => {
         });
     };
 
-    // Получаем текст роли и группы
     const getRoleText = () => {
         if (!userData) return 'Гостевой режим';
-
         const role = getAccountTypeLabel(userData.accountType);
-
         if (userData.accountType === 'student' && userData.studentGroup) {
             return `${role}, ${userData.studentGroup}`;
         }
-
+        if (userData.position) {
+            return `${role}, ${userData.position}`;
+        }
         return role;
     };
 

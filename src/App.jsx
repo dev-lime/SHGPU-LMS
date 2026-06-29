@@ -34,6 +34,7 @@ import Favorites from '@pages/more/Favorites';
 import { useNotifications } from '@hooks/useNotifications';
 import useAuthState from '@hooks/useAuthState';
 import useThemeConfig from '@hooks/useThemeConfig';
+import useLastOnline from '@hooks/useLastOnline';
 
 const MainLayout = ({
 	children,
@@ -189,6 +190,7 @@ export default function App() {
 	});
 
 	useNotifications(user);
+	useLastOnline(user);
 
 	const tabs = [
 		{ label: "Новости", icon: <Article />, path: "/news", component: <News /> },

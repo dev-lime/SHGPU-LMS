@@ -14,8 +14,8 @@ import {
 export const ACCOUNT_TYPES = {
     student: { value: 'student', label: 'Студент', icon: <StudentIcon color="primary" /> },
     teacher: { value: 'teacher', label: 'Преподаватель', icon: <TeacherIcon color="primary" /> },
-    admin: { value: 'admin', label: 'Администратор', icon: <AdminIcon color="primary" /> },
-    support: { value: 'support', label: 'Техподдержка', icon: <SupportIcon color="primary" /> }
+    employee: { value: 'employee', label: 'Сотрудник', icon: <SupportIcon color="primary" /> },
+    admin: { value: 'admin', label: 'Администратор', icon: <AdminIcon color="primary" /> }
 };
 
 const useProfile = (userId = null) => {

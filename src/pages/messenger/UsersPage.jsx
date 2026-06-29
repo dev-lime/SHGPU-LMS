@@ -16,6 +16,7 @@ import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import SearchBar from '@components/SearchBar';
 import { createOrGetChat } from '@services/chatService';
+import { formatName, getInitials } from '@utils/formatName';
 
 const ACCOUNT_TYPES = {
     student: {
@@ -25,11 +26,11 @@ const ACCOUNT_TYPES = {
     teacher: {
         label: 'Преподаватель'
     },
+    employee: {
+        label: 'Сотрудник'
+    },
     admin: {
         label: 'Администратор'
-    },
-    support: {
-        label: 'Поддержка'
     }
 };
 
@@ -49,7 +50,7 @@ export default function UsersPage() {
                 if (searchQuery.length === 0) {
                     usersQuery = query(
                         collection(db, 'users'),
-                        where('fullName', '!=', ''),
+                        where('lastName', '!=', ''),
                         limit(10)
                     );
                 } else if (searchQuery.length === 1) {
@@ -59,8 +60,8 @@ export default function UsersPage() {
                 } else {
                     usersQuery = query(
                         collection(db, 'users'),
-                        where('fullName', '>=', searchQuery),
-                        where('fullName', '<=', searchQuery + '\uf8ff'),
+                        where('lastName', '>=', searchQuery),
+                        where('lastName', '<=', searchQuery + '\uf8ff'),
                         limit(10)
                     );
                 }
@@ -71,8 +72,9 @@ export default function UsersPage() {
                     ...doc.data()
                 })).filter(user => user.id !== auth.currentUser?.uid);
 
+                const displayName = (user) => formatName(user).toLowerCase();
                 const filteredUsers = usersData.filter(user =>
-                    user.fullName.toLowerCase().includes(searchQuery.toLowerCase())
+                    displayName(user).includes(searchQuery.toLowerCase())
                 );
                 setUsers(filteredUsers);
             } catch (error) {
@@ -99,151 +101,89 @@ export default function UsersPage() {
     return (
         <Box
             sx={{
-                height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                p: 2
+                height: '100%',
+                overflow: 'hidden',
+                p: 3,
             }}
         >
-            {/* Заголовок с кнопкой назад */}
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <IconButton onClick={() => navigate(-1)} sx={{ mr: 1 }}>
-                    <ArrowBack color='primary' />
+                <IconButton onClick={() => navigate(-1)} sx={{ mr: 1, color: 'primary.main' }}>
+                    <ArrowBack />
                 </IconButton>
-                <Typography variant="h6" fontWeight="bold">
+                <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
                     Пользователи
                 </Typography>
             </Box>
-
             <SearchBar
-                placeholder="Поиск пользователей"
+                placeholder="Поиск пользователей..."
                 value={searchQuery}
                 onChange={setSearchQuery}
                 autoFocus={autoFocusSearch}
+                sx={{ mb: 3 }}
             />
-
             {loading ? (
-                <Box sx={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    flex: 1
-                }}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', pt: 5 }}>
                     <CircularProgress />
                 </Box>
+            ) : users.length === 0 ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', pt: 5 }}>
+                    <Typography variant="body1" color="text.secondary">
+                        Пользователи не найдены
+                    </Typography>
+                </Box>
             ) : (
-                <>
-                    <UserList
-                        users={users}
-                        onUserClick={createChat}
-                    />
-                    {searchQuery.length === 1 && (
-                        <Box sx={{
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            p: 2,
-                            color: 'text.secondary',
-                            flex: 1
-                        }}>
-                            <Typography variant="body2">
-                                Введите минимум 2 символа для поиска
-                            </Typography>
-                        </Box>
-                    )}
-                </>
+                <List sx={{ flex: 1, overflowY: 'auto' }}>
+                    {users.map((user) => {
+                        const accountType = user.accountType || 'student';
+                        const typeConfig = ACCOUNT_TYPES[accountType] || { label: accountType };
+                        return (
+                            <ListItem
+                                key={user.id}
+                                sx={{
+                                    borderRadius: 2,
+                                    mb: 0.5,
+                                    '&:hover': {
+                                        backgroundColor: 'action.hover',
+                                    },
+                                }}
+                                secondaryAction={
+                                    <Button
+                                        variant="contained"
+                                        size="small"
+                                        startIcon={<Send />}
+                                        onClick={() => createChat(user.id)}
+                                        sx={{
+                                            borderRadius: '50px',
+                                            textTransform: 'none',
+                                            px: 2,
+                                            fontWeight: 500,
+                                            fontSize: '0.8rem',
+                                        }}
+                                    >
+                                        Написать
+                                    </Button>
+                                }
+                            >
+                                <ListItemAvatar>
+                                    <Avatar src={user.avatarUrl} sx={{ bgcolor: 'primary.main' }}>
+                                        {getInitials(user)}
+                                    </Avatar>
+                                </ListItemAvatar>
+                                <Box sx={{ ml: 1.5 }}>
+                                    <Typography variant="body1" sx={{ fontWeight: 500, lineHeight: 1.3 }}>
+                                        {formatName(user)}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.3 }}>
+                                        {typeConfig.getDescription ? typeConfig.getDescription(user) : typeConfig.label}
+                                    </Typography>
+                                </Box>
+                            </ListItem>
+                        );
+                    })}
+                </List>
             )}
         </Box>
     );
 }
-
-const UserList = ({ users, onUserClick }) => {
-    const navigate = useNavigate();
-
-    const handleUserClick = (userId) => {
-        navigate(`/user/${userId}`);
-    };
-
-    const handleChatButtonClick = (userId, e) => {
-        e.stopPropagation();
-        onUserClick(userId);
-    };
-
-    const getRoleDescription = (user) => {
-        const accountType = user.accountType || 'student';
-        const typeConfig = ACCOUNT_TYPES[accountType] || { label: accountType };
-
-        if (typeof typeConfig.getDescription === 'function') {
-            return typeConfig.getDescription(user);
-        }
-        return typeConfig.label;
-    };
-
-    if (users.length === 0) {
-        return (
-            <Box sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: '100%',
-                color: 'text.secondary'
-            }}>
-                <Typography variant="body1">Пользователи не найдены</Typography>
-            </Box>
-        );
-    }
-
-    return (
-        <List sx={{ flex: 1, overflow: 'auto' }}>
-            {users.map((user) => (
-                <React.Fragment key={user.id}>
-                    <ListItem
-                        component="div"
-                        onClick={() => handleUserClick(user.id)}
-                        sx={{
-                            px: 1,
-                            borderRadius: 1,
-                            '&:hover': { backgroundColor: 'action.hover' },
-                            '&.Mui-selected, &:focus': { outline: 'none' },
-                            backgroundColor: 'transparent',
-                            width: '100%',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                            <ListItemAvatar>
-                                <Avatar src={user.avatarUrl} sx={{ bgcolor: 'primary.main' }}>
-                                    {user.fullName?.charAt(0)}
-                                </Avatar>
-                            </ListItemAvatar>
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Typography noWrap fontWeight="medium">
-                                    {user.fullName}
-                                </Typography>
-                                <Typography noWrap variant="body2" color="text.secondary">
-                                    {getRoleDescription(user)}
-                                </Typography>
-                            </Box>
-                        </Box>
-                        <IconButton
-                            onClick={(e) => handleChatButtonClick(user.id, e)}
-                            size="medium"
-                            sx={{
-                                ml: 1,
-                                '&:hover': {
-                                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                    color: 'primary.main'
-                                }
-                            }}
-                        >
-                            <Send fontSize="medium" color="primary" />
-                        </IconButton>
-                    </ListItem>
-                </React.Fragment>
-            ))}
-        </List>
-    );
-};

@@ -62,6 +62,7 @@ import useMessageDisplay, {
     formatMessageDate,
     getUserRoleText
 } from '@hooks/useMessageDisplay';
+import { formatName, getInitials } from '@utils/formatName';
 
 const ReactMarkdown = lazy(() => import('react-markdown'));
 const AttachmentPanel = lazy(() => import('@components/AttachmentPanel'));
@@ -169,7 +170,7 @@ const MessageItem = React.memo(({
                                             src={otherUser?.avatarUrl || ''}
                                             sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}
                                         >
-                                            {otherUser?.fullName?.charAt?.(0) || ''}
+                                            {getInitials(otherUser)}
                                         </Avatar>
                                     </IconButton>
                                 )}
@@ -467,7 +468,7 @@ export default function Chat() {
         } else {
             const senderName = message.sender === uid
                 ? (auth.currentUser.displayName || 'Вы')
-                : (otherUser?.fullName || 'Пользователь');
+                : formatName(otherUser) || 'Пользователь';
             await setDoc(ref, {
                 type: 'message',
                 messageId: message.id,
@@ -475,7 +476,7 @@ export default function Chat() {
                 text: message.text,
                 senderId: message.sender,
                 senderName: senderName,
-                chatName: otherUser?.fullName || 'Пользователь',
+                chatName: formatName(otherUser) || 'Пользователь',
                 messageTimestamp: message.timestamp,
                 savedAt: serverTimestamp()
             });
@@ -584,7 +585,7 @@ export default function Chat() {
                                 startIcon={
                                     <Avatar src={otherUser.avatarUrl || ''}
                                         sx={{ width: 40, height: 40, bgcolor: 'primary.main' }}>
-                                        {otherUser.fullName?.charAt?.(0) || ''}
+                                        {getInitials(otherUser)}
                                     </Avatar>
                                 }
                                 sx={{
@@ -600,7 +601,7 @@ export default function Chat() {
                                 }}>
                                     <Typography variant="h6" noWrap
                                         sx={{ textOverflow: 'ellipsis', overflow: 'hidden', lineHeight: 1.2 }}>
-                                        {otherUser.fullName || 'Пользователь'}
+                                        {formatName(otherUser) || 'Пользователь'}
                                     </Typography>
                                     {otherUser?.accountType && (
                                         <Typography variant="caption" color="text.secondary" noWrap

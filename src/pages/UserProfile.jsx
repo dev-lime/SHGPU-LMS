@@ -44,7 +44,8 @@ import {
     Link as LinkIcon,
     CloudUpload,
     MoreVert,
-    Lock
+    Lock,
+	Badge
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -67,10 +68,11 @@ import {
     getGroupError,
     normalizeGroupName,
     getImageUrlError,
-    getUserNameError,
     validateEmail,
     getPasswordError
 } from '@utils/validators';
+import { formatName, getInitials } from '@utils/formatName';
+import { FACULTIES } from '@constants/faculties';
 
 const UserProfile = () => {
     const { userId } = useParams();
@@ -91,8 +93,9 @@ const UserProfile = () => {
 
     const [editMode, setEditMode] = useState(false);
     const [formData, setFormData] = useState({
-        fullName: '', phone: '', studentGroup: '', accountType: 'student',
-        telegramUrl: '', avatarUrl: '', email: '',
+        lastName: '', firstName: '', patronymic: '', phone: '', studentGroup: '',
+        accountType: 'student', telegramUrl: '', avatarUrl: '', email: '',
+        faculty: '', department: '', position: '', studentId: '',
         currentPassword: '', newPassword: '', confirmPassword: '', newEmail: ''
     });
     const [uploading, setUploading] = useState(false);
@@ -104,7 +107,6 @@ const UserProfile = () => {
     const [anchorEl, setAnchorEl] = useState(null);
     const [securityTab, setSecurityTab] = useState(0);
 
-    const nameField = useField('', getUserNameError);
     const phoneField = useField('', getPhoneError);
     const groupField = useField('', getGroupError);
     const telegramField = useField('', getTelegramError);
@@ -116,13 +118,19 @@ const UserProfile = () => {
         if (profile && isOwnProfile) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setFormData({
-                fullName: profile.fullName || '',
+                lastName: profile.lastName || '',
+                firstName: profile.firstName || '',
+                patronymic: profile.patronymic || '',
                 phone: profile.phone || '',
                 studentGroup: profile.studentGroup || '',
                 accountType: profile.accountType || 'student',
                 telegramUrl: profile.telegramUrl || '',
                 avatarUrl: profile.avatarUrl || '',
                 email: profile.email || '',
+                faculty: profile.faculty || '',
+                department: profile.department || '',
+                position: profile.position || '',
+                studentId: profile.studentId || '',
                 currentPassword: '', newPassword: '', confirmPassword: '',
                 newEmail: profile.email || ''
             });
@@ -132,11 +140,6 @@ const UserProfile = () => {
     const handleInputChange = useCallback((field) => (e) => {
         setFormData(prev => ({ ...prev, [field]: e.target.value }));
     }, []);
-
-    const handleNameChange = useCallback((e) => {
-        nameField.onChange(e);
-        setFormData(prev => ({ ...prev, fullName: e.target.value }));
-    }, [nameField]);
 
     const handlePhoneChange = useCallback((e) => {
         phoneField.onChange(e);
@@ -259,7 +262,7 @@ const UserProfile = () => {
     };
 
     const handleSaveChanges = useCallback(async () => {
-        if (nameField.error || phoneField.error || groupField.error || telegramField.error) return;
+        if (phoneField.error || groupField.error || telegramField.error) return;
 
         try {
             let formattedTelegramUrl = formData.telegramUrl;
@@ -270,19 +273,25 @@ const UserProfile = () => {
             const groupId = normalizedGroup ? await getGroupId(normalizedGroup) : null;
 
             await updateUserData({
-                fullName: formData.fullName,
+                lastName: formData.lastName,
+                firstName: formData.firstName,
+                patronymic: formData.patronymic,
                 phone: formData.phone,
                 studentGroup: normalizedGroup,
                 groupId,
                 accountType: formData.accountType,
                 telegramUrl: formattedTelegramUrl,
-                avatarUrl: formData.avatarUrl || null
+                avatarUrl: formData.avatarUrl || null,
+                faculty: formData.faculty,
+                department: formData.department,
+                position: formData.position,
+                studentId: formData.studentId
             });
             setEditMode(false);
         } catch (err) {
             console.error("Ошибка сохранения:", err);
         }
-    }, [formData, nameField.error, phoneField.error, groupField.error, telegramField.error, updateUserData]);
+    }, [formData, phoneField.error, groupField.error, telegramField.error, updateUserData]);
 
     const formatTimestamp = (timestamp) => {
         if (!timestamp) return 'Не указана';
@@ -376,7 +385,7 @@ const UserProfile = () => {
                                     color: 'primary.contrastText', boxShadow: theme.shadows[2]
                                 }}
                                 onClick={() => { setAvatarUrlInput(formData.avatarUrl || ''); avatarDialog.handleOpen(); }}>
-                                {formData.fullName.charAt(0) || 'U'}
+                                {(formData.lastName?.[0] || formData.firstName?.[0] || 'U')}
                             </Avatar>
                             {formData.avatarUrl && (
                                 <Button variant="outlined" color="error" size="small"
@@ -390,19 +399,17 @@ const UserProfile = () => {
                             </Typography>
                         </Box>
 
-                        <TextField fullWidth label="ФИО" margin="normal" value={formData.fullName}
-                            onChange={handleNameChange} error={!!nameField.error} helperText={nameField.error} required />
+                        <TextField fullWidth label="Фамилия" margin="normal" value={formData.lastName}
+                            onChange={handleInputChange('lastName')} required />
+                        <TextField fullWidth label="Имя" margin="normal" value={formData.firstName}
+                            onChange={handleInputChange('firstName')} required />
+                        <TextField fullWidth label="Отчество" margin="normal" value={formData.patronymic}
+                            onChange={handleInputChange('patronymic')} />
 
                         <TextField fullWidth label="Телефон" margin="normal" value={formData.phone}
                             onChange={handlePhoneChange} error={!!phoneField.error}
                             InputProps={{ startAdornment: <Phone color="primary" /> }} />
                         {phoneField.error && <FormHelperText error>{phoneField.error}</FormHelperText>}
-
-                        <TextField fullWidth label="Группа (если студент)" margin="normal"
-                            value={formData.studentGroup} onChange={handleGroupChange}
-                            error={!!groupField.error} disabled={formData.accountType !== 'student'}
-                            InputProps={{ startAdornment: <School color="primary" /> }}
-                            helperText={groupField.error || 'Пример: 230б, 133б-а, 2-11б'} />
 
                         <FormControl fullWidth margin="normal">
                             <InputLabel>Тип аккаунта</InputLabel>
@@ -418,6 +425,46 @@ const UserProfile = () => {
                             </Select>
                         </FormControl>
 
+                        {formData.accountType === 'student' && (
+                            <>
+                                <TextField fullWidth label="Группа" margin="normal"
+                                    value={formData.studentGroup} onChange={handleGroupChange}
+                                    error={!!groupField.error}
+                                    InputProps={{ startAdornment: <School color="primary" /> }}
+                                    helperText={groupField.error || 'Пример: 230б, 133б-а, 2-11б'} />
+                                <TextField fullWidth label="Номер студенческого" margin="normal"
+                                    value={formData.studentId} onChange={handleInputChange('studentId')}
+                                    InputProps={{ startAdornment: <Badge color="primary" /> }} />
+                                <FormControl fullWidth margin="normal">
+                                    <InputLabel>Факультет</InputLabel>
+                                    <Select value={formData.faculty} onChange={handleInputChange('faculty')}
+                                        label="Факультет">
+                                        {FACULTIES.map((f) => (
+                                            <MenuItem key={f} value={f}>{f}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </>
+                        )}
+
+                        {(formData.accountType === 'teacher' || formData.accountType === 'employee') && (
+                            <>
+                                <FormControl fullWidth margin="normal">
+                                    <InputLabel>Факультет</InputLabel>
+                                    <Select value={formData.faculty} onChange={handleInputChange('faculty')}
+                                        label="Факультет">
+                                        {FACULTIES.map((f) => (
+                                            <MenuItem key={f} value={f}>{f}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                <TextField fullWidth label="Кафедра / Отдел" margin="normal"
+                                    value={formData.department} onChange={handleInputChange('department')} />
+                                <TextField fullWidth label="Должность" margin="normal"
+                                    value={formData.position} onChange={handleInputChange('position')} />
+                            </>
+                        )}
+
                         <TextField fullWidth label="Telegram" margin="normal" value={formData.telegramUrl}
                             onChange={handleTelegramChange} error={!!telegramField.error}
                             InputProps={{ startAdornment: <Telegram color="primary" /> }}
@@ -429,7 +476,7 @@ const UserProfile = () => {
                                 Отмена
                             </Button>
                             <Button fullWidth variant="contained" onClick={handleSaveChanges}
-                                disabled={loading || !!nameField.error || !!phoneField.error || !!groupField.error || !!telegramField.error}>
+                                disabled={loading || !!phoneField.error || !!groupField.error || !!telegramField.error}>
                                 {loading ? <CircularProgress size={24} /> : 'Сохранить'}
                             </Button>
                         </Box>
@@ -439,16 +486,16 @@ const UserProfile = () => {
                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4, textAlign: 'center' }}>
                             <Avatar src={profile.avatarUrl}
                                 sx={{ width: 96, height: 96, mb: 2, bgcolor: 'primary.main', color: 'primary.contrastText', fontSize: '2.5rem', boxShadow: theme.shadows[2] }}>
-                                {profile.fullName?.charAt(0)}
+                                {getInitials(profile)}
                             </Avatar>
                             <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, color: 'text.primary' }}>
-                                {profile.fullName}
+                                {formatName(profile)}
                             </Typography>
                             <Chip icon={roleConfig.icon} label={roleConfig.label} size="small"
                                 sx={{ bgcolor: 'background.paper', mb: 2 }} />
-                            {profile.bio && (
+                            {profile.position && (
                                 <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: '400px', mb: 2 }}>
-                                    {profile.bio}
+                                    {profile.position}
                                 </Typography>
                             )}
                             {!isOwnProfile && (
@@ -477,12 +524,44 @@ const UserProfile = () => {
                             </List>
                         </Paper>
 
-                        {profile.accountType === 'student' && profile.studentGroup && (
+                        {profile.accountType === 'student' && (
                             <Paper elevation={0} sx={{ mb: 3, bgcolor: 'background.paper', borderRadius: '12px', overflow: 'hidden' }}>
                                 <List disablePadding>
                                     <ListItem><ListItemIcon sx={{ minWidth: 36 }}><School color="primary" /></ListItemIcon>
-                                        <ListItemText primary="Учебная группа" secondary={profile.studentGroup} />
+                                        <ListItemText primary="Учебная группа" secondary={profile.studentGroup || 'Не указана'} />
                                     </ListItem>
+                                    {profile.studentId && (
+                                        <ListItem><ListItemIcon sx={{ minWidth: 36 }}><School color="primary" /></ListItemIcon>
+                                            <ListItemText primary="Номер студенческого" secondary={profile.studentId} />
+                                        </ListItem>
+                                    )}
+                                    {profile.faculty && (
+                                        <ListItem><ListItemIcon sx={{ minWidth: 36 }}><School color="primary" /></ListItemIcon>
+                                            <ListItemText primary="Факультет" secondary={profile.faculty} />
+                                        </ListItem>
+                                    )}
+                                </List>
+                            </Paper>
+                        )}
+
+                        {(profile.accountType === 'teacher' || profile.accountType === 'employee') && (
+                            <Paper elevation={0} sx={{ mb: 3, bgcolor: 'background.paper', borderRadius: '12px', overflow: 'hidden' }}>
+                                <List disablePadding>
+                                    {profile.faculty && (
+                                        <ListItem><ListItemIcon sx={{ minWidth: 36 }}><School color="primary" /></ListItemIcon>
+                                            <ListItemText primary="Факультет" secondary={profile.faculty} />
+                                        </ListItem>
+                                    )}
+                                    {profile.department && (
+                                        <ListItem><ListItemIcon sx={{ minWidth: 36 }}><School color="primary" /></ListItemIcon>
+                                            <ListItemText primary="Кафедра / Отдел" secondary={profile.department} />
+                                        </ListItem>
+                                    )}
+                                    {profile.position && (
+                                        <ListItem><ListItemIcon sx={{ minWidth: 36 }}><School color="primary" /></ListItemIcon>
+                                            <ListItemText primary="Должность" secondary={profile.position} />
+                                        </ListItem>
+                                    )}
                                 </List>
                             </Paper>
                         )}

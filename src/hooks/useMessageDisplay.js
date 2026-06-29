@@ -46,12 +46,17 @@ export const getUserRoleText = (user) => {
 	if (user.accountType === 'student') {
 		return user.studentGroup ? `Студент, ${user.studentGroup}` : 'Студент';
 	}
-	return {
-		teacher: 'Преподаватель',
-		admin: 'Администратор',
-		support: 'Техподдержка'
-	}[user.accountType] || '';
+	if (user.accountType === 'teacher' || user.accountType === 'employee') {
+		return user.position ? `${roleLabel(user.accountType)}, ${user.position}` : roleLabel(user.accountType);
+	}
+	return roleLabel(user.accountType) || '';
 };
+
+const roleLabel = (type) => ({
+	teacher: 'Преподаватель',
+	employee: 'Сотрудник',
+	admin: 'Администратор'
+})[type] || type;
 
 const useMessageDisplay = (messages) => {
 	const currentUserId = auth.currentUser?.uid;

@@ -23,34 +23,38 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// Функция для регистрации с дополнительными данными
 const registerWithProfile = async (email, password, profileData) => {
     try {
-        // Создаем пользователя
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-        // Форматируем Telegram URL
         let telegramUrl = profileData.telegramUrl;
         if (telegramUrl && !telegramUrl.startsWith('https://t.me/')) {
             telegramUrl = `https://t.me/${telegramUrl.replace(/^@/, '')}`;
         }
 
-        // Сохраняем данные в Firestore
+        const displayName = [profileData.lastName, profileData.firstName, profileData.patronymic].filter(Boolean).join(' ');
+
         await setDoc(doc(db, 'users', userCredential.user.uid), {
-            fullName: profileData.fullName,
+            lastName: profileData.lastName || '',
+            firstName: profileData.firstName || '',
+            patronymic: profileData.patronymic || '',
             email,
-            phone: profileData.phone,
-            studentGroup: profileData.studentGroup,
-            accountType: profileData.accountType,
-            telegramUrl,
+            phone: profileData.phone || '',
+            studentGroup: profileData.studentGroup || '',
+            accountType: profileData.accountType || 'student',
+            faculty: profileData.faculty || '',
+            department: profileData.department || '',
+            position: profileData.position || '',
+            studentId: profileData.studentId || '',
+            telegramUrl: telegramUrl || '',
             avatarUrl: profileData.avatarUrl || null,
+            schemaVersion: 2,
             createdAt: new Date(),
             updatedAt: new Date()
         });
 
-        // Обновляем профиль в Auth
         await updateProfile(userCredential.user, {
-            displayName: profileData.fullName,
+            displayName,
             photoURL: profileData.avatarUrl || null
         });
 
