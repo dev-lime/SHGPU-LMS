@@ -26,20 +26,10 @@ jobs:
       - name: Parse schedule
         run: node src/pages/schedule/scheduleParser.js
 
-      - name: Commit changes
+      - name: Commit and push
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add -A
           git diff --cached --quiet || git commit -m "Auto-refresh news and schedule data"
           git push
-
-      - name: Build frontend
-        run: npm run build
-
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SHGPU_LMS }}
-          channelId: live
-          projectId: shgpu-lms
