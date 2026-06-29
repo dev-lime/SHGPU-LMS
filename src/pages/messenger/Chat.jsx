@@ -316,7 +316,9 @@ export default function Chat() {
     const [isAttachmentPanelOpen, setIsAttachmentPanelOpen] = useState(false);
     const [bookmarkedMessages, setBookmarkedMessages] = useState({});
     const bookmarkedMessagesRef = useRef(bookmarkedMessages);
-    bookmarkedMessagesRef.current = bookmarkedMessages;
+    useEffect(() => {
+        bookmarkedMessagesRef.current = bookmarkedMessages;
+    }, [bookmarkedMessages]);
     const scrollToMessageRef = useRef(location.state?.scrollToMessage || null);
     const cameFromFavoritesRef = useRef(!!location.state?.scrollToMessage);
 
@@ -404,7 +406,7 @@ export default function Chat() {
         if (location.state?.scrollToMessage) {
             window.history.replaceState({}, document.title);
         }
-    }, []);
+    }, [location.state?.scrollToMessage]);
 
     useEffect(() => {
         if (!scrollToMessageRef.current || messages.length === 0) return;

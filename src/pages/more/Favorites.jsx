@@ -22,11 +22,12 @@ export default function Favorites() {
     const [favorites, setFavorites] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    if (!auth.currentUser && loading) {
+        setLoading(false);
+    }
+
     useEffect(() => {
-        if (!auth.currentUser) {
-            setLoading(false);
-            return;
-        }
+        if (!auth.currentUser) return;
         const q = query(
             collection(db, 'users', auth.currentUser.uid, 'favorites')
         );
